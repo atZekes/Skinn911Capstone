@@ -1,0 +1,131 @@
+┌─────────────────────────────────────────────────┐
+│         MOBILE ZOOM CALENDAR FLOW               │
+└─────────────────────────────────────────────────┘
+
+LEVEL 1: MONTH VIEW (Weeks)
+┌────────────────────────────────────────────┐
+│  [← Back]    Select a Week                 │
+├────────────────────────────────────────────┤
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │  Week 1                          │ →   │ ← Tap to zoom in
+│  │  Oct 20 - Oct 26                 │     │
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │  Week 2                          │ →   │
+│  │  Oct 27 - Nov 2                  │     │
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │  Week 3                          │ →   │
+│  │  Nov 3 - Nov 9                   │     │
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │  Week 4                          │ →   │
+│  │  Nov 10 - Nov 16                 │     │
+│  └──────────────────────────────────┘     │
+│                                            │
+└────────────────────────────────────────────┘
+              │ (User taps Week 2)
+              ▼ ZOOM IN ANIMATION
+
+LEVEL 2: WEEK VIEW (Days)
+┌────────────────────────────────────────────┐
+│  [← Back to Weeks]    Week 2               │
+├────────────────────────────────────────────┤
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ Monday              Oct 27       │     │
+│  │ 5 slots available            →   │     │ ← Green indicator
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ Tuesday             Oct 28       │     │
+│  │ 2 slots available            →   │     │ ← Tap to view slots
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ Wednesday           Oct 29       │     │
+│  │ Fully Booked                     │     │ ← Red indicator
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ Thursday            Oct 30       │     │
+│  │ 8 slots available            →   │     │
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ... (Friday, Saturday, Sunday)            │
+│                                            │
+└────────────────────────────────────────────┘
+              │ (User taps Tuesday)
+              ▼ ZOOM IN ANIMATION
+
+LEVEL 3: DAY VIEW (Time Slots)
+┌────────────────────────────────────────────┐
+│  [← Back to Days]  Tuesday, Oct 28         │
+├────────────────────────────────────────────┤
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ 9:00AM - 10:00AM                 │     │
+│  │            [  3 left | Book Now  ]│     │ ← Available (green)
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ 10:00AM - 11:00AM                │     │
+│  │            [  1 left | Book Now  ]│     │ ← Last slot!
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ 11:00AM - 12:00PM                │     │
+│  │                   [  Full  ]     │     │ ← Full (gray)
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ┌──────────────────────────────────┐     │
+│  │ 12:00PM - 1:00PM                 │     │
+│  │            [  5 left | Book Now  ]│     │ ← Available
+│  └──────────────────────────────────┘     │
+│                                            │
+│  ... (more time slots)                     │
+│                                            │
+└────────────────────────────────────────────┘
+              │ (User taps "Book Now")
+              ▼ NAVIGATE TO BOOKING FORM
+
+
+═══════════════════════════════════════════════
+KEY INTERACTIONS
+═══════════════════════════════════════════════
+
+🔄 ZOOM IN
+  • Tap on week card → Animates to day view
+  • Tap on day card → Animates to time slot view
+  • Scale animation (0.8 → 1.0, opacity fade)
+
+🔙 ZOOM OUT
+  • Back button always visible (except on month view)
+  • Returns to previous level
+  • Reverse animation (1.0 → 1.2, opacity fade)
+
+✨ VISUAL FEEDBACK
+  • Active state on tap (scale down slightly)
+  • Border color change on selection
+  • Arrow animation (slides right)
+  • Disabled state for unavailable options
+
+📱 TOUCH OPTIMIZATION
+  • 44px+ minimum touch targets
+  • Large tap areas for cards
+  • Visual press feedback
+  • No hover states (mobile-first)
+
+═══════════════════════════════════════════════
+RESPONSIVE BEHAVIOR
+═══════════════════════════════════════════════
+
+Mobile (< 768px)    → ZOOM CALENDAR ✓
+Tablet (768-1200px) → HORIZONTAL GRID
+Desktop (> 1200px)  → HORIZONTAL GRID
+
+═══════════════════════════════════════════════

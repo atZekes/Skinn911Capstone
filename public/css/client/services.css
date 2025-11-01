@@ -1,0 +1,222 @@
+/* Styles for client services page
+   Simple, clear selectors and comments.
+*/
+
+/* Carousel layout */
+.services-carousel {
+  position: relative;
+  width: 100%;
+  overflow: visible; /* Changed from hidden to allow scrolling */
+  min-height: 380px;
+}
+
+.carousel-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 24px;
+  /* Enable native horizontal scrolling on all screen sizes for better mobile experience */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; /* smooth momentum on iOS */
+  scroll-behavior: smooth;
+  /* Add padding to prevent cards from touching edges */
+  padding: 0 16px;
+  /* Enable touch scrolling */
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  /* Ensure it can receive pointer events */
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.carousel-container:active {
+  cursor: grabbing;
+}
+
+/* Hide scrollbar but keep functionality */
+.carousel-container::-webkit-scrollbar {
+  height: 12px; /* Make it bigger and more visible */
+  display: block;
+}
+
+.carousel-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 6px;
+  margin: 0 16px;
+}
+
+.carousel-container::-webkit-scrollbar-thumb {
+  background: rgba(245, 98, 137, 0.6);
+  border-radius: 6px;
+  border: 2px solid #f0f0f0;
+}
+
+.carousel-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 98, 137, 0.8);
+}
+
+/* For mobile, make scrollbar even more visible */
+@media (max-width: 767px) {
+  .carousel-container::-webkit-scrollbar {
+    height: 16px; /* Even bigger on mobile */
+  }
+
+  .carousel-container::-webkit-scrollbar-thumb {
+    background: #F56289;
+    border: 3px solid #f0f0f0;
+  }
+}
+
+/* Mobile: hide arrow buttons (we rely on native scroll) */
+@media (max-width: 767px) {
+  .carousel-nav { display: none !important; }
+
+  .services-carousel {
+    overflow: visible !important;
+  }
+
+  .carousel-container {
+    /* Ensure smooth scrolling on mobile */
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory;
+    padding: 0 12px;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+  }
+
+  .service-card {
+    scroll-snap-align: start;
+    touch-action: pan-x;
+  }
+}
+
+/* Tablet: ensure scrolling works */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .services-carousel {
+    overflow: visible !important;
+  }
+
+  .carousel-container {
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+  }
+}
+
+/* Remove arrow buttons on desktop too when requested - hide them everywhere */
+.carousel-nav { display: none !important; }
+
+.service-card-client.service-card,
+.service-card {
+  box-sizing: border-box;
+  margin: 0;
+  width: 320px !important;
+  min-width: 320px !important;
+  max-width: 320px !important;
+  height: 380px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(245,98,137,0.08), 0 1.5px 6px rgba(0,0,0,0.07);
+  position: relative;
+  overflow: visible;
+}
+
+.service-card-client .service-image img,
+.service-card .service-image img {
+  border-radius: 16px 16px 0 0;
+}
+
+.service-details {
+  box-shadow: 0 2px 12px rgba(245,98,137,0.08);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  word-break: break-word;
+  margin-bottom: 0.5rem;
+}
+
+.service-details p {
+  font-size: 1.35rem !important;
+  line-height: 1.6;
+  word-break: break-word;
+  margin-bottom: 0.5rem;
+}
+
+.service-details h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #F56289;
+}
+
+.service-details ul {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  color: #666;
+  padding-left: 18px;
+}
+
+.booking-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.book-now-btn {
+  display: inline-block;
+  text-align: center;
+  background: #F56289;
+  color: #fff;
+  font-size: 0.95rem;
+  border-radius: 6px;
+}
+
+.consultation-btn.back-btn {
+  border-radius: 6px;
+}
+
+.carousel-nav {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 1.5rem !important;
+  background: #F56289 !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.98;
+  transition: background 0.2s, color 0.2s;
+  z-index: 10;
+}
+
+.carousel-nav:hover {
+  background: #d13c6a !important;
+  color: #fff !important;
+  opacity: 1;
+}
+
+.category_filter .filter_btn {
+  border: 1px solid #F56289;
+  color: #F56289;
+  background: #fff;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.category_filter .filter_btn.active,
+.category_filter .filter_btn:hover {
+  background: #F56289;
+  color: #fff;
+}

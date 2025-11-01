@@ -1,0 +1,684 @@
+/* Branch Management - Hybrid Desktop Table + Mobile Cards */
+
+/* ========== BASE STYLES ========== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 15px;
+    width: 100%;
+}
+
+.ceo-mgmt-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(231,84,128,0.10);
+    padding: 3rem 2.5rem;
+    margin: 32px auto;
+    color: #e75480;
+    min-height: 400px;
+    width: 100%;
+}
+
+.ceo-mgmt-title {
+    color: #e75480;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+/* ========== DESKTOP TABLE STYLES ========== */
+.branches-table {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(231,84,128,0.07);
+    margin-top: 2rem;
+    overflow: hidden;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background: #ffe4ec;
+    color: #e75480;
+    font-weight: 700;
+    border: none;
+    padding: 1.2rem 1rem;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table tbody td {
+    border: none;
+    vertical-align: middle;
+    color: #e75480;
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 1.1rem;
+}
+
+.table tbody tr:hover {
+    background: #fff5f8;
+}
+
+.branch-name {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #e75480;
+}
+
+/* ========== HORIZONTAL BUTTON ALIGNMENT ========== */
+.actions-cell {
+    white-space: nowrap;
+    text-align: center;
+    min-width: 300px;
+}
+
+.btn-group-horizontal {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.btn-action {
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: capitalize;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-edit {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #138496;
+    transform: translateY(-1px);
+}
+
+.btn-disable {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-disable:hover {
+    background: #e0a800;
+    transform: translateY(-1px);
+}
+
+.btn-enable {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-enable:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.btn-map {
+    background: #17a2b8;
+    color: white;
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-map:hover {
+    background: #138496;
+}
+
+/* Status badges */
+.status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: #28a745;
+    color: white;
+}
+
+.status-inactive {
+    background: #dc3545;
+    color: white;
+}
+
+/* Add branch button in table */
+.add-branch-btn-table {
+    background: #e75480;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(231, 84, 128, 0.3);
+}
+
+.add-branch-btn-table:hover {
+    background: #d63d6f;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(231, 84, 128, 0.4);
+}
+
+.add-branch-row {
+    background: #f8f9ff;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* ========== MOBILE CARD VIEW ========== */
+.mobile-branch-cards {
+    padding: 20px 0;
+    display: block; /* Show by default for mobile */
+}
+
+/* Hide mobile cards on desktop only */
+@media (min-width: 1200px) {
+    .mobile-branch-cards {
+        display: none !important;
+    }
+
+    .branches-table {
+        display: block !important;
+    }
+}
+
+/* Show mobile cards on tablets and below */
+@media (max-width: 1199px) {
+    .branches-table {
+        display: none !important;
+    }
+
+    .mobile-branch-cards {
+        display: block !important;
+    }
+}
+
+.add-branch-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 2px dashed #e75480;
+    border-radius: 16px;
+    padding: 30px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-branch-card:hover {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    border-color: #d13c6a;
+    transform: translateY(-2px);
+}
+
+.add-branch-card i {
+    font-size: 3rem;
+    color: #e75480;
+    margin-bottom: 15px;
+}
+
+.add-branch-card h5 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.add-branch-card p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.branch-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(231, 84, 128, 0.15);
+    margin-bottom: 20px;
+    padding: 24px;
+    position: relative;
+    transform: translateY(-2px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(231, 84, 128, 0.1);
+}
+
+.branch-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(231, 84, 128, 0.25);
+}
+
+.branch-status-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.branch-status-badge.active {
+    background: #28a745;
+    color: white;
+}
+
+.branch-status-badge.inactive {
+    background: #dc3545;
+    color: white;
+}
+
+.branch-card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.branch-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e75480, #ff6b9d);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-right: 16px;
+    box-shadow: 0 4px 12px rgba(231, 84, 128, 0.3);
+}
+
+.branch-info h5 {
+    margin: 0 0 4px 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.branch-id {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.branch-details {
+    margin-bottom: 24px;
+}
+
+.branch-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.branch-detail-label {
+    font-weight: 600;
+    color: #495057;
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.branch-detail-value {
+    color: #6c757d;
+    text-align: right;
+    flex-grow: 1;
+    margin-left: 16px;
+    word-break: break-word;
+}
+
+.has-map {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.branch-map-btn {
+    background: #17a2b8;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.branch-map-btn:hover {
+    background: #138496;
+    transform: translateY(-1px);
+}
+
+.branch-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.branch-actions .btn-action {
+    flex: 1;
+    min-width: 80px;
+    max-width: 100px;
+    padding: 12px 8px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.3s ease;
+}
+
+.branch-actions .btn-action i {
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+
+/* ========== EMPTY STATES ========== */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(231,84,128,0.07);
+    margin-top: 2rem;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #e75480;
+    margin-bottom: 1rem;
+}
+
+.empty-state h4 {
+    color: #e75480;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+}
+
+.empty-state-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(231, 84, 128, 0.15);
+    padding: 40px 20px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.empty-state-card i {
+    font-size: 4rem;
+    color: #e75480;
+    margin-bottom: 20px;
+}
+
+.empty-state-card h5 {
+    color: #e75480;
+    font-weight: 600;
+    margin-bottom: 16px;
+    font-size: 1.3rem;
+}
+
+.empty-state-card p {
+    color: #6c757d;
+    margin-bottom: 24px;
+    font-size: 1rem;
+}
+
+/* ========== BUTTONS ========== */
+.btn-ceo {
+    background: #e75480;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-ceo:hover {
+    background: #d13c6a;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* ========== ANIMATIONS ========== */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========== LOADING OVERLAY ========== */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #e75480;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+/* Mobile and Tablet - Cards View (below 1200px) */
+@media (max-width: 1199px) {
+    .ceo-mgmt-card {
+        padding: 1.5rem 1rem;
+        margin: 15px auto;
+    }
+
+    .ceo-mgmt-title {
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+    }
+
+    .mobile-branch-cards {
+        display: block !important;
+    }
+
+    .branches-table {
+        display: none !important;
+    }
+}
+
+/* Desktop Only - Table View (1200px and above) */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1400px;
+        padding: 0 15px;
+    }
+
+    .ceo-mgmt-card {
+        padding: 3rem 2.5rem;
+        margin: 32px auto;
+        width: 100%;
+    }
+
+    .ceo-mgmt-title {
+        font-size: 2.5rem;
+        margin-bottom: 24px;
+    }
+
+    .branches-table {
+        display: block !important;
+    }
+
+    .mobile-branch-cards {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .ceo-mgmt-card {
+        padding: 1.5rem 0.75rem;
+        margin: 15px auto;
+        border-radius: 12px;
+    }
+
+    .ceo-mgmt-title {
+        font-size: 1.8rem;
+    }
+
+    .mobile-branch-cards {
+        padding: 15px 0;
+    }
+
+    .branch-card {
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .branch-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    .branch-info h5 {
+        font-size: 1.1rem;
+    }
+
+    .branch-actions .btn-action {
+        padding: 10px 6px;
+        font-size: 0.75rem;
+        min-width: 70px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ceo-mgmt-card {
+        padding: 1rem 0.5rem;
+        margin: 10px auto;
+    }
+
+    .ceo-mgmt-title {
+        font-size: 1.5rem;
+    }
+
+    .add-branch-card {
+        padding: 20px 15px;
+    }
+
+    .add-branch-card i {
+        font-size: 2.5rem;
+    }
+
+    .branch-card {
+        padding: 16px;
+    }
+
+    .branch-actions {
+        gap: 6px;
+    }
+
+    .branch-actions .btn-action {
+        padding: 8px 4px;
+        font-size: 0.7rem;
+        min-width: 60px;
+    }
+}

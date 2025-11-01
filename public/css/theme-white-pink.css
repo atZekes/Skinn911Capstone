@@ -1,0 +1,88 @@
+/* theme-white-pink.css
+   Override stylesheet to apply a white background and pink accents
+   Pink used: #F56289
+*/
+:root{
+  --pink: #F56289;
+  --pink-100: #fde6ee;
+  --text-dark: #1f1f1f;
+  --muted: #7e7e7e;
+  --white: #ffffff;
+}
+
+/* Page background and text */
+body, .white-bg {
+  background: var(--white) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Links and primary accents */
+a, a:hover, .main-menu ul li a, .book_now, .section_title span {
+  color: var(--pink) !important;
+}
+
+/* Buttons */
+.boxed-btn, .boxed-btn3, .book_now, .btn-primary {
+  background: var(--white) !important;
+  color: var(--pink) !important;
+  border: 1px solid var(--pink) !important;
+}
+.boxed-btn:hover, .book_now:hover, .btn-primary:hover, .boxed-btn3:hover {
+  background: var(--pink) !important;
+  color: var(--white) !important;
+}
+
+/* Header: transparent at top, white on scroll (reinforce) */
+.header-area .main-header-area, .main-header-area.sticky {
+  background: var(--white) !important;
+}
+.header-area .main-header-area .main-menu ul li a {
+  color: var(--pink) !important;
+}
+
+/* Drawer and mobile menu */
+.drawer, .slicknav_menu .slicknav_nav {
+  background: var(--white) !important;
+}
+.slicknav_menu .slicknav_btn, .slicknav_menu .slicknav_icon-bar {
+  color: var(--pink) !important;
+  background-color: var(--pink) !important;
+}
+
+/* Footer */
+.footer, .footer .footer_top, .footer .copy_right {
+  background: var(--white) !important;
+  color: var(--pink) !important;
+}
+
+.footer a, .footer .footer_title {
+  color: var(--pink) !important;
+}
+
+/* Accent highlights */
+.section_title span, .line-button:hover, .owl-carousel:hover .owl-nav div:hover {
+  color: var(--pink) !important;
+}
+
+/* Form inputs focus */
+input:focus, textarea:focus, select:focus {
+  border-color: var(--pink) !important;
+  box-shadow: 0 0 0 3px rgba(245,98,137,0.08) !important;
+}
+
+/* Alerts */
+.alert-danger { background: var(--pink-100) !important; color: var(--text-dark) !important; border-color: transparent !important; }
+
+/* Small helpers */
+.btn-outline-pink { background: transparent; border: 1px solid var(--pink); color: var(--pink); }
+
+/* Ensure images in header/logo don't get inverted unexpectedly */
+.header-area .main-header-area .logo-img img { filter: none !important; }
+
+/* Misc: ensure boxed buttons keep pink text */
+.boxed-btn { color: var(--pink) !important; }
+
+/* Make disabled (break) slots less prominent */
+select option[disabled] { color: #9b9b9b; }
+
+/* End of theme overrides */

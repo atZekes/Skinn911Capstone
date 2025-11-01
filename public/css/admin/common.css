@@ -1,0 +1,155 @@
+/**
+ * Admin Common Styles
+ * Shared styles across all admin pages
+ */
+
+/* Common admin buttons */
+.btn-admin {
+    background: #e75480;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    padding: 8px 16px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-admin:hover {
+    background: #d13c6a;
+    color: #fff;
+}
+
+.btn-admin:focus {
+    background: #d13c6a;
+    color: #fff;
+    box-shadow: 0 0 0 0.2rem rgba(231, 84, 128, 0.25);
+}
+
+/* Common admin cards */
+.admin-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(231,84,128,0.10);
+    padding: 32px 28px;
+    margin-top: 32px;
+}
+
+/* Common admin titles */
+.admin-title {
+    color: #e75480;
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+/* Common modal styles */
+.modal-admin .modal-header {
+    background: #ffe4ec;
+    color: #e75480;
+    border-bottom: none;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.modal-admin .modal-title {
+    font-weight: 700;
+}
+
+.modal-admin .btn-close {
+    filter: invert(1) sepia(1) saturate(0) hue-rotate(30deg);
+}
+
+/* Common table styles */
+.table-admin {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(231,84,128,0.07);
+}
+
+.table-admin th {
+    background: #ffe4ec;
+    color: #e75480;
+    font-weight: 600;
+    border: none;
+}
+
+.table-admin td {
+    border: none;
+    vertical-align: middle;
+}
+
+/* Common form styles */
+.form-admin .form-label {
+    font-weight: 500;
+    color: #333;
+}
+
+.form-admin .form-control:focus {
+    border-color: #e75480;
+    box-shadow: 0 0 0 0.2rem rgba(231, 84, 128, 0.25);
+}
+
+/* Common badge styles */
+.badge-admin-success {
+    background: #e75480 !important;
+    color: #fff !important;
+}
+
+.badge-admin-secondary {
+    background: #ccc !important;
+    color: #fff !important;
+}
+
+/* Common alert styles */
+.alert-admin {
+    border-radius: 12px;
+    border: none;
+}
+
+.alert-admin.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border-left: 4px solid #e75480;
+}
+
+.alert-admin.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+/* Loading styles */
+.loading-admin {
+    text-align: center;
+    padding: 20px;
+    color: #e75480;
+}
+
+.spinner-admin {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #e75480;
+    border-radius: 50%;
+    animation: spin-admin 1s linear infinite;
+}
+
+@keyframes spin-admin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .admin-card {
+        padding: 20px 16px;
+        margin-top: 20px;
+    }
+
+    .admin-title {
+        font-size: 1.5rem;
+    }
+}

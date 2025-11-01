@@ -1,0 +1,19 @@
+/* Per-view styles for About Us page
+   Note: use absolute paths for images so CSS file resolves correctly from /public/css/frontend
+*/
+.responsive-banner-bg {
+    min-height: 600px;
+    background: url('/img/banner10.png') center center/cover no-repeat;
+}
+
+@media (max-width: 1199px) {
+    .responsive-banner-bg {
+        background-image: url('/img/banner-tablet.jpg');
+    }
+}
+
+@media (max-width: 767px) {
+    .responsive-banner-bg {
+        background-image: url('/img/banner-mobile.jpg');
+    }
+}

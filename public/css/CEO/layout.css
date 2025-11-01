@@ -1,0 +1,559 @@
+/* CEO App Layout Styles */
+
+/* Main page styling */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff 50%, #ffe4ec 100%);
+    color: #2c3e50;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Main layout container */
+.ceo-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Modern sidebar design */
+.ceo-sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: linear-gradient(180deg, #e75480 0%, #d13c6a 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Logo/Brand area in sidebar */
+.ceo-brand {
+    padding: 30px 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.1);
+}
+
+.ceo-brand h3 {
+    color: white;
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.ceo-brand p {
+    color: rgba(255,255,255,0.8);
+    margin: 5px 0 0 0;
+    font-size: 0.9rem;
+}
+
+/* Navigation menu container */
+.ceo-tabs {
+    width: 100%;
+    flex: 1;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Individual menu items */
+.ceo-tab {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 15px 25px;
+    color: rgba(255,255,255,0.9);
+    font-weight: 500;
+    font-size: 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+/* Icons in menu items */
+.ceo-tab i {
+    margin-right: 12px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Active and hover states */
+.ceo-tab.active {
+    background: rgba(255,255,255,0.15);
+    border-left-color: white;
+    color: white;
+    font-weight: 600;
+}
+
+.ceo-tab:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    transform: translateX(5px);
+}
+
+/* Touch-friendly improvements for mobile */
+@media (max-width: 768px) {
+    .ceo-layout {
+        position: relative;
+    }
+
+    .ceo-tab {
+        padding: 20px 25px;
+        font-size: 1.1rem;
+        min-height: 60px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        touch-action: manipulation; /* Prevent zoom on touch */
+    }
+
+    .ceo-tab:hover {
+        transform: none; /* Remove transform on mobile for better touch */
+    }
+
+    .ceo-tab i {
+        margin-right: 15px;
+        font-size: 1.2rem;
+        width: 24px;
+    }
+
+    .btn-logout-ceo {
+        padding: 18px 20px !important;
+        font-size: 1.1rem !important;
+        min-height: 60px;
+        margin: 15px 20px 20px 20px;
+        touch-action: manipulation;
+    }
+
+    /* Improved mobile header */
+    .ceo-header {
+        padding: 15px 20px 15px 80px;
+        position: sticky;
+        top: 0;
+        z-index: 500;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+    }
+
+    .ceo-header h1 {
+        font-size: 1.4rem;
+        line-height: 1.2;
+    }
+
+    .ceo-header p {
+        font-size: 0.9rem;
+        margin-top: 5px;
+    }
+
+    .ceo-content {
+        padding: 20px 15px;
+        margin-bottom: 20px; /* Extra space at bottom for thumb navigation */
+    }
+
+    /* Better mobile sidebar */
+    .ceo-sidebar {
+        width: 85vw;
+        max-width: 320px;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    }
+
+    .ceo-brand {
+        padding: 25px 20px;
+        text-align: center;
+    }
+
+    .ceo-brand h3 {
+        font-size: 1.4rem;
+    }
+
+    .ceo-brand p {
+        font-size: 0.85rem;
+    }
+}
+
+/* Logout button styling */
+.btn-logout-ceo {
+    background: rgba(0,0,0,0.2) !important;
+    color: white !important;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    margin: 20px;
+    padding: 12px 20px !important;
+    border-radius: 8px !important;
+    text-align: center;
+    font-size: 1rem !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-logout-ceo i {
+    margin-right: 8px;
+}
+
+.btn-logout-ceo:hover {
+    background: rgba(0,0,0,0.4) !important;
+    border-color: rgba(255,255,255,0.5) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Main content area */
+.ceo-main {
+    flex: 1;
+    margin-left: 280px;
+    height: 100vh;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .ceo-sidebar {
+        width: 85vw;
+        max-width: 320px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        z-index: 2000;
+        box-shadow: 4px 0 25px rgba(0,0,0,0.2);
+    }
+
+    .ceo-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .ceo-main {
+        margin-left: 0;
+        width: 100%;
+        min-height: 100vh;
+    }
+
+    /* Improved content spacing */
+    .ceo-content {
+        padding: 20px 15px;
+        min-height: calc(100vh - 140px); /* Account for header */
+    }
+
+    /* Better card spacing on mobile */
+    .ceo-card {
+        margin-bottom: 20px;
+        border-radius: 12px;
+    }
+
+    .ceo-card-header {
+        padding: 18px 20px;
+    }
+
+    .ceo-card-body {
+        padding: 20px;
+    }
+
+    /* Touch-friendly buttons */
+    .btn-ceo {
+        padding: 12px 24px;
+        font-size: 1rem;
+        min-height: 48px;
+        border-radius: 10px;
+        touch-action: manipulation;
+    }
+
+    /* Better table handling on mobile */
+    .table-modern {
+        font-size: 0.9rem;
+    }
+
+    .table-modern thead th {
+        padding: 12px 8px;
+        font-size: 0.85rem;
+    }
+
+    .table-modern tbody td {
+        padding: 12px 8px;
+    }
+
+    /* Responsive text sizing */
+    h1, .h1 { font-size: 1.4rem; }
+    h2, .h2 { font-size: 1.3rem; }
+    h3, .h3 { font-size: 1.2rem; }
+    h4, .h4 { font-size: 1.1rem; }
+}
+
+/* Tablet and iPad Pro responsiveness */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .ceo-sidebar {
+        width: 240px;
+        min-width: 240px;
+    }
+
+    .ceo-main {
+        margin-left: 240px;
+        width: calc(100vw - 240px);
+    }
+
+    .ceo-content {
+        padding: 20px 15px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .ceo-header {
+        padding: 18px 20px;
+    }
+
+    .ceo-header h1 {
+        font-size: 1.5rem;
+    }
+
+    /* Tablet-optimized navigation */
+    .ceo-tab {
+        padding: 14px 20px;
+        font-size: 0.95rem;
+        min-height: 50px;
+    }
+
+    .ceo-tab i {
+        margin-right: 10px;
+        font-size: 1rem;
+    }
+
+    /* Tablet-friendly cards */
+    .ceo-card {
+        margin-bottom: 22px;
+    }
+
+    .ceo-card-header {
+        padding: 20px 22px;
+    }
+
+    .ceo-card-body {
+        padding: 22px;
+    }
+
+    /* Better button sizing for tablet */
+    .btn-ceo {
+        padding: 11px 22px;
+        font-size: 0.95rem;
+        min-height: 44px;
+    }
+
+    /* Table optimizations for tablet */
+    .table-modern thead th {
+        padding: 14px 12px;
+        font-size: 0.9rem;
+    }
+
+    .table-modern tbody td {
+        padding: 14px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 2100;
+    background: linear-gradient(135deg, #e75480, #d13c6a);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(231, 84, 128, 0.4);
+    transition: all 0.3s ease;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-menu-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(231, 84, 128, 0.6);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
+.mobile-menu-toggle.menu-open {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    transform: rotate(90deg);
+}
+
+.mobile-menu-toggle.menu-open:hover {
+    transform: rotate(90deg) scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+}
+
+/* Mobile overlay */
+.mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1900;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+@media (max-width: 768px) {
+    .mobile-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Top header bar */
+.ceo-header {
+    background: white;
+    padding: 20px 30px;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.ceo-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.ceo-header p {
+    margin: 5px 0 0 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+/* Main content container */
+.ceo-content {
+    padding: 30px;
+    min-height: calc(100vh - 120px);
+}
+
+/* Card components */
+.ceo-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+}
+
+.ceo-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.ceo-card-header {
+    background: linear-gradient(135deg, #e75480, #d13c6a);
+    color: white;
+    padding: 20px 25px;
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+}
+
+.ceo-card-header h4 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.ceo-card-body {
+    padding: 25px;
+}
+
+/* Button styles */
+.btn-ceo {
+    background: linear-gradient(135deg, #e75480, #d13c6a);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-ceo:hover {
+    background: linear-gradient(135deg, #d13c6a, #b8325a);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 84, 128, 0.3);
+}
+
+/* Table styles */
+.table-modern {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.table-modern thead th {
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    border: none;
+    padding: 15px;
+}
+
+.table-modern tbody td {
+    border: none;
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.table-modern tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Badge styles */
+.badge-success {
+    background: #28a745;
+    color: white;
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.badge-danger {
+    background: #dc3545;
+    color: white;
+}

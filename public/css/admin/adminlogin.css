@@ -1,0 +1,55 @@
+/**
+ * Admin Login Styles
+ * Extracted from adminlogin.blade.php
+ */
+
+body {
+    background: linear-gradient(135deg, #fffbfb 60%, #eeeaeb 100%) !important;
+    min-height: 100vh;
+    position: relative;
+}
+
+.admin-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    background: url('../img/bglogin-signup.jpg') center center/cover no-repeat;
+    opacity: 1;
+}
+
+.login-container {
+    position: relative;
+    z-index: 1;
+    max-width: 400px;
+    margin: 60px auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(231,84,128,0.08);
+    padding: 32px 24px;
+}
+
+.skin911-logo {
+    width: 120px;
+    margin-bottom: 24px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-admin {
+    background: #e75480;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.btn-admin:hover {
+    background: #d13c6a;
+}
+
+.form-label {
+    font-weight: 500;
+}

@@ -1,0 +1,44 @@
+/**
+ * Admin Dashboard Styles
+ * Extracted from dashboard.blade.php
+ */
+
+
+
+.table-scrollable {
+    max-height: 360px;
+    overflow: auto;
+}
+
+.booking-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+/* Modal theme */
+.modal-pink-header {
+    background: #e75480;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.modal-pink-header .modal-title {
+    color: #fff;
+    font-weight: 700;
+}
+
+.modal-pink-btn {
+    background: #e75480;
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 14px;
+}
+
+.modal-pink-btn:hover {
+    background: #d13c6a;
+}
+

@@ -1,0 +1,575 @@
+/* Calendar Viewer styles extracted from calendar_viewer.blade.php */
+.calendar-responsive {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    padding: 32px;
+    min-height: 600px;
+    font-size: 1.25rem;
+    width: 100%;
+    max-width: none;
+    margin: auto;
+    overflow-x: auto;
+}
+.calendar-day {
+    font-weight: bold;
+    color: #F56289;
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+}
+.calendar-date {
+    color: #F56289;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+.calendar-timeslot-label {
+    background: #fff !important;
+    color: #F56289 !important;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(245,98,137,0.08);
+    font-weight: 600;
+    font-size: 1.15rem;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 16px;
+    margin-bottom: 4px;
+}
+.badge.bg-pink.available-link {
+    background: #F56289 !important;
+    color: #fff !important;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(245,98,137,0.10);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.badge.bg-pink.available-link:hover {
+    box-shadow: 0 4px 16px rgba(245,98,137,0.18);
+    transform: translateY(-2px) scale(1.04);
+    background: #e04a74 !important;
+}
+.badge.bg-danger.booked-link {
+    background: #ffe6f0 !important;
+    color: #F56289 !important;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(245,98,137,0.10);
+    font-weight: 600;
+}
+.row.flex-nowrap {
+    margin-bottom: 12px !important;
+}
+.calendar-timeslot-label {
+    background: #fff !important;
+    color: #F56289 !important;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(245,98,137,0.08);
+    font-weight: 600;
+    font-size: 1.15rem;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 16px;
+}
+/* Tablet and desktop: keep horizontal grid */
+@media (min-width: 768px) and (max-width: 1200px) {
+    .calendar-responsive {
+        max-width: 100vw;
+        padding: 20px;
+    }
+    .calendar-responsive .row { flex-wrap: nowrap; }
+    .calendar-responsive .col, .calendar-responsive .col-2 {
+        min-width: 100px !important;
+        font-size: 1rem;
+    }
+    .calendar-timeslot-label {
+        font-size: 1rem;
+        padding-left: 12px;
+    }
+    .badge {
+        font-size: 1rem !important;
+        padding: 6px 10px !important;
+    }
+}
+
+/* Mobile: Zoom Calendar (Three-level navigation) */
+@media (max-width: 767px) {
+    /* Main zoom calendar container */
+    .mobile-zoom-calendar {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        padding: 0;
+        min-height: 500px;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Zoom header with back button */
+    .zoom-header {
+        background: linear-gradient(135deg, #F56289 0%, #e04a74 100%);
+        color: #fff;
+        padding: 20px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        box-shadow: 0 2px 12px rgba(245,98,137,0.15);
+    }
+
+    .zoom-back-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .zoom-back-btn:hover, .zoom-back-btn:active {
+        background: rgba(255,255,255,0.3);
+    }
+
+    .zoom-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+        text-align: center;
+    }
+
+    /* Zoom content area */
+    .zoom-content {
+        padding: 20px;
+        min-height: 400px;
+    }
+
+    /* Animation classes */
+    .zoom-content.zoom-in {
+        animation: zoomIn 0.3s ease-out;
+    }
+
+    .zoom-content.zoom-out {
+        animation: zoomOut 0.3s ease-in;
+    }
+
+    @keyframes zoomIn {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes zoomOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(1.2);
+        }
+    }
+
+    /* Month view (Week cards) */
+    .zoom-month-view {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .zoom-month-label {
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #F56289;
+        margin-bottom: 12px;
+        padding: 12px;
+        background: linear-gradient(135deg, #ffe6f0 0%, #fff5f8 100%);
+        border-radius: 12px;
+    }
+
+    .zoom-week-card {
+        background: linear-gradient(135deg, #fff 0%, #fffbfc 100%);
+        border: 2px solid #ffe6f0;
+        border-radius: 16px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .zoom-week-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 6px;
+        height: 100%;
+        background: #F56289;
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+    }
+
+    .zoom-week-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 4px 16px rgba(245,98,137,0.2);
+        border-color: #F56289;
+    }
+
+    .zoom-week-card:active::before {
+        transform: scaleY(1);
+    }
+
+    .zoom-week-number {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #F56289;
+        margin-bottom: 4px;
+    }
+
+    .zoom-week-range {
+        font-size: 0.95rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .zoom-week-arrow {
+        font-size: 1.8rem;
+        color: #F56289;
+        font-weight: 300;
+        transition: transform 0.3s ease;
+    }
+
+    .zoom-week-card:active .zoom-week-arrow {
+        transform: translateX(4px);
+    }
+
+    /* Week view (Day cards) */
+    .zoom-week-view {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .zoom-alert {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        color: #856404;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .zoom-alert svg {
+        stroke: #ffc107;
+    }
+
+    .zoom-alert p {
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .zoom-day-card {
+        background: #fff;
+        border: 2px solid #ffe6f0;
+        border-radius: 16px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .zoom-day-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .zoom-day-card.has-slots {
+        border-color: #F56289;
+    }
+
+    .zoom-day-card.has-slots::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 6px;
+        height: 100%;
+        background: #F56289;
+    }
+
+    .zoom-day-card.full-slots {
+        border-color: #ffccdd;
+        background: #fffafc;
+        cursor: not-allowed;
+    }
+
+    .zoom-day-card.no-slots {
+        border-color: #e0e0e0;
+        background: #f9f9f9;
+        cursor: not-allowed;
+    }
+
+    .zoom-day-card.closed-day {
+        border-color: #ffcccc;
+        background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+        cursor: not-allowed;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .zoom-day-card.closed-day::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 6px;
+        height: 100%;
+        background: #dc3545;
+    }
+
+    .zoom-day-card.closed-day .zoom-day-name {
+        color: #dc3545;
+    }
+
+    .zoom-day-card.has-slots:active {
+        transform: scale(0.98);
+        box-shadow: 0 4px 16px rgba(245,98,137,0.2);
+    }
+
+    .zoom-day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 12px;
+    }
+
+    .zoom-day-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #F56289;
+    }
+
+    .zoom-day-card.full-slots .zoom-day-name,
+    .zoom-day-card.no-slots .zoom-day-name {
+        color: #999;
+    }
+
+    .zoom-day-date {
+        font-size: 0.95rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .zoom-day-availability {
+        font-size: 0.95rem;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    .zoom-day-availability .available-count {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .zoom-day-availability .full-label {
+        color: #F56289;
+        font-weight: 600;
+    }
+
+    .zoom-day-availability .no-slots-label {
+        color: #999;
+        font-weight: 500;
+    }
+
+    .zoom-day-availability .closed-label {
+        color: #dc3545;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        font-size: 0.95rem;
+    }
+
+    .zoom-day-availability .closed-label svg {
+        flex-shrink: 0;
+    }
+
+    .zoom-day-arrow {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.8rem;
+        color: #F56289;
+        font-weight: 300;
+        transition: transform 0.3s ease;
+    }
+
+    .zoom-day-card.has-slots:active .zoom-day-arrow {
+        transform: translateY(-50%) translateX(4px);
+    }
+
+    /* Day view (Time slot cards) */
+    .zoom-day-view {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .zoom-slot-card {
+        background: #fff;
+        border: 2px solid #ffe6f0;
+        border-radius: 12px;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        min-height: 64px;
+    }
+
+    .zoom-slot-card.full {
+        background: #f9f9f9;
+        border-color: #e0e0e0;
+    }
+
+    .zoom-slot-card.available {
+        border-color: #F56289;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .zoom-slot-card.available::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6px;
+        height: 100%;
+        background: #F56289;
+    }
+
+    .zoom-slot-time {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #333;
+        white-space: nowrap;
+    }
+
+    .zoom-slot-card.full .zoom-slot-time {
+        color: #999;
+    }
+
+    .zoom-slot-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .status-full {
+        background: #f0f0f0;
+        color: #999;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .status-available {
+        background: #F56289;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(245,98,137,0.2);
+        min-height: 44px;
+    }
+
+    .status-available:active {
+        transform: scale(0.96);
+        background: #e04a74;
+        box-shadow: 0 4px 16px rgba(245,98,137,0.3);
+    }
+
+    .slot-count {
+        font-size: 0.9rem;
+        opacity: 0.95;
+    }
+
+    .book-label {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    /* Hide desktop calendar on mobile */
+    .calendar-responsive {
+        display: none !important;
+    }
+
+    /* Form select mobile optimization */
+    .form-select {
+        font-size: 1rem;
+        padding: 12px;
+        min-height: 48px;
+    }
+
+    /* Page header */
+    h2 {
+        font-size: 1.4rem !important;
+    }
+
+    /* Alert message */
+    .alert {
+        font-size: 1rem !important;
+        padding: 12px !important;
+    }
+
+    /* Badge styling for consistency */
+    .badge {
+        font-size: 1.05rem !important;
+        padding: 12px 20px !important;
+        min-height: 44px;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px !important;
+        text-align: center;
+    }
+}
+
+/* Common button styles */
+.btn-pink { background:#F56289;color:#fff;border:none; }
+.calendar-day-btn.btn-pink { background:#F56289;color:#fff; }
+.calendar-day-btn.btn-light { background:#fff;color:#F56289;border:1px solid #F56289; }
+.time-slot-btn.selected { background:#F56289;color:#fff; }
+

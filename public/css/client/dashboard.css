@@ -1,0 +1,54 @@
+/* Dashboard per-view styles extracted from dashboard.blade.php */
+
+/* Success toast overlay */
+.success-toast-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.18);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.success-toast {
+    min-width: 260px;
+    max-width: 400px;
+    background: #F56289;
+    color: #fff;
+    padding: 22px 38px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Rounded cards used in dashboard */
+.card-rounded { border-radius: 16px; }
+
+/* Headings color */
+.dashboard-welcome h1, .dashboard-section h2 { color: #F56289; }
+
+/* Table header theme */
+.table-pink { background: #F56289; color: #fff; }
+
+/* Modal z-index tweaks so overlay appears properly */
+.modal-backdrop.show { z-index: 1050; }
+.modal.fade { z-index: 1060; }
+.modal-content { z-index: 1070; }
+.modal-rounded { border-radius: 16px; }
+
+/* Responsive table conversion for small screens */
+@media (max-width: 767.98px) {
+  .card-body h2 { font-size: 1.2rem !important; }
+  .table { display: block; width: 100%; overflow-x: auto; font-size: 0.95rem; }
+  .table thead, .table tbody, .table th, .table td, .table tr { display: block; width: 100%; }
+  .table thead { display: none; }
+  .table tr { margin-bottom: 18px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(245,98,137,0.08); padding: 10px 8px; }
+  .table td { border: none; padding: 8px 0; text-align: left; font-size: 1rem; color: #333; background: none; }
+  .table td:before { content: attr(data-label); font-weight: 600; color: #F56289; display: block; margin-bottom: 2px; font-size: 0.98rem; }
+}

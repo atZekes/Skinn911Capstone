@@ -1,0 +1,82 @@
+/* Per-view services CSS (copied from public/css/services.css) */
+
+.responsive-banner-bg {
+    min-height: 600px;
+    background: url('/img/banner4.png') center center/cover no-repeat;
+}
+@media (max-width: 1199px) {
+    .responsive-banner-bg {
+        background-image: url('/img/banner-tablet.jpg');
+    }
+}
+@media (max-width: 767px) {
+    .responsive-banner-bg {
+        background-image: url('/img/skin2.jpg');
+    }
+}
+
+/* Center the booking actions and Book Now buttons */
+.services_area .booking-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+.services_area .book-now-btn {
+    display: inline-block;
+    text-align: center;
+}
+
+/* Make treatment details font fit the card */
+.service-details p {
+    font-size: 1.55rem;
+    line-height: 1.4;
+    word-break: break-word;
+    margin-bottom: 0.5rem;
+}
+.service-details h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+.service-details ul {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+.service-card {
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* When header is sticky we hide carousel arrows */
+.carousel-nav.is-hidden-by-header {
+    display: none !important;
+}
+
+/* Make carousel horizontally scrollable with snap points */
+.services-carousel {
+    position: relative;
+}
+.carousel-container {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px; /* give room for scrollbar */
+}
+.carousel-container::-webkit-scrollbar { height: 10px; }
+.carousel-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 6px; }
+.carousel-container .service-card {
+    flex: 0 0 320px; /* fixed card width for consistent snap */
+    scroll-snap-align: start;
+}
+
+/* Hide the prev/next buttons since we rely on native scrolling and drag */
+.carousel-nav { display: none !important; }
+
+/* Improve pointer feedback on draggable area */
+.carousel-container.is-dragging { cursor: grabbing; cursor: -webkit-grabbing; }

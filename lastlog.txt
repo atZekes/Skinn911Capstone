@@ -1,0 +1,1 @@
+, array_slice(file('storage/logs/laravel.log'), -400));

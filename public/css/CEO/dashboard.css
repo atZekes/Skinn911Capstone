@@ -1,0 +1,661 @@
+/* Custom styles for CEO dashboard cards and charts */
+.stats-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #e75480;
+    margin: 10px 0;
+}
+
+.stats-label {
+    color: #6c757d;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 15px;
+}
+
+.icon-users { background: linear-gradient(135deg, #28a745, #20c997); }
+.icon-branches { background: linear-gradient(135deg, #007bff, #6610f2); }
+.icon-bookings { background: linear-gradient(135deg, #ffc107, #fd7e14); }
+.icon-revenue { background: linear-gradient(135deg, #e75480, #d13c6a); }
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+    margin-bottom: 25px;
+    position: relative;
+    height: 400px; /* Fixed height for consistency */
+}
+
+.chart-container canvas {
+    max-height: 320px !important; /* Limit canvas height */
+    width: 100% !important;
+    height: auto !important;
+}
+
+.chart-wrapper {
+    overflow: hidden; /* Prevent chart overflow */
+}
+
+/* Desktop specific chart sizing */
+@media (min-width: 1025px) {
+    .chart-container {
+        height: 420px; /* Slightly taller for desktop */
+    }
+
+    .chart-wrapper {
+        height: 340px !important;
+        max-height: 340px !important;
+    }
+
+    .chart-container canvas {
+        max-height: 340px !important;
+    }
+}
+
+.chart-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    font-size: 1rem;
+    color: white;
+}
+
+.activity-text {
+    flex: 1;
+}
+
+.activity-text h6 {
+    margin: 0;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.activity-text small {
+    color: #6c757d;
+}
+
+/* Growth indicators */
+.growth-indicator {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Executive summary cards */
+.executive-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+    height: 100%;
+    margin-bottom: 24px;
+}
+
+.executive-card h5 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.service-item, .branch-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.service-item:last-child, .branch-item:last-child {
+    border-bottom: none;
+}
+
+.service-name, .branch-name {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.service-count, .branch-revenue {
+    font-weight: 600;
+    color: #e75480;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+/* Mobile responsiveness for dashboard */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 10px;
+    }
+
+    .stats-card {
+        padding: 20px 18px;
+        margin-bottom: 18px;
+        text-align: center;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .stats-number {
+        font-size: 2.2rem;
+        margin: 12px 0 8px 0;
+    }
+
+    .stats-label {
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+    }
+
+    .stats-icon {
+        width: 55px;
+        height: 55px;
+        font-size: 1.3rem;
+        margin: 0 auto 15px auto;
+        border-radius: 14px;
+    }
+
+    /* Mobile chart containers */
+    .chart-container {
+        padding: 20px 15px;
+        margin-bottom: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .chart-title {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    /* Better mobile chart sizing */
+    .chart-container canvas {
+        max-height: 280px !important;
+    }
+
+    .chart-wrapper {
+        height: 280px !important;
+        max-height: 280px !important;
+        position: relative;
+    }
+
+    /* Mobile activity feed */
+    .activity-item {
+        padding: 15px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 12px;
+        font-size: 1rem;
+        border-radius: 10px;
+    }
+
+    .activity-text h6 {
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+        font-weight: 600;
+    }
+
+    .activity-text small {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    /* Mobile user breakdown styling */
+    .stats-card .d-flex {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .stats-card .d-flex .d-flex {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 0;
+    }
+
+    /* Better responsive grid */
+    .row.mb-4 > [class*="col-"] {
+        margin-bottom: 15px;
+    }
+}
+
+/* Tablet responsiveness */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .container-fluid {
+        padding: 15px;
+    }
+
+    .stats-card {
+        padding: 24px 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        border-radius: 14px;
+    }
+
+    .stats-number {
+        font-size: 2.4rem;
+        margin: 12px 0 10px 0;
+    }
+
+    .stats-label {
+        font-size: 0.9rem;
+    }
+
+    .stats-icon {
+        width: 58px;
+        height: 58px;
+        font-size: 1.4rem;
+        margin: 0 auto 12px auto;
+        border-radius: 12px;
+    }
+
+    /* Tablet chart containers */
+    .chart-container {
+        padding: 24px 20px;
+        height: 380px;
+        border-radius: 14px;
+        margin-bottom: 22px;
+    }
+
+    .chart-title {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .chart-container canvas {
+        max-height: 320px !important;
+    }
+
+    .chart-wrapper {
+        height: 320px !important;
+        max-height: 320px !important;
+    }
+
+    /* Tablet activity feed */
+    .activity-item {
+        padding: 12px 0;
+    }
+
+    .activity-icon {
+        width: 42px;
+        height: 42px;
+        margin-right: 14px;
+        font-size: 1.1rem;
+        border-radius: 11px;
+    }
+
+    .activity-text h6 {
+        font-size: 1rem;
+        margin-bottom: 5px;
+    }
+
+    .activity-text small {
+        font-size: 0.85rem;
+    }
+
+    /* Better tablet grid layout */
+    .row.mb-4 > .col-xl-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 20px;
+    }
+
+    /* Optimize user breakdown for tablet */
+    .stats-card .d-flex .d-flex {
+        padding: 6px 10px;
+        border-radius: 7px;
+        margin: 2px 0;
+    }
+}
+
+/* Very small screens (phones in portrait) */
+@media (max-width: 480px) {
+    .container-fluid {
+        padding: 8px;
+    }
+
+    .stats-card {
+        padding: 18px 15px;
+        text-align: center;
+        border-radius: 14px;
+        margin-bottom: 15px;
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        margin: 10px 0 8px 0;
+    }
+
+    .stats-label {
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+    }
+
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+        margin: 0 auto 12px auto;
+        border-radius: 12px;
+    }
+
+    /* Very small screen charts */
+    .chart-container {
+        padding: 18px 12px;
+        height: 320px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+    }
+
+    .chart-container canvas {
+        max-height: 240px !important;
+    }
+
+    .chart-wrapper {
+        height: 240px !important;
+        max-height: 240px !important;
+    }
+
+    .chart-title {
+        font-size: 1.1rem;
+        text-align: center;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    /* Compact activity feed for small screens */
+    .executive-card {
+        padding: 15px 12px;
+        border-radius: 14px;
+    }
+
+    .activity-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+    .activity-icon {
+        width: 35px;
+        height: 35px;
+        margin-right: 10px;
+        font-size: 0.9rem;
+        border-radius: 9px;
+    }
+
+    .activity-text h6 {
+        font-size: 0.9rem;
+        margin-bottom: 3px;
+        line-height: 1.3;
+    }
+
+    .activity-text small {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+
+    /* Stack user breakdown vertically on very small screens */
+    .stats-card .d-flex {
+        gap: 6px;
+    }
+
+    .stats-card .d-flex .d-flex {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        border-radius: 6px;
+    }
+
+    /* Better spacing for very small screens */
+    .row.mb-4 > [class*="col-"] {
+        margin-bottom: 12px;
+    }
+
+    /* Hide less important elements on very small screens */
+    .activity-text small {
+        display: none;
+    }
+
+    .executive-card h5 {
+        font-size: 1rem;
+    }
+
+    .service-item, .branch-item {
+        padding: 8px 0;
+    }
+
+    .service-name, .branch-name {
+        font-size: 0.9rem;
+    }
+
+    .service-count, .branch-revenue {
+        font-size: 0.9rem;
+    }
+
+    /* Branch comparison responsive styles */
+    .branch-comparison-section .badge {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+    }
+
+    #welcomeMessage {
+        padding: 20px 10px;
+    }
+
+    #welcomeMessage i {
+        font-size: 2rem !important;
+    }
+
+    #branchCards .card-header h6 {
+        font-size: 0.9rem;
+    }
+
+    #branchCards .card-body h5 {
+        font-size: 1rem;
+    }
+}
+
+/* Branch Comparison Specific Styles */
+.branch-comparison-section {
+    margin-top: 30px;
+}
+
+.branch-comparison-section .chart-container {
+    padding: 25px;
+}
+
+.branch-comparison-section .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.branch-comparison-section .form-select:focus {
+    border-color: #e75480;
+    box-shadow: 0 0 0 0.2rem rgba(231, 84, 128, 0.25);
+}
+
+.branch-comparison-section .badge {
+    font-size: 1rem;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #e75480, #d13c6a) !important;
+    color: white !important;
+    border: none;
+}
+
+/* Pink text for branch comparison title */
+.branch-comparison-section .chart-title {
+    color: #1f1d1d !important;
+}
+
+.branch-comparison-section .chart-title i {
+    color: #e75480 !important;
+}
+
+.branch-comparison-section .btn-primary {
+    background: linear-gradient(135deg, #e75480, #d13c6a);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.branch-comparison-section .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 84, 128, 0.3);
+}
+
+.branch-comparison-section .btn-secondary {
+    background: #6c757d;
+    border: none;
+    border-radius: 8px;
+}
+
+#loadingIndicator {
+    padding: 40px 0;
+}
+
+#loadingIndicator .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+#welcomeMessage {
+    padding: 60px 20px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+#welcomeMessage i {
+    opacity: 0.8;
+}
+
+#welcomeMessage h5 {
+    margin-top: 20px;
+    color: #495057;
+}
+
+#welcomeMessage p {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+#branchCards .card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+#branchCards .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+
+#branchCards .card-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#branchCards .card-body h5 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+#branchCards .card-body hr {
+    margin: 15px 0;
+    opacity: 0.3;
+}
+
+.branch-comparison-section .btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+    border-radius: 8px;
+    padding: 8px 20px;
+    transition: all 0.3s ease;
+}
+
+.branch-comparison-section .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
