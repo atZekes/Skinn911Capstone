@@ -165,7 +165,7 @@
             </div>
         </div>
     @endif
-    
+
     <!-- Welcome Section -->
     <div class="row justify-content-center mb-4">
         <div class="col-md-12">
@@ -198,7 +198,7 @@
                         <p class="stat-label mb-0">Total Bookings</p>
                     </div>
                 </div>
-                
+
                 <!-- Active Bookings -->
                 <div class="col-md-4">
                     <div class="card stat-card shadow-lg">
@@ -211,7 +211,7 @@
                         <p class="stat-label mb-0">Active Bookings</p>
                     </div>
                 </div>
-                
+
                 <!-- Completed Bookings -->
                 <div class="col-md-4">
                     <div class="card stat-card shadow-lg">
@@ -244,7 +244,7 @@
                         <p class="stat-label mb-0">Cancelled Bookings</p>
                     </div>
                 </div>
-                
+
                 <!-- Refunded Bookings -->
                 <div class="col-md-6">
                     <div class="card stat-card shadow-lg">
@@ -469,7 +469,7 @@
                         // Count unpaid active bookings (cash payments only) - only from truly active bookings
                         $unpaidActiveBookings = $activeBookings->where('status', 'active')->where('payment_status', '!=', 'paid');
                     @endphp
-                    
+
                     <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
                             @if($unpaidActiveBookings->count() > 0)
@@ -491,7 +491,7 @@
                             <input type="date" id="clientDateFilter" class="form-control form-control-sm" style="width: 150px; border-radius: 10px;">
                         </div>
                     </div>
-                    
+
                     <div id="clientBookingQueue" class="booking-queue-wrapper" style="max-height:400px;overflow-y:auto;padding-right:6px;">
                     <table class="table table-hover" style="border-radius:10px;overflow:hidden;">
                         <thead style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color:#fff;">
@@ -630,14 +630,14 @@
                                                     <i class="fas fa-calendar-alt me-1"></i>Reschedule
                                                 </button>
                                                 @if($booking->payment_status === 'paid' && $booking->status !== 'pending_refund')
-                                                    <button type="button" class="btn btn-sm btn-success request-refund-btn" 
+                                                    <button type="button" class="btn btn-sm btn-success request-refund-btn"
                                                         data-action="{{ route('client.booking.requestRefund', $booking->id) }}"
                                                         data-booking-id="{{ $booking->id }}"
                                                         style="border-radius: 8px;">
                                                         <i class="fas fa-undo-alt me-1"></i>Request Refund
                                                     </button>
                                                 @elseif($booking->payment_status !== 'paid')
-                                                    <button type="button" class="btn btn-sm btn-danger cancel-booking-btn" 
+                                                    <button type="button" class="btn btn-sm btn-danger cancel-booking-btn"
                                                         data-action="{{ route('client.booking.cancel', $booking->id) }}"
                                                         style="border-radius: 8px;">
                                                         <i class="fas fa-times me-1"></i>Cancel
@@ -922,7 +922,7 @@
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
                     const actionUrl = this.getAttribute('data-action');
-                    
+
                     // Show SweetAlert confirmation
                     Swal.fire({
                         title: 'Request Refund?',
@@ -942,51 +942,51 @@
                             const form = document.createElement('form');
                             form.method = 'POST';
                             form.action = actionUrl;
-                            
+
                             // Add CSRF token
                             const csrfInput = document.createElement('input');
                             csrfInput.type = 'hidden';
                             csrfInput.name = '_token';
                             csrfInput.value = '{{ csrf_token() }}';
                             form.appendChild(csrfInput);
-                            
+
                             document.body.appendChild(form);
                             form.submit();
                         }
                     });
                 });
             });
-            
+
             // Client Booking Filter Functionality
             const clientBookingSearch = document.getElementById('clientBookingSearch');
             const clientStatusFilter = document.getElementById('clientStatusFilter');
             const clientDateFilter = document.getElementById('clientDateFilter');
-            
+
             const bookingTable = document.querySelector('#clientBookingQueue table tbody');
             if (bookingTable) {
                 const bookingRows = Array.from(bookingTable.querySelectorAll('tr'));
-                
+
                 function filterClientBookings() {
                     const searchVal = clientBookingSearch ? clientBookingSearch.value.toLowerCase().trim() : '';
                     const statusVal = clientStatusFilter ? clientStatusFilter.value.toLowerCase() : '';
                     const dateVal = clientDateFilter ? clientDateFilter.value : '';
-                    
+
                     bookingRows.forEach(function(row) {
                         if (row.cells.length < 6) return;
-                        
+
                         // Search filter (Branch + Service columns 0 and 1)
                         const branchText = row.cells[0] ? row.cells[0].textContent.toLowerCase().trim() : '';
                         const serviceText = row.cells[1] ? row.cells[1].textContent.toLowerCase().trim() : '';
                         const searchMatch = searchVal === '' || branchText.includes(searchVal) || serviceText.includes(searchVal);
-                        
+
                         // Status filter (column 4)
                         const statusText = row.cells[4] ? row.cells[4].textContent.toLowerCase() : '';
                         const statusMatch = statusVal === '' || statusText.includes(statusVal);
-                        
+
                         // Date filter (column 2)
                         const dateText = row.cells[2] ? row.cells[2].textContent.trim() : '';
                         let dateMatch = true;
-                        
+
                         if (dateVal) {
                             try {
                                 const rowDate = new Date(dateText);
@@ -996,12 +996,12 @@
                                 dateMatch = false;
                             }
                         }
-                        
+
                         const match = searchMatch && statusMatch && dateMatch;
                         row.style.display = match ? '' : 'none';
                     });
                 }
-                
+
                 if (clientBookingSearch) clientBookingSearch.addEventListener('input', filterClientBookings);
                 if (clientStatusFilter) clientStatusFilter.addEventListener('change', filterClientBookings);
                 if (clientDateFilter) clientDateFilter.addEventListener('change', filterClientBookings);
@@ -1102,19 +1102,19 @@
                 btn.addEventListener('click', function() {
                     const action = this.getAttribute('data-action');
                     const bookingId = this.getAttribute('data-booking-id');
-                    
+
                     if (confirm('Are you sure you want to request a refund for this booking? You can collect the refund at the branch once approved by staff.')) {
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = action;
-                        
+
                         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                         const csrfInput = document.createElement('input');
                         csrfInput.type = 'hidden';
                         csrfInput.name = '_token';
                         csrfInput.value = csrfToken;
                         form.appendChild(csrfInput);
-                        
+
                         document.body.appendChild(form);
                         form.submit();
                     }
@@ -1125,25 +1125,25 @@
             document.querySelectorAll('.cancel-booking-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const action = this.getAttribute('data-action');
-                    
+
                     if (confirm('Are you sure you want to cancel this booking?')) {
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = action;
-                        
+
                         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                         const methodInput = document.createElement('input');
                         methodInput.type = 'hidden';
                         methodInput.name = '_method';
                         methodInput.value = 'DELETE';
                         form.appendChild(methodInput);
-                        
+
                         const csrfInput = document.createElement('input');
                         csrfInput.type = 'hidden';
                         csrfInput.name = '_token';
                         csrfInput.value = csrfToken;
                         form.appendChild(csrfInput);
-                        
+
                         document.body.appendChild(form);
                         form.submit();
                     }

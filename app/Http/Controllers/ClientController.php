@@ -710,7 +710,7 @@ public function calendarViewer()
     public function getDashboardStats()
     {
         $allBookings = \App\Models\Booking::where('user_id', Auth::id())->get();
-        
+
         return response()->json([
             'total' => $allBookings->count(),
             'active' => $allBookings->where('status', 'active')->count(),
@@ -732,7 +732,7 @@ public function calendarViewer()
         foreach ($purchasedServices as $ps) {
             $service = $ps->service;
             $booking = $ps->booking;
-            
+
             $statusClass = match(strtolower($ps->status)) {
                 'active' => 'bg-success',
                 'cancelled' => 'bg-danger',
@@ -811,7 +811,7 @@ public function calendarViewer()
             $html .= '<td>' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . '</td>';
             $html .= '<td>' . e($displaySlot) . '</td>';
             $html .= '<td>';
-            
+
             if ($booking->status === 'pending_refund') {
                 $html .= '<span class="badge bg-warning text-dark">Pending Refund</span>';
             } elseif ($booking->status === 'refunded') {
@@ -819,7 +819,7 @@ public function calendarViewer()
             } else {
                 $html .= '<span class="badge ' . $statusClass . '">' . ucfirst($booking->status) . '</span>';
             }
-            
+
             if ($booking->status !== 'pending_refund' && $booking->status !== 'refunded' && $booking->status !== 'cancelled') {
                 if ($booking->payment_status === 'paid') {
                     $html .= '<span class="badge bg-success ms-1">Confirmed Paid</span>';
@@ -827,30 +827,30 @@ public function calendarViewer()
                     $html .= '<span class="badge bg-warning ms-1">Payment Pending</span>';
                 }
             }
-            
+
             $html .= '</td>';
             $html .= '<td>' . e($booking->branch ? $booking->branch->name : 'N/A') . '</td>';
             $html .= '<td>';
-            
+
             if (strtolower($booking->status) === 'active') {
                 $html .= '<div class="d-flex gap-1 flex-wrap">';
                 $html .= '<button type="button" class="btn btn-sm btn-info reschedule-booking-btn" data-booking-id="' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-calendar-alt me-1"></i>Reschedule</button>';
-                
+
                 if ($booking->payment_status === 'paid' && $booking->status !== 'pending_refund') {
                     $html .= '<button type="button" class="btn btn-sm btn-success request-refund-btn" data-action="' . route('client.booking.requestRefund', $booking->id) . '" data-booking-id="' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-undo-alt me-1"></i>Request Refund</button>';
                 } elseif ($booking->payment_status !== 'paid') {
                     $html .= '<button type="button" class="btn btn-sm btn-danger cancel-booking-btn" data-action="' . route('client.booking.cancel', $booking->id) . '" style="border-radius: 8px;"><i class="fas fa-times me-1"></i>Cancel</button>';
                 }
-                
+
                 $html .= '</div>';
-                
+
                 if ($booking->status === 'pending_refund') {
                     $html .= '<span class="badge bg-warning text-dark mt-1">Refund Requested</span>';
                 }
             } else {
                 $html .= '<span class="text-muted">-</span>';
             }
-            
+
             $html .= '</td>';
             $html .= '</tr>';
         }

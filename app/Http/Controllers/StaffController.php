@@ -821,7 +821,7 @@ class StaffController extends Controller
             // Find the booking
             $booking = \App\Models\Booking::findOrFail($id);
 
-            // Validate that booking is pending refund
+            // Validate that booking is pending refundasdasdasdasdasdasdasd
             if ($booking->status !== 'pending_refund') {
                 return redirect()->route('staff.appointments')->with('error', 'This booking is not pending refund.');
             }

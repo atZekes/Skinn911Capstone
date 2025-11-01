@@ -2,7 +2,7 @@
 @section('tab-content')
 <div class="container py-5">
   <h2 class="mb-4" style="color:#e75480;">Appointment Management</h2>
-  
+
   <div class="mb-3 d-flex justify-content-between align-items-center gap-2">
     <div><small class="text-muted">Appointments</small></div>
     <div class="d-flex gap-2">
@@ -1022,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <hr>
   <div class="container py-4">
     <h2 class="mb-4" style="color:#e75480;">Booking Queue</h2>
-    
+
     <div class="mb-2 d-flex justify-content-between align-items-center">
       <div><small class="text-muted">Live queue (most recent first)</small></div>
       <div class="d-flex gap-2">
@@ -1094,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <!-- Walk-In Clients (scrollable, searchable) -->
   <div class="container py-4">
     <h2 class="mb-4" style="color:#e75480;">Walk-In Clients</h2>
-    
+
     <div class="mb-2 d-flex justify-content-between align-items-center">
       <div><small class="text-muted">Current walk-in clients</small></div>
       <div class="d-flex gap-2">
@@ -1481,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var search = document.getElementById('bookingSearch');
   var queueStatusFilter = document.getElementById('queueStatusFilter');
   var queueDateFilter = document.getElementById('queueDateFilter');
-  
+
   if (!search) return;
   var tbody = document.querySelectorAll('.booking-queue-wrapper table tbody')[0];
   var rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
@@ -1490,26 +1490,26 @@ document.addEventListener('DOMContentLoaded', function() {
     var q = (search.value || '').trim().toLowerCase();
     var statusVal = queueStatusFilter ? queueStatusFilter.value.toLowerCase() : '';
     var dateVal = queueDateFilter ? queueDateFilter.value : '';
-    
+
     rows.forEach(function(r) {
       if (r.classList && r.classList.contains('no-results')) return;
       if (r.cells.length < 5) return;
-      
+
       // Name filter (column 1)
       var nameCell = r.cells[1];
       var name = nameCell ? (nameCell.textContent || nameCell.innerText || '').toLowerCase() : '';
       var nameMatch = q === '' || name.indexOf(q) !== -1;
-      
+
       // Status filter (column 4)
       var statusCell = r.cells[4];
       var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
       var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1;
-      
+
       // Date filter (column 3)
       var dateCell = r.cells[3];
       var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
       var dateMatch = true;
-      
+
       if (dateVal) {
         try {
           var rowDate = new Date(dateText);
@@ -1519,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', function() {
           dateMatch = false;
         }
       }
-      
+
       var match = nameMatch && statusMatch && dateMatch;
       r.style.display = match ? '' : 'none';
     });
@@ -1536,7 +1536,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var search = document.getElementById('appointmentSearch');
   var statusFilter = document.getElementById('statusFilter');
   var dateFilter = document.getElementById('dateFilter');
-  
+
   if (!search) return;
   var tbody = document.querySelector('.appointment-queue-wrapper table tbody');
   if (!tbody) return;
@@ -1546,26 +1546,26 @@ document.addEventListener('DOMContentLoaded', function() {
     var q = (search.value || '').trim().toLowerCase();
     var statusVal = statusFilter ? statusFilter.value.toLowerCase() : '';
     var dateVal = dateFilter ? dateFilter.value : '';
-    
+
     rows.forEach(function(r) {
       if (r.classList && r.classList.contains('no-results')) return;
-      
+
       // Name filter (column 1)
       var nameCell = r.cells[1];
       var name = nameCell ? (nameCell.textContent || nameCell.innerText || '').toLowerCase() : '';
       var nameMatch = q === '' || name.indexOf(q) !== -1;
-      
+
       // Status filter (column 5)
       var statusCell = r.cells[5];
       var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
-      var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1 || 
+      var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1 ||
                         (statusVal === 'pending_refund' && statusText.indexOf('pending refund') !== -1);
-      
+
       // Date filter (column 3)
       var dateCell = r.cells[3];
       var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
       var dateMatch = true;
-      
+
       if (dateVal) {
         try {
           var rowDate = new Date(dateText);
@@ -1575,7 +1575,7 @@ document.addEventListener('DOMContentLoaded', function() {
           dateMatch = false;
         }
       }
-      
+
       var match = nameMatch && statusMatch && dateMatch;
       r.style.display = match ? '' : 'none';
     });
@@ -1592,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var search = document.getElementById('walkinSearch');
   var walkinStatusFilter = document.getElementById('walkinStatusFilter');
   var walkinDateFilter = document.getElementById('walkinDateFilter');
-  
+
   if (!search) return;
   var tbody = document.querySelector('.walkin-queue-wrapper table tbody');
   if (!tbody) return;
@@ -1602,25 +1602,25 @@ document.addEventListener('DOMContentLoaded', function() {
     var q = (search.value || '').trim().toLowerCase();
     var statusVal = walkinStatusFilter ? walkinStatusFilter.value.toLowerCase() : '';
     var dateVal = walkinDateFilter ? walkinDateFilter.value : '';
-    
+
     rows.forEach(function(r) {
       if (r.cells.length < 6) return;
-      
+
       // Name filter (column 1)
       var nameCell = r.cells[1];
       var name = nameCell ? (nameCell.textContent || nameCell.innerText || '').toLowerCase() : '';
       var nameMatch = q === '' || name.indexOf(q) !== -1;
-      
+
       // Status filter (column 5)
       var statusCell = r.cells[5];
       var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
       var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1;
-      
+
       // Date filter (column 3)
       var dateCell = r.cells[3];
       var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
       var dateMatch = true;
-      
+
       if (dateVal) {
         try {
           var rowDate = new Date(dateText);
@@ -1630,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', function() {
           dateMatch = false;
         }
       }
-      
+
       var match = nameMatch && statusMatch && dateMatch;
       r.style.display = match ? '' : 'none';
     });
@@ -1691,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const submitBtn = form.querySelector('button[type="submit"]');
-            
+
             // SweetAlert confirmation
             Swal.fire({
                 title: '⚠️ Confirm Refund Completion',
@@ -1733,7 +1733,7 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const submitBtn = form.querySelector('button[type="submit"]');
-            
+
             Swal.fire({
                 title: '⚠️ Cancel Booking?',
                 html: `
@@ -1772,7 +1772,7 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const submitBtn = form.querySelector('button[type="submit"]');
-            
+
             Swal.fire({
                 title: '⚠️ Cancel Walk-in Booking?',
                 html: `
