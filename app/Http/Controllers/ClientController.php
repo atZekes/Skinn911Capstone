@@ -11,7 +11,27 @@ class ClientController extends Controller
 {
     public function dashboard()
     {
-        return view('Client.dashboard');
+        $userId = Auth::id();
+
+        // Get all bookings for statistics
+        $allBookings = \App\Models\Booking::where('user_id', $userId)->get();
+
+        // Calculate statistics
+        $totalBookings = $allBookings->count();
+        $activeBookings = $allBookings->where('status', 'active')->count();
+        $completedBookings = $allBookings->where('status', 'completed')->count();
+        $cancelledBookings = $allBookings->where('status', 'cancelled')->where('payment_status', '!=', 'refunded')->count();
+        $refundedBookings = $allBookings->where(function($booking) {
+            return $booking->status === 'pending_refund' || $booking->payment_status === 'refunded';
+        })->count();
+
+        return view('Client.dashboard', compact(
+            'totalBookings',
+            'activeBookings',
+            'completedBookings',
+            'cancelledBookings',
+            'refundedBookings'
+        ));
     }
     public function home()
     {
@@ -378,7 +398,7 @@ public function requestRefund($id)
     }
 
     // Check if already refunded or pending refund
-    if ($booking->status === 'pending_refund' || $booking->status === 'refunded') {
+    if ($booking->status === 'pending_refund' || $booking->payment_status === 'refunded') {
         return redirect()->route('client.dashboard')->withErrors(['error' => 'This booking already has a refund request or has been refunded.']);
     }
 
@@ -715,8 +735,10 @@ public function calendarViewer()
             'total' => $allBookings->count(),
             'active' => $allBookings->where('status', 'active')->count(),
             'completed' => $allBookings->where('status', 'completed')->count(),
-            'cancelled' => $allBookings->where('status', 'cancelled')->count(),
-            'refunded' => $allBookings->whereIn('status', ['refunded', 'pending_refund'])->count(),
+            'cancelled' => $allBookings->where('status', 'cancelled')->where('payment_status', '!=', 'refunded')->count(),
+            'refunded' => $allBookings->where(function($booking) {
+                return $booking->status === 'pending_refund' || $booking->payment_status === 'refunded';
+            })->count(),
         ]);
     }
 
@@ -764,13 +786,40 @@ public function calendarViewer()
         return response()->json(['html' => $html]);
     }
 
-    // AJAX: Get bookings
-    public function getBookings()
+    // AJAX: Get bookings with filters
+    public function getBookings(Request $request)
     {
-        $activeBookings = \App\Models\Booking::with(['service', 'package.services', 'branch'])
+        $query = \App\Models\Booking::with(['service', 'package.services', 'branch'])
             ->where('user_id', Auth::id())
-            ->whereIn('status', ['active', 'pending_refund', 'refunded', 'cancelled', 'completed'])
-            ->orderBy('date', 'desc')
+            ->whereIn('status', ['active', 'pending_refund', 'refunded', 'cancelled', 'completed']);
+
+        // Apply search filter (search in branch name and service/package name)
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->whereHas('branch', function($branchQuery) use ($searchTerm) {
+                    $branchQuery->where('name', 'like', '%' . $searchTerm . '%');
+                })
+                ->orWhereHas('service', function($serviceQuery) use ($searchTerm) {
+                    $serviceQuery->where('name', 'like', '%' . $searchTerm . '%');
+                })
+                ->orWhereHas('package', function($packageQuery) use ($searchTerm) {
+                    $packageQuery->where('name', 'like', '%' . $searchTerm . '%');
+                });
+            });
+        }
+
+        // Apply status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        // Apply date filter
+        if ($request->has('date') && !empty($request->date)) {
+            $query->whereDate('date', $request->date);
+        }
+
+        $activeBookings = $query->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -807,20 +856,26 @@ public function calendarViewer()
             };
 
             $html .= '<tr>';
+            // Column 0: Branch (matches blade template)
+            $html .= '<td>' . e($booking->branch ? $booking->branch->name : 'N/A') . '</td>';
+            // Column 1: Service (matches blade template)
             $html .= '<td>' . e($serviceName) . '</td>';
+            // Column 2: Date (matches blade template)
             $html .= '<td>' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . '</td>';
+            // Column 3: Time Slot (matches blade template)
             $html .= '<td>' . e($displaySlot) . '</td>';
+            // Column 4: Status (matches blade template)
             $html .= '<td>';
 
             if ($booking->status === 'pending_refund') {
                 $html .= '<span class="badge bg-warning text-dark">Pending Refund</span>';
-            } elseif ($booking->status === 'refunded') {
+            } elseif ($booking->payment_status === 'refunded') {
                 $html .= '<span class="badge bg-info">Refunded</span>';
             } else {
                 $html .= '<span class="badge ' . $statusClass . '">' . ucfirst($booking->status) . '</span>';
             }
 
-            if ($booking->status !== 'pending_refund' && $booking->status !== 'refunded' && $booking->status !== 'cancelled') {
+            if ($booking->status !== 'pending_refund' && $booking->payment_status !== 'refunded' && $booking->status !== 'cancelled') {
                 if ($booking->payment_status === 'paid') {
                     $html .= '<span class="badge bg-success ms-1">Confirmed Paid</span>';
                 } elseif ($booking->payment_status === 'pending') {
@@ -829,12 +884,12 @@ public function calendarViewer()
             }
 
             $html .= '</td>';
-            $html .= '<td>' . e($booking->branch ? $booking->branch->name : 'N/A') . '</td>';
+            // Column 5: Action (matches blade template)
             $html .= '<td>';
 
             if (strtolower($booking->status) === 'active') {
                 $html .= '<div class="d-flex gap-1 flex-wrap">';
-                $html .= '<button type="button" class="btn btn-sm btn-info reschedule-booking-btn" data-booking-id="' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-calendar-alt me-1"></i>Reschedule</button>';
+                $html .= '<button type="button" class="btn btn-sm btn-info reschedule-booking-btn" data-booking-id="' . $booking->id . '" data-bs-toggle="modal" data-bs-target="#rescheduleModal' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-calendar-alt me-1"></i>Reschedule</button>';
 
                 if ($booking->payment_status === 'paid' && $booking->status !== 'pending_refund') {
                     $html .= '<button type="button" class="btn btn-sm btn-success request-refund-btn" data-action="' . route('client.booking.requestRefund', $booking->id) . '" data-booking-id="' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-undo-alt me-1"></i>Request Refund</button>';

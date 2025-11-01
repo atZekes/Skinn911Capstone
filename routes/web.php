@@ -131,6 +131,7 @@ Route::middleware('staff')->group(function () {
     Route::get('/staff/{id}', [App\Http\Controllers\StaffController::class, 'show'])->name('staff.show')->where('id', '[0-9]+');
 
     Route::post('/staff/appointments/{id}/cancel', [App\Http\Controllers\StaffController::class, 'cancelAppointment'])->name('staff.cancelAppointment');
+    Route::patch('/staff/appointments/{id}/complete', [App\Http\Controllers\StaffController::class, 'completeAppointment'])->name('staff.completeAppointment');
     Route::post('/staff/appointments/{id}/send-reminder', [App\Http\Controllers\StaffController::class, 'sendReminder'])->name('staff.sendReminder');
     Route::post('/staff/appointments/{id}/process-refund', [App\Http\Controllers\StaffController::class, 'processRefund'])->name('staff.processRefund');
 

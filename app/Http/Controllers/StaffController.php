@@ -794,6 +794,32 @@ class StaffController extends Controller
         return redirect()->route('staff.appointments')->with('success', 'Appointment cancelled successfully.');
     }
 
+    public function completeAppointment($id)
+    {
+        $appointment = \App\Models\Booking::findOrFail($id);
+
+        // Check if payment is confirmed OR if payment method is cash (allow completion for cash payments)
+        if ($appointment->payment_status !== 'paid' && $appointment->payment_method !== 'cash') {
+            return redirect()->route('staff.appointments')->with('error', 'Cannot complete appointment: Payment is still pending. Please confirm payment first.');
+        }
+
+        // Check if already completed
+        if ($appointment->status === 'completed') {
+            return redirect()->route('staff.appointments')->with('info', 'This appointment is already marked as completed.');
+        }
+
+        // If payment method is cash and not yet paid, mark payment as paid when completing
+        if ($appointment->payment_method === 'cash' && $appointment->payment_status !== 'paid') {
+            $appointment->payment_status = 'paid';
+        }
+
+        // Mark as completed
+        $appointment->status = 'completed';
+        $appointment->save();
+
+        return redirect()->route('staff.appointments')->with('success', '✅ Appointment marked as completed successfully!');
+    }
+
     public function sendReminder($id)
     {
         try {
@@ -821,13 +847,13 @@ class StaffController extends Controller
             // Find the booking
             $booking = \App\Models\Booking::findOrFail($id);
 
-            // Validate that booking is pending refundasdasdasdasdasdasdasd
+            // Validate that booking is pending refund
             if ($booking->status !== 'pending_refund') {
                 return redirect()->route('staff.appointments')->with('error', 'This booking is not pending refund.');
             }
 
-            // Update booking status to refunded
-            $booking->status = 'refunded';
+            // Update booking status to cancelled (refunded bookings are automatically cancelled)
+            $booking->status = 'cancelled';
             $booking->payment_status = 'refunded';
             $booking->save();
 

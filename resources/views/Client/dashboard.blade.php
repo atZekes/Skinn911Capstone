@@ -154,16 +154,88 @@
     box-shadow: 0 15px 35px rgba(231, 84, 128, 0.2);
     border-color: #ffb3c6;
 }
+
+/* SweetAlert2 Toast Customization */
+.colored-toast.swal2-popup {
+    border-radius: 15px !important;
+    border: 2px solid rgba(231, 84, 128, 0.3) !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 15px !important;
+    padding: 15px 20px !important;
+}
+
+.colored-toast .swal2-title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+}
+
+.colored-toast .swal2-icon {
+    width: 35px !important;
+    height: 35px !important;
+    margin: 0 10px 0 0 !important;
+}
+
+.swal2-timer-progress-bar {
+    background: rgba(231, 84, 128, 0.8) !important;
+}
 </style>
 
 <div class="container py-4" style="margin-top:120px;">
     @if(session('success'))
-        <div id="success-toast-overlay" class="success-toast-overlay">
-            <div id="success-toast" class="success-toast">
-                <i class="fas fa-check-circle" style="font-size:1.7rem;"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    },
+                    customClass: {
+                        popup: 'colored-toast'
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: '{{ session('success') }}',
+                    background: '#d4edda',
+                    color: '#155724'
+                });
+            });
+        </script>
+    @endif
+
+    @if(session('error') || $errors->any())
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    },
+                    customClass: {
+                        popup: 'colored-toast'
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'error',
+                    title: '{{ session('error') ?? $errors->first() }}',
+                    background: '#f8d7da',
+                    color: '#721c24'
+                });
+            });
+        </script>
     @endif
 
     <!-- Welcome Section -->
@@ -192,8 +264,8 @@
                         <div class="stat-icon">
                             <i class="fas fa-calendar-check"></i>
                         </div>
-                        <h2 class="stat-number" id="total-bookings">
-                            <i class="fas fa-spinner fa-spin"></i>
+                        <h2 class="stat-number">
+                            {{ $totalBookings ?? 0 }}
                         </h2>
                         <p class="stat-label mb-0">Total Bookings</p>
                     </div>
@@ -205,8 +277,8 @@
                         <div class="stat-icon">
                             <i class="fas fa-clock"></i>
                         </div>
-                        <h2 class="stat-number" id="active-bookings">
-                            <i class="fas fa-spinner fa-spin"></i>
+                        <h2 class="stat-number">
+                            {{ $activeBookings ?? 0 }}
                         </h2>
                         <p class="stat-label mb-0">Active Bookings</p>
                     </div>
@@ -218,8 +290,8 @@
                         <div class="stat-icon">
                             <i class="fas fa-check-circle"></i>
                         </div>
-                        <h2 class="stat-number" id="completed-bookings">
-                            <i class="fas fa-spinner fa-spin"></i>
+                        <h2 class="stat-number">
+                            {{ $completedBookings ?? 0 }}
                         </h2>
                         <p class="stat-label mb-0">Completed</p>
                     </div>
@@ -238,8 +310,8 @@
                         <div class="stat-icon">
                             <i class="fas fa-times-circle"></i>
                         </div>
-                        <h2 class="stat-number" id="cancelled-bookings">
-                            <i class="fas fa-spinner fa-spin"></i>
+                        <h2 class="stat-number">
+                            {{ $cancelledBookings ?? 0 }}
                         </h2>
                         <p class="stat-label mb-0">Cancelled Bookings</p>
                     </div>
@@ -251,8 +323,8 @@
                         <div class="stat-icon">
                             <i class="fas fa-undo-alt"></i>
                         </div>
-                        <h2 class="stat-number" id="refunded-bookings">
-                            <i class="fas fa-spinner fa-spin"></i>
+                        <h2 class="stat-number">
+                            {{ $refundedBookings ?? 0 }}
                         </h2>
                         <p class="stat-label mb-0">Refunded / Pending Refund</p>
                     </div>
@@ -603,12 +675,12 @@
                                         @endphp
                                         @if($booking->status === 'pending_refund')
                                             <span class="badge bg-warning text-dark">Pending Refund</span>
-                                        @elseif($booking->status === 'refunded')
+                                        @elseif($booking->payment_status === 'refunded')
                                             <span class="badge bg-info">Refunded</span>
                                         @else
                                             <span class="badge {{ $statusClass }}">{{ ucfirst($booking->status) }}</span>
                                         @endif
-                                        @if($booking->status !== 'pending_refund' && $booking->status !== 'refunded' && $booking->status !== 'cancelled')
+                                        @if($booking->status !== 'pending_refund' && $booking->payment_status !== 'refunded' && $booking->status !== 'cancelled')
                                             @if($booking->payment_status === 'paid')
                                                 <span class="badge bg-success ms-1">Confirmed Paid</span>
                                             @elseif($booking->payment_status === 'pending')
@@ -863,28 +935,6 @@
   </div>
 </div>
 
-<!-- Cancel Confirmation Modal -->
-<div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-labelledby="cancelBookingModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:16px;">
-      <div class="modal-header" style="border-bottom:none;">
-        <h5 class="modal-title" id="cancelBookingModalLabel" style="color:#F56289;">Cancel Booking</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="text-center modal-body">
-        <p>Are you sure you want to cancel this booking?</p>
-      </div>
-      <div class="modal-footer" style="border-top:none;justify-content:center;">
-        <form id="cancelBookingForm" method="POST" style="display:inline;">
-          @csrf
-          @method('DELETE')
-          <button type="submit" class="px-4 btn btn-danger">Yes, Cancel</button>
-        </form>
-    <a href="{{ route('client.dashboard') }}" class="px-4 btn btn-secondary" id="cancelNoBtn" data-bs-dismiss="modal">No</a>
-      </div>
-    </div>
-  </div>
-</div>
         {{-- per-view CSS and JS for client dashboard --}}
         <link rel="stylesheet" href="{{ asset('css/client/dashboard.css') }}">
         <script src="{{ asset('js/client/dashboard.js') }}" defer></script>
@@ -957,176 +1007,174 @@
                 });
             });
 
-            // Client Booking Filter Functionality
+            // Debounce function to improve performance
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Client Booking Filter Functionality with AJAX
             const clientBookingSearch = document.getElementById('clientBookingSearch');
             const clientStatusFilter = document.getElementById('clientStatusFilter');
             const clientDateFilter = document.getElementById('clientDateFilter');
+            const bookingTableBody = document.querySelector('#clientBookingQueue table tbody');
 
-            const bookingTable = document.querySelector('#clientBookingQueue table tbody');
-            if (bookingTable) {
-                const bookingRows = Array.from(bookingTable.querySelectorAll('tr'));
+            // Load bookings via AJAX with filters
+            function loadFilteredBookings() {
+                if (!bookingTableBody) return;
 
-                function filterClientBookings() {
-                    const searchVal = clientBookingSearch ? clientBookingSearch.value.toLowerCase().trim() : '';
-                    const statusVal = clientStatusFilter ? clientStatusFilter.value.toLowerCase() : '';
-                    const dateVal = clientDateFilter ? clientDateFilter.value : '';
+                const searchVal = clientBookingSearch ? clientBookingSearch.value.trim() : '';
+                const statusVal = clientStatusFilter ? clientStatusFilter.value : '';
+                const dateVal = clientDateFilter ? clientDateFilter.value : '';
 
-                    bookingRows.forEach(function(row) {
-                        if (row.cells.length < 6) return;
+                // Show loading state
+                bookingTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading bookings...</td></tr>';
 
-                        // Search filter (Branch + Service columns 0 and 1)
-                        const branchText = row.cells[0] ? row.cells[0].textContent.toLowerCase().trim() : '';
-                        const serviceText = row.cells[1] ? row.cells[1].textContent.toLowerCase().trim() : '';
-                        const searchMatch = searchVal === '' || branchText.includes(searchVal) || serviceText.includes(searchVal);
+                // Build query parameters
+                const params = new URLSearchParams();
+                if (searchVal) params.append('search', searchVal);
+                if (statusVal) params.append('status', statusVal);
+                if (dateVal) params.append('date', dateVal);
 
-                        // Status filter (column 4)
-                        const statusText = row.cells[4] ? row.cells[4].textContent.toLowerCase() : '';
-                        const statusMatch = statusVal === '' || statusText.includes(statusVal);
-
-                        // Date filter (column 2)
-                        const dateText = row.cells[2] ? row.cells[2].textContent.trim() : '';
-                        let dateMatch = true;
-
-                        if (dateVal) {
-                            try {
-                                const rowDate = new Date(dateText);
-                                const filterDate = new Date(dateVal);
-                                dateMatch = rowDate.toDateString() === filterDate.toDateString();
-                            } catch (e) {
-                                dateMatch = false;
-                            }
+                // Fetch filtered bookings
+                fetch(`{{ route("api.client.dashboard.bookings") }}?${params.toString()}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
-
-                        const match = searchMatch && statusMatch && dateMatch;
-                        row.style.display = match ? '' : 'none';
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.html) {
+                            bookingTableBody.innerHTML = data.html;
+                            // Reattach event listeners to new buttons
+                            attachCancelButtonListeners();
+                        } else {
+                            bookingTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Invalid response format</td></tr>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading bookings:', error);
+                        bookingTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle"></i> Error loading bookings. Please refresh the page.</td></tr>';
                     });
-                }
-
-                if (clientBookingSearch) clientBookingSearch.addEventListener('input', filterClientBookings);
-                if (clientStatusFilter) clientStatusFilter.addEventListener('change', filterClientBookings);
-                if (clientDateFilter) clientDateFilter.addEventListener('change', filterClientBookings);
             }
 
-            // AJAX: Load dashboard data on page load
-            loadDashboardStats();
-            loadBookings();
+            // Debounced filter (300ms delay for search input)
+            const debouncedLoadBookings = debounce(loadFilteredBookings, 300);
 
-            // Refresh data every 30 seconds
-            setInterval(function() {
-                loadDashboardStats();
-                loadBookings();
-            }, 30000);
-        });
+            // Attach filter event listeners
+            if (clientBookingSearch) {
+                clientBookingSearch.addEventListener('input', debouncedLoadBookings);
+            }
+            if (clientStatusFilter) {
+                clientStatusFilter.addEventListener('change', loadFilteredBookings);
+            }
+            if (clientDateFilter) {
+                clientDateFilter.addEventListener('change', loadFilteredBookings);
+            }
 
-        // Load statistics via AJAX
-        function loadDashboardStats() {
-            fetch('{{ route("api.client.dashboard.stats") }}')
-                .then(response => response.json())
-                .then(data => {
-                    // Animate number changes
-                    animateNumber('total-bookings', data.total);
-                    animateNumber('active-bookings', data.active);
-                    animateNumber('completed-bookings', data.completed);
-                    animateNumber('cancelled-bookings', data.cancelled);
-                    animateNumber('refunded-bookings', data.refunded);
-                })
-                .catch(error => {
-                    console.error('Error loading stats:', error);
-                    // Show 0 if error
-                    document.getElementById('total-bookings').textContent = '0';
-                    document.getElementById('active-bookings').textContent = '0';
-                    document.getElementById('completed-bookings').textContent = '0';
-                    document.getElementById('cancelled-bookings').textContent = '0';
-                    document.getElementById('refunded-bookings').textContent = '0';
+            // Function to attach all button listeners
+            function attachCancelButtonListeners() {
+                // Attach cancel button listeners
+                document.querySelectorAll('.cancel-booking-btn').forEach(btn => {
+                    btn.addEventListener('click', handleCancelBooking);
                 });
-        }
 
-        // Load bookings via AJAX
-        function loadBookings() {
-            const tbody = document.querySelector('#clientBookingQueue tbody');
-            if (!tbody) return;
-
-            // Show loading state
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading bookings...</td></tr>';
-
-            fetch('{{ route("api.client.dashboard.bookings") }}')
-                .then(response => response.json())
-                .then(data => {
-                    tbody.innerHTML = data.html;
-                    // Reattach event listeners after content update
-                    attachBookingEventListeners();
-                })
-                .catch(error => {
-                    console.error('Error loading bookings:', error);
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle"></i> Error loading bookings</td></tr>';
+                // Attach request refund button listeners
+                document.querySelectorAll('.request-refund-btn').forEach(btn => {
+                    btn.addEventListener('click', handleRequestRefund);
                 });
-        }
 
-        // Animate number changes
-        function animateNumber(elementId, targetNumber) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-
-            const currentNumber = parseInt(element.textContent) || 0;
-            const difference = targetNumber - currentNumber;
-            const duration = 500; // ms
-            const steps = 20;
-            const stepValue = difference / steps;
-            const stepDuration = duration / steps;
-
-            let currentStep = 0;
-            const interval = setInterval(() => {
-                currentStep++;
-                const newValue = Math.round(currentNumber + (stepValue * currentStep));
-                element.textContent = newValue;
-
-                if (currentStep >= steps) {
-                    clearInterval(interval);
-                    element.textContent = targetNumber;
-                }
-            }, stepDuration);
-        }
-
-        // Reattach event listeners for dynamically loaded booking buttons
-        function attachBookingEventListeners() {
-            // Reschedule buttons
-            document.querySelectorAll('.reschedule-booking-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const bookingId = this.getAttribute('data-booking-id');
-                    // Your existing reschedule modal logic here
+                // Attach reschedule button listeners
+                document.querySelectorAll('.reschedule-booking-btn').forEach(btn => {
+                    const bookingId = btn.getAttribute('data-booking-id');
+                    if (bookingId) {
+                        // Add modal trigger attributes if not present
+                        if (!btn.hasAttribute('data-bs-toggle')) {
+                            btn.setAttribute('data-bs-toggle', 'modal');
+                            btn.setAttribute('data-bs-target', '#rescheduleModal' + bookingId);
+                        }
+                    }
                 });
-            });
+            }
 
-            // Request refund buttons
-            document.querySelectorAll('.request-refund-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const action = this.getAttribute('data-action');
-                    const bookingId = this.getAttribute('data-booking-id');
+            // Handle request refund
+            function handleRequestRefund() {
+                const action = this.getAttribute('data-action');
 
-                    if (confirm('Are you sure you want to request a refund for this booking? You can collect the refund at the branch once approved by staff.')) {
+                Swal.fire({
+                    title: 'Request Refund?',
+                    html: '<p><strong>Important Notice:</strong></p>' +
+                          '<p>To receive your refund, you must visit the branch physically.</p>' +
+                          '<p>Once approved by staff, you can collect your refund at the branch location.</p>' +
+                          '<p>Do you want to proceed with the refund request?</p>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Request Refund',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Create a form and submit
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = action;
 
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                        // Add CSRF token
                         const csrfInput = document.createElement('input');
                         csrfInput.type = 'hidden';
                         csrfInput.name = '_token';
-                        csrfInput.value = csrfToken;
+                        csrfInput.value = '{{ csrf_token() }}';
                         form.appendChild(csrfInput);
 
                         document.body.appendChild(form);
                         form.submit();
                     }
                 });
-            });
+            }
 
-            // Cancel booking buttons
-            document.querySelectorAll('.cancel-booking-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const action = this.getAttribute('data-action');
+            // Handle cancel booking
+            function handleCancelBooking() {
+                const action = this.getAttribute('data-action');
 
-                    if (confirm('Are you sure you want to cancel this booking?')) {
+                Swal.fire({
+                    title: 'Cancel Booking?',
+                    html: `
+                        <div style="text-align: left; padding: 10px 20px;">
+                            <p style="margin-bottom: 15px; color: #555;">
+                                <strong>Are you sure you want to cancel this booking?</strong>
+                            </p>
+                            <div style="background: #fff3cd; padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 10px;">
+                                <p style="margin: 0; color: #856404; font-size: 14px;">
+                                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 5px;"></i>
+                                    This action cannot be undone
+                                </p>
+                            </div>
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e75480',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-check"></i> Yes, Cancel Booking',
+                    cancelButtonText: '<i class="fas fa-times"></i> Keep Booking',
+                    customClass: {
+                        popup: 'swal-wide',
+                        title: 'swal-title-custom',
+                        confirmButton: 'btn-lg',
+                        cancelButton: 'btn-lg'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Create and submit form
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = action;
@@ -1148,7 +1196,10 @@
                         form.submit();
                     }
                 });
-            });
-        }
+            }
+
+            // Initial load and attach listeners
+            attachCancelButtonListeners();
+        });
         </script>
 @endsection

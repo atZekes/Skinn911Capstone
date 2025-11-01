@@ -1044,6 +1044,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <th>User Name</th>
                     <th>Service</th>
                     <th>Date</th>
+                    <th>Payment Method</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -1063,15 +1064,39 @@ document.addEventListener('DOMContentLoaded', function() {
             @endif
           </td>
                     <td>{{ $booking->date }}</td>
+                    <td>
+                        @if($booking->payment_method === 'cash')
+                            <span class="badge bg-success"><i class="fas fa-money-bill-wave"></i> Cash</span>
+                        @elseif($booking->payment_method === 'card')
+                            <span class="badge bg-primary"><i class="fas fa-credit-card"></i> Card</span>
+                        @elseif($booking->payment_method === 'gcash')
+                            <span class="badge bg-info"><i class="fas fa-mobile-alt"></i> GCash</span>
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </td>
                     <td>{{ ucfirst($booking->status) }}</td>
                     <td>
-                        @if($booking->status !== 'Cancelled' && $booking->status !== 'cancelled')
-                        <form action="{{ route('staff.cancelAppointment', $booking->id) }}" method="POST" class="cancel-booking-form">
-                            @csrf
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="fas fa-times"></i> Cancel
-                            </button>
-                        </form>
+                        @if($booking->status !== 'Cancelled' && $booking->status !== 'cancelled' && $booking->status !== 'completed')
+                        <div class="d-flex gap-1">
+                            @if($booking->status === 'active' && ($booking->payment_status === 'paid' || $booking->payment_method === 'cash'))
+                            <form action="{{ route('staff.completeAppointment', $booking->id) }}" method="POST" class="complete-booking-form d-inline">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check"></i> Complete
+                                </button>
+                            </form>
+                            @endif
+                            <form action="{{ route('staff.cancelAppointment', $booking->id) }}" method="POST" class="cancel-booking-form d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </form>
+                        </div>
+                        @elseif($booking->status === 'completed')
+                            <span class="badge bg-success">Completed</span>
                         @else
                             <span class="text-muted">Cancelled</span>
                         @endif
@@ -1079,12 +1104,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center">No bookings found.</td>
+                    <td colspan="7" class="text-center">No bookings found.</td>
                 </tr>
                 @endforelse
 
         <tr class="text-center no-results" style="display:none;">
-          <td colspan="6" class="text-center">No matching bookings.</td>
+          <td colspan="7" class="text-center">No matching bookings.</td>
         </tr>
       </tbody>
     </table>
@@ -1117,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>Service</th>
             <th>Date</th>
             <th>Time</th>
+            <th>Payment Method</th>
             <th>Status</th>
             <th>Action</th>
           </tr>
@@ -1170,11 +1196,31 @@ document.addEventListener('DOMContentLoaded', function() {
                   @endphp
                   {!! $displayTime !!}
               </td>
+              <td>
+                @if($w->payment_method === 'cash')
+                    <span class="badge bg-success"><i class="fas fa-money-bill-wave"></i> Cash</span>
+                @elseif($w->payment_method === 'card')
+                    <span class="badge bg-primary"><i class="fas fa-credit-card"></i> Card</span>
+                @elseif($w->payment_method === 'gcash')
+                    <span class="badge bg-info"><i class="fas fa-mobile-alt"></i> GCash</span>
+                @else
+                    <span class="text-muted">-</span>
+                @endif
+              </td>
               <td>{{ ucfirst($w->status) }}</td>
               <td>
-                @if($w->status !== 'Cancelled' && $w->status !== 'cancelled')
-                <div class="d-flex">
-                  <form action="{{ route('staff.cancelAppointment', $w->id) }}" method="POST" class="cancel-walkin-form" style="margin-right:6px;">
+                @if($w->status !== 'Cancelled' && $w->status !== 'cancelled' && $w->status !== 'completed')
+                <div class="d-flex gap-1">
+                  @if($w->status === 'active' && ($w->payment_status === 'paid' || $w->payment_method === 'cash'))
+                  <form action="{{ route('staff.completeAppointment', $w->id) }}" method="POST" class="complete-walkin-form d-inline">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit" class="btn btn-success btn-sm">
+                      <i class="fas fa-check"></i> Complete
+                    </button>
+                  </form>
+                  @endif
+                  <form action="{{ route('staff.cancelAppointment', $w->id) }}" method="POST" class="cancel-walkin-form d-inline">
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm">
                       <i class="fas fa-times"></i> Cancel
@@ -1183,6 +1229,8 @@ document.addEventListener('DOMContentLoaded', function() {
                   <!-- Reschedule walk-in (open a modal similar to rescheduleModal for registered users) -->
                   <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#rescheduleModalWalkin{{ $w->id }}">Reschedule</button>
                 </div>
+                @elseif($w->status === 'completed')
+                  <span class="badge bg-success">Completed</span>
                 @else
                   <span class="text-muted">Cancelled</span>
                 @endif
@@ -1256,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           @empty
             <tr>
-              <td colspan="7" class="text-center">No walk-ins found.</td>
+              <td colspan="8" class="text-center">No walk-ins found.</td>
             </tr>
           @endforelse
         </tbody>
@@ -1272,6 +1320,43 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 .new-booking-highlight { animation: flash-bg 2s ease-in-out; }
 @keyframes flash-bg { 0%{background:#e8f8ef;} 50%{background:#fff;} 100%{background:transparent;} }
+
+/* Custom Toast Styling */
+.colored-toast.swal2-popup {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    padding: 16px 20px !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    border-left: 5px solid !important;
+}
+
+.colored-toast.swal2-popup.swal2-icon-success {
+    border-left-color: #28a745 !important;
+}
+
+.colored-toast.swal2-popup.swal2-icon-error {
+    border-left-color: #dc3545 !important;
+}
+
+.colored-toast .swal2-title {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
+
+.colored-toast .swal2-icon {
+    width: 32px !important;
+    height: 32px !important;
+    margin: 0 12px 0 0 !important;
+}
+
+.colored-toast .swal2-timer-progress-bar {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+.colored-toast:hover .swal2-timer-progress-bar {
+    background: rgba(0, 0, 0, 0.3) !important;
+}
 </style>
 
     <!-- Confirm Payment Modal (one per appointment) -->
@@ -1651,6 +1736,57 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // Double-submit prevention for all forms on staff appointments page
 document.addEventListener('DOMContentLoaded', function() {
+    // Show success/error toast notifications
+    @if(session('success'))
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            },
+            customClass: {
+                popup: 'colored-toast'
+            }
+        });
+
+        Toast.fire({
+            icon: 'success',
+            title: '{{ session('success') }}',
+            background: '#d4edda',
+            color: '#155724',
+            iconColor: '#28a745'
+        });
+    @endif
+
+    @if(session('error'))
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            },
+            customClass: {
+                popup: 'colored-toast'
+            }
+        });
+
+        Toast.fire({
+            icon: 'error',
+            title: '{{ session('error') }}',
+            background: '#f8d7da',
+            color: '#721c24',
+            iconColor: '#dc3545'
+        });
+    @endif
+
     // Prevent double-submit on all forms
     const forms = document.querySelectorAll('form[method="POST"]');
     forms.forEach(function(form) {
@@ -1799,6 +1935,84 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (submitBtn && !submitBtn.disabled) {
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cancelling...';
+                    }
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // Handle complete booking confirmation
+    document.querySelectorAll('.complete-booking-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            Swal.fire({
+                title: '✅ Complete This Booking?',
+                html: `
+                    <div style="text-align: left; padding: 10px 20px;">
+                        <p style="margin-bottom: 15px; color: #555;">
+                            <strong>Are you ready to mark this booking as completed?</strong>
+                        </p>
+                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; border-left: 4px solid #28a745;">
+                            <p style="margin: 0; color: #155724;">
+                                <i class="fas fa-check-circle"></i> This will mark the appointment as successfully completed.
+                            </p>
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-check"></i> Yes, Mark as Complete',
+                cancelButtonText: '<i class="fas fa-arrow-left"></i> Not Yet',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (submitBtn && !submitBtn.disabled) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Completing...';
+                    }
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // Handle complete walk-in confirmation
+    document.querySelectorAll('.complete-walkin-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            Swal.fire({
+                title: '✅ Complete This Walk-in?',
+                html: `
+                    <div style="text-align: left; padding: 10px 20px;">
+                        <p style="margin-bottom: 15px; color: #555;">
+                            <strong>Are you ready to mark this walk-in as completed?</strong>
+                        </p>
+                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; border-left: 4px solid #28a745;">
+                            <p style="margin: 0; color: #155724;">
+                                <i class="fas fa-check-circle"></i> This will mark the appointment as successfully completed.
+                            </p>
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-check"></i> Yes, Mark as Complete',
+                cancelButtonText: '<i class="fas fa-arrow-left"></i> Not Yet',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (submitBtn && !submitBtn.disabled) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Completing...';
                     }
                     form.submit();
                 }

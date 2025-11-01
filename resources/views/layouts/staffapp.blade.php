@@ -404,6 +404,45 @@ $(function() {
     }
     $('input[name="date"]:visible').on('change', filterTimeSlotsClient);
     $(document).ready(filterTimeSlotsClient);
+
+    // Show SweetAlert2 toast for success messages
+    @if(session('success'))
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: '{{ session('success') }}',
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            background: '#d4edda',
+            color: '#155724',
+            iconColor: '#28a745',
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+    @endif
+
+    @if(session('error'))
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: '{{ session('error') }}',
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            background: '#f8d7da',
+            color: '#721c24',
+            iconColor: '#dc3545',
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+    @endif
 });
 </script>
 </body>
