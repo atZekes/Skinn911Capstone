@@ -473,7 +473,8 @@ document.addEventListener('DOMContentLoaded', function() {
     @yield('scripts')
 
     <!-- VITE LOADS YOUR CUSTOM app.js LAST -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <script src="{{ asset('js/app.js') }}" defer></script>
 
     <script>
     window.addEventListener('scroll', function() {
