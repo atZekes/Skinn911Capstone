@@ -12,7 +12,7 @@
         <div class="row">
             <div class="col-xl-12">
                 <div class="text-center section_title mb-100">
-                    <span>Skin911 Services</span>
+                    <span>Skin911 Servicessssssss</span>
                     <h3>Professional Beauty & Wellness Solutions</h3>
                 </div>
             </div>
