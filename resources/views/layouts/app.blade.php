@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}" style="color:#F56289;font-weight:600;">Home</a></li>
                                         <li class="nav-item"><a class="nav-link" href="{{ route('services') }}" style="color:#F56289;font-weight:600;">Services</a></li>
                                         <li class="nav-item"><a class="nav-link" href="{{ route('aboutus') }}" style="color:#F56289;font-weight:600;">About Us</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="{{ route('contact') }}" style="color:#F56289;font-weight:600;">Contact</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="{{ route('contact') }}" style="color:#F56289;font-weight:600;">Branch Locator</a></li>
                                         <li class="nav-item d-lg-none" style="margin-top:12px;">
                                             <a href="#" class="btn btn-outline-pink w-100" id="drawerLoginBtn" style="color:#F56289;border:1px solid #F56289;margin-bottom:10px;">Login</a>
                                         </li>

@@ -260,7 +260,7 @@
                             </div>
                             <div class="col-xl-6 col-md-6">
                                 <div class="phone_num">
-                                    <a href="{{route('contact')}}" class="mobile_no">Contact us</a>
+                                    <a href="{{route('login')}}" class="mobile_no">Contact us</a>
                                 </div>
                             </div>
                         </div>

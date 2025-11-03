@@ -40,7 +40,7 @@ class ChatMessageController extends Controller
             })
             ->values();
 
-        return view('client.messages', compact('chatHistory'));
+        return view('Client.messages', compact('chatHistory'));
     }
 
     /**
