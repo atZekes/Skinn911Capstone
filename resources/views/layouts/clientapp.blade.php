@@ -221,7 +221,7 @@
 			<button class="chat-attach-button" id="chatAttachButton" title="Attach image">
 				<i class="fa fa-paperclip"></i>
 			</button>
-			<input type="file" id="chatImageInput" accept="image/*" style="display: none;">
+			<input type="file" id="chatImageInput" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/heic,image/heif" style="display: none;">
 			<input type="text" id="chatMessageInput" placeholder="Type a message...">
 			<button class="chat-send-button" id="chatSendButton">Send</button>
 		</div>

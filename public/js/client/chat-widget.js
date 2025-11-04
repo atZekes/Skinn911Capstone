@@ -60,27 +60,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the text from the input field
         var messageText = messageInput.value;
 
-        // Check if message is not empty (trim removes spaces)
-        if (messageText.trim() !== '') {
+        // Check if we have either a message or an image
+        if (messageText.trim() !== '' || selectedImage) {
             // If we have a selected branch (live chat mode), send to server
             if (window.selectedBranchId) {
                 sendRealTimeMessage(messageText);
             } else {
-                // Regular bot message display
-                // Create a new div element for the message
-                var messageDiv = document.createElement('div');
+                // Regular bot message display (only if there's text)
+                if (messageText.trim() !== '') {
+                    // Create a new div element for the message
+                    var messageDiv = document.createElement('div');
 
-                // Add the 'chat-message' class to style it
-                messageDiv.className = 'chat-message';
+                    // Add the 'chat-message' class to style it
+                    messageDiv.className = 'chat-message';
 
-                // Put the message text inside the div
-                messageDiv.textContent = messageText;
+                    // Put the message text inside the div
+                    messageDiv.textContent = messageText;
 
-                // Add the message to the messages container
-                messagesContainer.appendChild(messageDiv);
+                    // Add the message to the messages container
+                    messagesContainer.appendChild(messageDiv);
 
-                // Scroll to bottom to see the new message
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    // Scroll to bottom to see the new message
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
             }
 
             // Clear the input field
@@ -665,10 +667,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (imageInput) {
         imageInput.addEventListener('change', function(event) {
             var file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                // Check file size (max 5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Image file is too large. Maximum size is 5MB.');
+            if (file) {
+                // Check if it's an image file (support multiple formats)
+                var validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/heic', 'image/heif'];
+                
+                if (!validImageTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPEG, PNG, GIF, WebP, BMP, SVG, HEIC, HEIF).');
+                    imageInput.value = '';
+                    return;
+                }
+
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Image file is too large. Maximum size is 10MB.');
+                    imageInput.value = '';
                     return;
                 }
 

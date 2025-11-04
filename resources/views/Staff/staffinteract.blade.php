@@ -280,7 +280,7 @@
                             <button type="button" class="btn btn-outline-secondary" id="staffAttachButton" title="Attach image" style="padding: 10px 15px;">
                                 <i class="fa fa-paperclip"></i>
                             </button>
-                            <input type="file" id="staffImageInput" name="image" accept="image/*" style="display: none;">
+                            <input type="file" id="staffImageInput" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/heic,image/heif" style="display: none;">
                             <input type="text" class="form-control" id="staffReply" name="message" placeholder="Type your reply..." style="border-color: #e75480; flex: 1;">
                             <button type="submit" class="btn" style="background: #e75480; color: #fff; padding: 10px 20px;">Send</button>
                         </div>
@@ -332,10 +332,19 @@ document.addEventListener('DOMContentLoaded', function() {
         staffImageInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
 
-            if (file && file.type.startsWith('image/')) {
-                // Check file size (max 5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Image file is too large. Maximum size is 5MB.');
+            if (file) {
+                // Check if it's a valid image file (support multiple formats)
+                const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/heic', 'image/heif'];
+                
+                if (!validImageTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPEG, PNG, GIF, WebP, BMP, SVG, HEIC, HEIF).');
+                    staffImageInput.value = '';
+                    return;
+                }
+
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Image file is too large. Maximum size is 10MB.');
                     staffImageInput.value = '';
                     return;
                 }
@@ -483,8 +492,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Check if we have the required data (message or image)
-        if (!customerIdValue || (!messageValue.trim() && !hasImage)) {
-            alert('Please select a customer and enter a message or attach an image');
+        if (!customerIdValue) {
+            alert('Please select a customer first');
+            return;
+        }
+        
+        if (!messageValue.trim() && !hasImage) {
+            alert('Please enter a message or attach an image');
             return;
         }
 

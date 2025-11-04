@@ -61,11 +61,11 @@ class ChatMessageController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'message' => 'nullable|string|max:1000',
             'sender_type' => 'required|in:client,staff',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120' // Max 5MB
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp,svg,heic,heif|max:10240' // Max 10MB, support multiple formats
         ]);
 
-        // Require either message or image
-        if (!$request->message && !$request->hasFile('image')) {
+        // Require either message or image (but not necessarily both)
+        if (empty($request->message) && !$request->hasFile('image')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Either message text or image is required'
