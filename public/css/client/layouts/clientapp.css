@@ -165,11 +165,8 @@
     gap: 16px;
 }
 
-.user-menu-dropdown {
-    position: relative;
-}
-
-.user-menu-btn {
+/* Profile Button (Clickable Link) */
+.profile-btn {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -181,12 +178,16 @@
     transition: var(--transition-smooth);
     font-weight: 500;
     color: var(--text-dark);
+    text-decoration: none;
+    margin-right: 12px;
 }
 
-.user-menu-btn:hover {
+.profile-btn:hover {
     border-color: var(--primary-color);
     box-shadow: var(--shadow-pink);
     transform: translateY(-2px);
+    text-decoration: none;
+    color: var(--text-dark);
 }
 
 .user-avatar {
@@ -209,81 +210,34 @@
     white-space: nowrap;
 }
 
-.dropdown-icon {
-    font-size: 12px;
-    transition: var(--transition-smooth);
-}
-
-.user-menu-dropdown.active .dropdown-icon {
-    transform: rotate(180deg);
-}
-
-/* User Dropdown Menu */
-.user-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 220px;
-    background: var(--white);
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: var(--transition-smooth);
-    overflow: hidden;
-    z-index: 1001;
-    pointer-events: none;
-}
-
-.user-menu-dropdown.active .user-dropdown-menu {
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: translateY(0) !important;
-    pointer-events: auto !important;
-}
-
-.dropdown-item {
+/* Logout Button */
+.logout-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 20px;
-    color: var(--text-dark);
-    text-decoration: none;
-    transition: var(--transition-smooth);
+    gap: 8px;
+    padding: 8px 18px;
+    background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%);
     border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
+    border-radius: 50px;
+    color: var(--white);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-md);
 }
 
-.dropdown-item:hover {
-    background: var(--secondary-color);
-    color: var(--primary-color);
+.logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 100%);
 }
 
-.dropdown-item i {
+.logout-btn i {
     font-size: 16px;
-    width: 20px;
 }
 
-.dropdown-divider {
-    height: 1px;
-    background: #e5e7eb;
-    margin: 8px 0;
-}
 
-.logout-item {
-    color: #dc2626;
-}
-
-.logout-item:hover {
-    background: #fee2e2;
-    color: #dc2626;
-}
 
 /* ===================================================================
    MOBILE MENU BUTTON
@@ -690,6 +644,17 @@
    RESPONSIVE BREAKPOINTS
    =================================================================== */
 
+/* Medium Screens - Hide text in buttons to save space */
+@media (max-width: 1200px) {
+    .logout-btn span {
+        display: none;
+    }
+    
+    .user-name {
+        max-width: 80px;
+    }
+}
+
 /* Tablet and Mobile */
 @media (max-width: 991px) {
     :root {
@@ -697,7 +662,8 @@
     }
 
     .desktop-nav,
-    .user-menu-dropdown {
+    .profile-btn,
+    .logout-btn {
         display: none !important;
     }
 

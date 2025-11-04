@@ -93,29 +93,22 @@
 				<!-- Right Section: User Info & Actions -->
 				<div class="header-actions">
 					@auth
-					<div class="user-menu-dropdown">
-						<button class="user-menu-btn" id="userMenuBtn">
-							<div class="user-avatar">
-								<i class="fas fa-user"></i>
-							</div>
-							<span class="user-name">{{ Auth::user()->name }}</span>
-							<i class="fas fa-chevron-down dropdown-icon"></i>
-						</button>
-						<div class="user-dropdown-menu" id="userDropdownMenu">
-							<a href="{{ route('client.profile.edit') }}" class="dropdown-item">
-								<i class="fas fa-user-circle"></i>
-								<span>My Profile</span>
-							</a>
-							<div class="dropdown-divider"></div>
-							<form method="POST" action="{{ route('logout') }}">
-								@csrf
-								<button type="submit" class="dropdown-item logout-item">
-									<i class="fas fa-sign-out-alt"></i>
-									<span>Logout</span>
-								</button>
-							</form>
+					<!-- Profile Button (Clickable to Edit Profile) -->
+					<a href="{{ route('client.profile.edit') }}" class="profile-btn" title="Edit Profile">
+						<div class="user-avatar">
+							<i class="fas fa-user"></i>
 						</div>
-					</div>
+						<span class="user-name">{{ Auth::user()->name }}</span>
+					</a>
+
+					<!-- Logout Button -->
+					<form method="POST" action="{{ route('logout') }}" style="display: inline;">
+						@csrf
+						<button type="submit" class="logout-btn" title="Logout">
+							<i class="fas fa-sign-out-alt"></i>
+							<span>Logout</span>
+						</button>
+					</form>
 					@endauth
 
 					<!-- Mobile Menu Button -->

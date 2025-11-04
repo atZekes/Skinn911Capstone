@@ -96,70 +96,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ================================================================
-    // USER DROPDOWN MENU - ENHANCED WITH BETTER SUPPORT
+    // USER PROFILE & LOGOUT - No dropdown needed anymore
     // ================================================================
-    const userMenuBtn = document.getElementById('userMenuBtn');
-    const userDropdownMenu = document.getElementById('userDropdownMenu');
-    const userMenuDropdown = document.querySelector('.user-menu-dropdown');
-
-    console.log('User menu elements:', {
-        userMenuBtn: !!userMenuBtn,
-        userDropdownMenu: !!userDropdownMenu,
-        userMenuDropdown: !!userMenuDropdown
-    });
-
-    if (userMenuBtn && userMenuDropdown) {
-        // Toggle dropdown with both click and touchstart for mobile compatibility
-        function toggleUserMenu(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const isActive = userMenuDropdown.classList.contains('active');
-            
-            if (isActive) {
-                userMenuDropdown.classList.remove('active');
-                console.log('👤 User menu closed');
-            } else {
-                userMenuDropdown.classList.add('active');
-                console.log('👤 User menu opened');
-            }
-        }
-
-        userMenuBtn.addEventListener('click', toggleUserMenu);
-        
-        // Also add touchstart for better mobile support
-        userMenuBtn.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            toggleUserMenu(e);
-        }, { passive: false });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (userMenuDropdown && !userMenuDropdown.contains(e.target)) {
-                userMenuDropdown.classList.remove('active');
-            }
-        });
-
-        // Close on touch outside for mobile
-        document.addEventListener('touchstart', function(e) {
-            if (userMenuDropdown && !userMenuDropdown.contains(e.target)) {
-                userMenuDropdown.classList.remove('active');
-            }
-        });
-
-        // Prevent dropdown from closing when clicking inside
-        if (userDropdownMenu) {
-            userDropdownMenu.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-            
-            userDropdownMenu.addEventListener('touchstart', function(e) {
-                e.stopPropagation();
-            });
-        }
-    } else {
-        console.warn('⚠️ User menu elements not found! Make sure you are logged in.');
-    }
+    // Profile button is now a direct link to edit profile page
+    // Logout button submits the logout form directly
+    console.log('✅ User menu simplified - no dropdown needed');
 
     // ================================================================
     // HEADER SCROLL EFFECT
