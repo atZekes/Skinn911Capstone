@@ -503,7 +503,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle password visibility
     const togglePassword = document.getElementById('togglePassword');
     const password = document.getElementById('password');
-    
+
     if (togglePassword && password) {
         togglePassword.addEventListener('click', function() {
             const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -512,11 +512,11 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.toggle('fa-eye-slash');
         });
     }
-    
+
     // Toggle password confirmation visibility
     const togglePasswordConfirmation = document.getElementById('togglePasswordConfirmation');
     const passwordConfirmation = document.getElementById('password_confirmation');
-    
+
     if (togglePasswordConfirmation && passwordConfirmation) {
         togglePasswordConfirmation.addEventListener('click', function() {
             const type = passwordConfirmation.getAttribute('type') === 'password' ? 'text' : 'password';

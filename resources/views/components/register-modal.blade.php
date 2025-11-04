@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle password visibility for register modal
     const toggleRegisterPassword = document.getElementById('toggleRegisterPassword');
     const registerPassword = document.getElementById('register-password');
-    
+
     if (toggleRegisterPassword && registerPassword) {
         toggleRegisterPassword.addEventListener('click', function() {
             const type = registerPassword.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -232,11 +232,11 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.toggle('fa-eye-slash');
         });
     }
-    
+
     // Toggle password confirmation visibility for register modal
     const toggleRegisterPasswordConfirmation = document.getElementById('toggleRegisterPasswordConfirmation');
     const registerPasswordConfirmation = document.getElementById('register-password-confirmation');
-    
+
     if (toggleRegisterPasswordConfirmation && registerPasswordConfirmation) {
         toggleRegisterPasswordConfirmation.addEventListener('click', function() {
             const type = registerPasswordConfirmation.getAttribute('type') === 'password' ? 'text' : 'password';

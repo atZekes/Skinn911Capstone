@@ -259,11 +259,11 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 20px; border: none; overflow: hidden;">
             <div class="modal-header" style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); border: none; padding: 25px 30px;">
-                <h5 class="text-white modal-title fw-bold d-flex align-items-center" id="recommendationsModalLabel">
-                    <i class="bi bi-star-fill me-2" style="font-size: 1.3rem;"></i>
-                    Recommended For You
+                <h5 class="modal-title fw-bold d-flex align-items-center" id="recommendationsModalLabel" style="color: white !important;">
+                    <i class="bi bi-star-fill me-2" style="font-size: 1.3rem; color: white !important;"></i>
+                    <span style="color: white !important;">Recommended For You</span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1); opacity: 1;"></button>
             </div>
             <div class="modal-body" style="padding: 30px;">
                 @php
@@ -488,16 +488,16 @@
                             </div>
                             <div class="mb-3">
                                 <label for="card_number" class="form-label">Card Number</label>
-                                <input type="text" class="form-control" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                                <input type="text" class="form-control" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" maxlength="19" pattern="[0-9\s]*" inputmode="numeric" required>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label for="card_expiry" class="form-label">Expiry Date</label>
-                                    <input type="text" class="form-control" id="card_expiry" name="card_expiry" placeholder="MM/YY" maxlength="5" required>
+                                    <input type="text" class="form-control" id="card_expiry" name="card_expiry" placeholder="MM/YY" maxlength="5" pattern="[0-9/]*" inputmode="numeric" required>
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="card_cvv" class="form-label">CVV</label>
-                                    <input type="text" class="form-control" id="card_cvv" name="card_cvv" placeholder="123" maxlength="3" required>
+                                    <input type="text" class="form-control" id="card_cvv" name="card_cvv" placeholder="123" maxlength="3" pattern="[0-9]*" inputmode="numeric" required>
                                 </div>
                             </div>
 
@@ -526,7 +526,7 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="billing_zip" class="form-label">Zip Code</label>
-                                    <input type="text" class="form-control" id="billing_zip" name="billing_zip" required>
+                                    <input type="text" class="form-control" id="billing_zip" name="billing_zip" pattern="[0-9]*" inputmode="numeric" required>
                                 </div>
                             </div>
                             <div class="row">
@@ -536,7 +536,7 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="billing_phone" class="form-label">Phone Number</label>
-                                    <input type="text" class="form-control" id="billing_phone" name="billing_phone" placeholder="+63 XXX XXX XXXX" required>
+                                    <input type="text" class="form-control" id="billing_phone" name="billing_phone" placeholder="+63 XXX XXX XXXX" pattern="[0-9+\s]*" inputmode="tel" required>
                                 </div>
                             </div>
 
@@ -1728,17 +1728,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Card number formatting
+    // Card number formatting - numbers only with spaces
     const cardNumberInput = document.getElementById('card_number');
     if (cardNumberInput) {
         cardNumberInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s/g, '');
+            let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
             let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
             e.target.value = formattedValue;
         });
     }
 
-    // Expiry date formatting
+    // Expiry date formatting - numbers only with /
     const cardExpiryInput = document.getElementById('card_expiry');
     if (cardExpiryInput) {
         cardExpiryInput.addEventListener('input', function(e) {
@@ -1755,6 +1755,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cardCvvInput) {
         cardCvvInput.addEventListener('input', function(e) {
             e.target.value = e.target.value.replace(/\D/g, '');
+        });
+    }
+
+    // Zip code - numbers only
+    const billingZipInput = document.getElementById('billing_zip');
+    if (billingZipInput) {
+        billingZipInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+    }
+
+    // Phone number - numbers, +, and spaces only
+    const billingPhoneInput = document.getElementById('billing_phone');
+    if (billingPhoneInput) {
+        billingPhoneInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^\d+\s]/g, '');
         });
     }
 
@@ -2108,6 +2124,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const recommendationsModal = new bootstrap.Modal(modalEl);
                 recommendationsModal.show();
                 console.log('Modal shown');
+
+                // Add manual close button handler
+                const closeBtn = modalEl.querySelector('.btn-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function(e) {
+                        console.log('Close button clicked');
+                        recommendationsModal.hide();
+                    });
+                }
 
                 // Log visible items for debugging
                 setTimeout(() => {

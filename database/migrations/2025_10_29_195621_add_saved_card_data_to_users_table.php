@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->text('saved_card_data')->nullable()->after('remember_token');
+            $table->longText('saved_card_data')->nullable()->after('remember_token');
         });
     }
 

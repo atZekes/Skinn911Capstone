@@ -57,7 +57,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const toggleAdminPassword = document.getElementById('toggleAdminPassword');
             const adminPassword = document.getElementById('admin-password');
-            
+
             if (toggleAdminPassword && adminPassword) {
                 toggleAdminPassword.addEventListener('click', function() {
                     const type = adminPassword.getAttribute('type') === 'password' ? 'text' : 'password';

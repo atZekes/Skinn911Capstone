@@ -72,11 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
         loginModal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
     }
-    
+
     // Password toggle for login
     const toggleLoginPassword = document.getElementById('toggleLoginPassword');
     const loginPassword = document.getElementById('login-password');
-    
+
     if (toggleLoginPassword && loginPassword) {
         toggleLoginPassword.addEventListener('click', function() {
             const type = loginPassword.getAttribute('type') === 'password' ? 'text' : 'password';
