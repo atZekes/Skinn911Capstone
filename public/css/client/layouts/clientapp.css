@@ -233,12 +233,14 @@
     transition: var(--transition-smooth);
     overflow: hidden;
     z-index: 1001;
+    pointer-events: none;
 }
 
 .user-menu-dropdown.active .user-dropdown-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
 }
 
 .dropdown-item {

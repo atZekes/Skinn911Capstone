@@ -96,23 +96,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ================================================================
-    // USER DROPDOWN MENU
+    // USER DROPDOWN MENU - ENHANCED WITH BETTER SUPPORT
     // ================================================================
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userDropdownMenu = document.getElementById('userDropdownMenu');
     const userMenuDropdown = document.querySelector('.user-menu-dropdown');
 
+    console.log('User menu elements:', {
+        userMenuBtn: !!userMenuBtn,
+        userDropdownMenu: !!userDropdownMenu,
+        userMenuDropdown: !!userMenuDropdown
+    });
+
     if (userMenuBtn && userMenuDropdown) {
-        // Toggle dropdown
-        userMenuBtn.addEventListener('click', function(e) {
+        // Toggle dropdown with both click and touchstart for mobile compatibility
+        function toggleUserMenu(e) {
             e.preventDefault();
             e.stopPropagation();
-            userMenuDropdown.classList.toggle('active');
-            console.log('👤 User menu toggled');
-        });
+            
+            const isActive = userMenuDropdown.classList.contains('active');
+            
+            if (isActive) {
+                userMenuDropdown.classList.remove('active');
+                console.log('👤 User menu closed');
+            } else {
+                userMenuDropdown.classList.add('active');
+                console.log('👤 User menu opened');
+            }
+        }
+
+        userMenuBtn.addEventListener('click', toggleUserMenu);
+        
+        // Also add touchstart for better mobile support
+        userMenuBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            toggleUserMenu(e);
+        }, { passive: false });
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
+            if (userMenuDropdown && !userMenuDropdown.contains(e.target)) {
+                userMenuDropdown.classList.remove('active');
+            }
+        });
+
+        // Close on touch outside for mobile
+        document.addEventListener('touchstart', function(e) {
             if (userMenuDropdown && !userMenuDropdown.contains(e.target)) {
                 userMenuDropdown.classList.remove('active');
             }
@@ -123,7 +152,13 @@ document.addEventListener('DOMContentLoaded', function() {
             userDropdownMenu.addEventListener('click', function(e) {
                 e.stopPropagation();
             });
+            
+            userDropdownMenu.addEventListener('touchstart', function(e) {
+                e.stopPropagation();
+            });
         }
+    } else {
+        console.warn('⚠️ User menu elements not found! Make sure you are logged in.');
     }
 
     // ================================================================
