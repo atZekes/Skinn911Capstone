@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Skin911</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="{{ asset('css/admin/adminlogin.css') }}" rel="stylesheet">
 </head>
 <style>
@@ -38,7 +39,10 @@
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required placeholder="Enter password">
+                <div style="position:relative;">
+                    <input type="password" class="form-control" id="admin-password" name="password" required placeholder="Enter password" style="padding-right:40px;">
+                    <i class="fa fa-eye" id="toggleAdminPassword" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:#e75480;"></i>
+                </div>
             </div>
             <div class="mb-3">
                 <div class="form-check">
@@ -49,5 +53,20 @@
             <button type="submit" class="btn btn-admin w-100">Login</button>
         </form>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleAdminPassword = document.getElementById('toggleAdminPassword');
+            const adminPassword = document.getElementById('admin-password');
+            
+            if (toggleAdminPassword && adminPassword) {
+                toggleAdminPassword.addEventListener('click', function() {
+                    const type = adminPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                    adminPassword.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

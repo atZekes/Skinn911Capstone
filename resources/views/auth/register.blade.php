@@ -30,11 +30,17 @@
                             </div>
                             <div class="mb-3 form-group">
                                 <label for="password">Password</label>
-                                <input id="password" type="password" class="form-control" name="password" required>
+                                <div style="position:relative;">
+                                    <input id="password" type="password" class="form-control" name="password" required style="padding-right:40px;">
+                                    <i class="fa fa-eye password-toggle-icon" id="togglePassword" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;"></i>
+                                </div>
                             </div>
                             <div class="mb-3 form-group">
                                 <label for="password_confirmation">Confirm Password</label>
-                                <input id="password_confirmation" type="password" class="form-control" name="password_confirmation" required>
+                                <div style="position:relative;">
+                                    <input id="password_confirmation" type="password" class="form-control" name="password_confirmation" required style="padding-right:40px;">
+                                    <i class="fa fa-eye password-toggle-icon" id="togglePasswordConfirmation" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;"></i>
+                                </div>
                             </div>
 
                             <!-- Service Preferences -->
@@ -491,5 +497,35 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    
+    if (togglePassword && password) {
+        togglePassword.addEventListener('click', function() {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    }
+    
+    // Toggle password confirmation visibility
+    const togglePasswordConfirmation = document.getElementById('togglePasswordConfirmation');
+    const passwordConfirmation = document.getElementById('password_confirmation');
+    
+    if (togglePasswordConfirmation && passwordConfirmation) {
+        togglePasswordConfirmation.addEventListener('click', function() {
+            const type = passwordConfirmation.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordConfirmation.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    }
+});
+</script>
 
 @endsection

@@ -30,7 +30,8 @@
                 <!-- Password Input with Icon -->
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
                     <img src="{{ asset('img/lock.png') }}" class="input-icon" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;opacity:.6;">
-                    <input name="password" type="password" placeholder="PASSWORD" class="input" required style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <input id="login-password" name="password" type="password" placeholder="PASSWORD" class="input" required style="width:100%;padding:12px 44px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <i class="fa fa-eye password-toggle-icon" id="toggleLoginPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;opacity:.6;"></i>
                     @if($errors->has('password'))
                         <div class="mt-1 text-danger small">{{ $errors->first('password') }}</div>
                     @endif
@@ -70,6 +71,19 @@ document.addEventListener('DOMContentLoaded', function() {
         loginModal.classList.add('active');
         loginModal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+    }
+    
+    // Password toggle for login
+    const toggleLoginPassword = document.getElementById('toggleLoginPassword');
+    const loginPassword = document.getElementById('login-password');
+    
+    if (toggleLoginPassword && loginPassword) {
+        toggleLoginPassword.addEventListener('click', function() {
+            const type = loginPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            loginPassword.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
     }
 });
 </script>

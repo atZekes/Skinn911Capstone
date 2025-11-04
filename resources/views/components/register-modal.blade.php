@@ -31,14 +31,16 @@
                 </div>
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
                     <img src="{{ asset('img/lock.png') }}" class="input-icon" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;opacity:.6;">
-                    <input name="password" type="password" placeholder="PASSWORD" class="input" required autocomplete="new-password" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <input id="register-password" name="password" type="password" placeholder="PASSWORD" class="input" required autocomplete="new-password" style="width:100%;padding:12px 44px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <i class="fa fa-eye password-toggle-icon" id="toggleRegisterPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;opacity:.6;"></i>
                     @if($errors->has('password'))
                         <div class="text-danger small mt-1">{{ $errors->first('password') }}</div>
                     @endif
                 </div>
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
                     <img src="{{ asset('img/lock.png') }}" class="input-icon" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;opacity:.6;">
-                    <input name="password_confirmation" type="password" placeholder="CONFIRM PASSWORD" class="input" required autocomplete="new-password" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <input id="register-password-confirmation" name="password_confirmation" type="password" placeholder="CONFIRM PASSWORD" class="input" required autocomplete="new-password" style="width:100%;padding:12px 44px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <i class="fa fa-eye password-toggle-icon" id="toggleRegisterPasswordConfirmation" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;opacity:.6;"></i>
                     @if($errors->has('password_confirmation'))
                         <div class="text-danger small mt-1">{{ $errors->first('password_confirmation') }}</div>
                     @endif
@@ -215,4 +217,34 @@
     transform: translateY(0) scale(0.98);
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility for register modal
+    const toggleRegisterPassword = document.getElementById('toggleRegisterPassword');
+    const registerPassword = document.getElementById('register-password');
+    
+    if (toggleRegisterPassword && registerPassword) {
+        toggleRegisterPassword.addEventListener('click', function() {
+            const type = registerPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            registerPassword.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    }
+    
+    // Toggle password confirmation visibility for register modal
+    const toggleRegisterPasswordConfirmation = document.getElementById('toggleRegisterPasswordConfirmation');
+    const registerPasswordConfirmation = document.getElementById('register-password-confirmation');
+    
+    if (toggleRegisterPasswordConfirmation && registerPasswordConfirmation) {
+        toggleRegisterPasswordConfirmation.addEventListener('click', function() {
+            const type = registerPasswordConfirmation.getAttribute('type') === 'password' ? 'text' : 'password';
+            registerPasswordConfirmation.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    }
+});
+</script>
 

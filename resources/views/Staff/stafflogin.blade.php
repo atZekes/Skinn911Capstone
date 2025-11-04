@@ -73,6 +73,7 @@
             margin-top: 10px;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="login-container">
@@ -86,7 +87,10 @@
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" name="password" class="form-control" required>
+                <div style="position:relative; width:80%; margin:0 auto;">
+                    <input id="staff-password" type="password" name="password" class="form-control" required style="width:100%; padding-right:40px;">
+                    <i class="fa fa-eye" id="toggleStaffPassword" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:#e75480;"></i>
+                </div>
             </div>
             <div class="form-group" style="display:flex; align-items:center; gap:8px; width:80%; margin:0 auto 12px;">
                 <input class="form-check-input" type="checkbox" id="remember" name="remember" style="margin:0;">
@@ -100,5 +104,20 @@
             @endif
         </form>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleStaffPassword = document.getElementById('toggleStaffPassword');
+            const staffPassword = document.getElementById('staff-password');
+            
+            if (toggleStaffPassword && staffPassword) {
+                toggleStaffPassword.addEventListener('click', function() {
+                    const type = staffPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                    staffPassword.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
