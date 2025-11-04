@@ -3,9 +3,9 @@
 <div class="container py-5">
   <h2 class="mb-4" style="color:#e75480;">Appointment Management</h2>
 
-  <div class="mb-3 d-flex justify-content-between align-items-center gap-2">
+  <div class="gap-2 mb-3 d-flex justify-content-between align-items-center">
     <div><small class="text-muted">Appointments</small></div>
-    <div class="d-flex gap-2">
+    <div class="gap-2 d-flex">
       <input id="appointmentSearch" class="form-control form-control-sm" type="search" placeholder="Search by name or booking ID..." style="width: 250px;">
       <select id="statusFilter" class="form-select form-select-sm" style="width: 150px;">
         <option value="">All Status</option>
@@ -125,7 +125,7 @@
         </td>
         <td>
           @if($appointment->status === 'pending_refund')
-            <span class="badge bg-warning text-dark mb-1 d-block">⚠️ Refund Requested by Client</span>
+            <span class="mb-1 badge bg-warning text-dark d-block">⚠️ Refund Requested by Client</span>
             <form action="{{ route('staff.processRefund', $appointment->id) }}" method="POST" style="display:inline-block;" class="process-refund-form">
               @csrf
               <button type="submit" class="mb-1 btn btn-success btn-sm" title="Confirm refund was given to client physically">
@@ -1043,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="mb-2 d-flex justify-content-between align-items-center">
       <div><small class="text-muted">Live queue (most recent first)</small></div>
-      <div class="d-flex gap-2">
+      <div class="gap-2 d-flex">
         <input id="bookingSearch" class="form-control form-control-sm" type="search" placeholder="Search by name..." style="width: 200px;">
         <select id="queueStatusFilter" class="form-select form-select-sm" style="width: 150px;">
           <option value="">All Status</option>
@@ -1116,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </td>
                     <td>
                         @if($booking->status !== 'Cancelled' && $booking->status !== 'cancelled' && $booking->status !== 'completed')
-                        <div class="d-flex gap-1">
+                        <div class="gap-1 d-flex">
                             @if($booking->status === 'active' && ($booking->payment_status === 'paid' || $booking->payment_method === 'cash'))
                             <form action="{{ route('staff.completeAppointment', $booking->id) }}" method="POST" class="complete-booking-form d-inline">
                                 @csrf
@@ -1160,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="mb-2 d-flex justify-content-between align-items-center">
       <div><small class="text-muted">Current walk-in clients</small></div>
-      <div class="d-flex gap-2">
+      <div class="gap-2 d-flex">
         <input id="walkinSearch" class="form-control form-control-sm" type="search" placeholder="Search by name or booking ID..." style="width: 250px;">
         <select id="walkinStatusFilter" class="form-select form-select-sm" style="width: 150px;">
           <option value="">All Status</option>
@@ -1250,7 +1250,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>{{ ucfirst($w->status) }}</td>
               <td>
                 @if($w->status !== 'Cancelled' && $w->status !== 'cancelled' && $w->status !== 'completed')
-                <div class="d-flex gap-1">
+                <div class="gap-1 d-flex">
                   @if($w->status === 'active' && ($w->payment_status === 'paid' || $w->payment_method === 'cash'))
                   <form action="{{ route('staff.completeAppointment', $w->id) }}" method="POST" class="complete-walkin-form d-inline">
                     @csrf
@@ -1794,7 +1794,7 @@ document.addEventListener('DOMContentLoaded', function() {
       search.value = bookingId;
       filterAppointments();
       search.focus();
-      
+
       // Highlight the search box briefly
       search.style.backgroundColor = '#fff3cd';
       setTimeout(function() {
@@ -1876,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', function() {
       search.value = bookingId;
       filterWalkins();
       search.focus();
-      
+
       // Highlight the search box briefly
       search.style.backgroundColor = '#fff3cd';
       setTimeout(function() {
