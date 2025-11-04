@@ -30,7 +30,7 @@
     <div class="admin-bg"></div>
     <div class="mx-auto login-container">
         <img src="{{ asset('img/skinlogo.png') }}" alt="Skin911 Logo" class="mx-auto mb-4 skin911-logo d-block">
-        <h3 class="mb-4 text-center" style="color:#e75480;font-weight:700;">Admin Login emman kupal</h3>
+        <h3 class="mb-4 text-center" style="color:#e75480;font-weight:700;">Admin Login </h3>
         <form method="POST" action="{{ route('admin.adminlogin') }}">
             @csrf
             <div class="mb-3">
