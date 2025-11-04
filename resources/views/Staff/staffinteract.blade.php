@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file) {
                 // Check if it's a valid image file (support multiple formats)
                 const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/heic', 'image/heif'];
-                
+
                 if (!validImageTypes.includes(file.type)) {
                     alert('Please select a valid image file (JPEG, PNG, GIF, WebP, BMP, SVG, HEIC, HEIF).');
                     staffImageInput.value = '';
@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please select a customer first');
             return;
         }
-        
+
         if (!messageValue.trim() && !hasImage) {
             alert('Please enter a message or attach an image');
             return;

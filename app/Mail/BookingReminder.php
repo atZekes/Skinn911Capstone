@@ -30,7 +30,7 @@ class BookingReminder extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Reminder: Upcoming Appointment at Skin911',
+            subject: 'Reminder: Upcoming Appointment at Skin911 (ID: #' . $this->booking->id . ')',
         );
     }
 

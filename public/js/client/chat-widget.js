@@ -670,7 +670,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file) {
                 // Check if it's an image file (support multiple formats)
                 var validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/heic', 'image/heif'];
-                
+
                 if (!validImageTypes.includes(file.type)) {
                     alert('Please select a valid image file (JPEG, PNG, GIF, WebP, BMP, SVG, HEIC, HEIF).');
                     imageInput.value = '';

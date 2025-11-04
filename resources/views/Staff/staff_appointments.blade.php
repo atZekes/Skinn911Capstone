@@ -6,7 +6,7 @@
   <div class="mb-3 d-flex justify-content-between align-items-center gap-2">
     <div><small class="text-muted">Appointments</small></div>
     <div class="d-flex gap-2">
-      <input id="appointmentSearch" class="form-control form-control-sm" type="search" placeholder="Search by name..." style="width: 200px;">
+      <input id="appointmentSearch" class="form-control form-control-sm" type="search" placeholder="Search by name or booking ID..." style="width: 250px;">
       <select id="statusFilter" class="form-select form-select-sm" style="width: 150px;">
         <option value="">All Status</option>
         <option value="active">Active</option>
@@ -23,6 +23,7 @@
     <thead class="thead-light">
       <tr>
         <th>#</th>
+        <th>Booking ID</th>
         <th>Client Name</th>
         <th>Service</th>
         <th>Date</th>
@@ -33,8 +34,9 @@
     </thead>
     <tbody>
   @forelse($appointments as $appointment)
-  <tr data-id="{{ $appointment->id }}">
+  <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}">
         <td>{{ $loop->iteration }}</td>
+        <td><span class="badge bg-primary">#{{ $appointment->id }}</span></td>
         <td>{{ $appointment->user->name ?? 'Walk-in' }}</td>
     <td>
       @php $pkg = $appointment->package ?? null; @endphp
@@ -103,17 +105,22 @@
         <td>
             @if($appointment->status === 'pending_refund')
                 <span class="badge bg-warning">Pending Refund</span>
-            @elseif($appointment->status === 'refunded')
-                <span class="badge bg-secondary">Refunded</span>
-            @else
-                {{ ucfirst($appointment->status) }}
-            @endif
-            @if($appointment->status !== 'pending_refund' && $appointment->status !== 'refunded' && $appointment->status !== 'cancelled')
+            @elseif($appointment->payment_status === 'refunded')
+                <span class="badge bg-secondary">Cancelled & Refunded</span>
+            @elseif($appointment->status === 'cancelled')
+                <span class="badge bg-danger">Cancelled</span>
+            @elseif($appointment->status === 'completed')
+                <span class="badge bg-success">Completed</span>
+            @elseif($appointment->status === 'active')
                 @if($appointment->payment_status === 'paid')
-                    <span class="badge bg-success ms-1">Confirmed Paid</span>
+                    <span class="badge bg-success">Confirmed</span>
                 @elseif($appointment->payment_status === 'pending')
-                    <span class="badge bg-warning ms-1">Payment Pending</span>
+                    <span class="badge bg-warning">Payment Pending</span>
+                @else
+                    <span class="badge bg-info">Active</span>
                 @endif
+            @else
+                <span class="badge bg-secondary">{{ ucfirst($appointment->status) }}</span>
             @endif
         </td>
         <td>
@@ -127,11 +134,22 @@
             </form>
           @elseif($appointment->status === 'refunded')
             <span class="badge bg-secondary">Refunded</span>
+          @elseif($appointment->status === 'completed')
+            <span class="badge bg-success">✓ Completed</span>
           @elseif($appointment->status !== 'Cancelled' && $appointment->status !== 'cancelled')
           @if($appointment->payment_status === 'pending' && in_array($appointment->payment_method, ['card', 'gcash']))
           <button type="button" class="mb-1 btn btn-success btn-sm" data-toggle="modal" data-target="#confirmPaymentModal{{ $appointment->id }}">
             <i class="fas fa-check-circle"></i> Confirm Payment
           </button>
+          @endif
+          @if(($appointment->payment_status === 'paid' || $appointment->payment_method === 'cash') && $appointment->status === 'active')
+          <form action="{{ route('staff.completeAppointment', $appointment->id) }}" method="POST" style="display:inline-block;" class="complete-appointment-form">
+            @csrf
+            @method('PATCH')
+            <button type="submit" class="mb-1 btn btn-success btn-sm" title="Mark this appointment as completed">
+              <i class="fas fa-check-double"></i> Mark Complete
+            </button>
+          </form>
           @endif
           <form action="{{ route('staff.sendReminder', $appointment->id) }}" method="POST" style="display:inline-block;" class="send-reminder-form">
             @csrf
@@ -1051,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </thead>
             <tbody>
                 @forelse($bookings as $booking)
-                <tr>
+                <tr data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}">
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $booking->user->name ?? 'Walk-in' }}</td>
           <td>
@@ -1075,7 +1093,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="text-muted">-</span>
                         @endif
                     </td>
-                    <td>{{ ucfirst($booking->status) }}</td>
+                    <td>
+                        @if($booking->status === 'pending_refund')
+                            <span class="badge bg-warning">Pending Refund</span>
+                        @elseif($booking->payment_status === 'refunded')
+                            <span class="badge bg-secondary">Cancelled & Refunded</span>
+                        @elseif($booking->status === 'cancelled')
+                            <span class="badge bg-danger">Cancelled</span>
+                        @elseif($booking->status === 'completed')
+                            <span class="badge bg-success">Completed</span>
+                        @elseif($booking->status === 'active')
+                            @if($booking->payment_status === 'paid')
+                                <span class="badge bg-success">Confirmed</span>
+                            @elseif($booking->payment_status === 'pending')
+                                <span class="badge bg-warning">Payment Pending</span>
+                            @else
+                                <span class="badge bg-info">Active</span>
+                            @endif
+                        @else
+                            <span class="badge bg-secondary">{{ ucfirst($booking->status) }}</span>
+                        @endif
+                    </td>
                     <td>
                         @if($booking->status !== 'Cancelled' && $booking->status !== 'cancelled' && $booking->status !== 'completed')
                         <div class="d-flex gap-1">
@@ -1123,7 +1161,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="mb-2 d-flex justify-content-between align-items-center">
       <div><small class="text-muted">Current walk-in clients</small></div>
       <div class="d-flex gap-2">
-        <input id="walkinSearch" class="form-control form-control-sm" type="search" placeholder="Search walk-ins..." style="width: 200px;">
+        <input id="walkinSearch" class="form-control form-control-sm" type="search" placeholder="Search by name or booking ID..." style="width: 250px;">
         <select id="walkinStatusFilter" class="form-select form-select-sm" style="width: 150px;">
           <option value="">All Status</option>
           <option value="active">Active</option>
@@ -1138,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <thead>
           <tr>
             <th>#</th>
+            <th>Booking ID</th>
             <th>Client Name</th>
             <th>Service</th>
             <th>Date</th>
@@ -1149,8 +1188,9 @@ document.addEventListener('DOMContentLoaded', function() {
         </thead>
         <tbody>
           @forelse($walkins as $w)
-            <tr data-id="walkin-{{ $w->id }}">
+            <tr data-id="walkin-{{ $w->id }}" data-booking-id="{{ $w->id }}">
               <td>{{ $loop->iteration }}</td>
+              <td><span class="badge bg-success">#{{ $w->id }}</span></td>
               <td>{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}</td>
               <td>
                 @php $bpkg = $w->package ?? null; @endphp
@@ -1320,6 +1360,27 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 .new-booking-highlight { animation: flash-bg 2s ease-in-out; }
 @keyframes flash-bg { 0%{background:#e8f8ef;} 50%{background:#fff;} 100%{background:transparent;} }
+
+/* Booking ID Badge Styling */
+.badge.bg-primary, .badge.bg-success {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.badge.bg-primary:hover {
+    background-color: #0056b3 !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+.badge.bg-success:hover {
+    background-color: #0f7b3c !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
 
 /* Custom Toast Styling */
 .colored-toast.swal2-popup {
@@ -1585,10 +1646,29 @@ document.addEventListener('DOMContentLoaded', function() {
       var name = nameCell ? (nameCell.textContent || nameCell.innerText || '').toLowerCase() : '';
       var nameMatch = q === '' || name.indexOf(q) !== -1;
 
-      // Status filter (column 4)
-      var statusCell = r.cells[4];
-      var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
-      var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1;
+      // Status filter using data attributes
+      var status = r.getAttribute('data-status') || '';
+      var paymentStatus = r.getAttribute('data-payment-status') || '';
+      var statusMatch = true;
+
+      if (statusVal !== '') {
+        switch(statusVal) {
+          case 'active':
+            // Active filter: Show all active bookings
+            statusMatch = status === 'active';
+            break;
+          case 'completed':
+            // Completed filter: Show only completed bookings
+            statusMatch = status === 'completed';
+            break;
+          case 'cancelled':
+            // Cancelled filter: Show all cancelled bookings (including refunded)
+            statusMatch = status === 'cancelled';
+            break;
+          default:
+            statusMatch = true;
+        }
+      }
 
       // Date filter (column 3)
       var dateCell = r.cells[3];
@@ -1635,19 +1715,53 @@ document.addEventListener('DOMContentLoaded', function() {
     rows.forEach(function(r) {
       if (r.classList && r.classList.contains('no-results')) return;
 
-      // Name filter (column 1)
-      var nameCell = r.cells[1];
+      // Booking ID filter (column 1 - Booking ID)
+      var bookingIdCell = r.cells[1];
+      var bookingId = bookingIdCell ? (bookingIdCell.textContent || bookingIdCell.innerText || '').toLowerCase() : '';
+      var bookingIdMatch = q === '' || bookingId.indexOf(q) !== -1;
+
+      // Name filter (column 2 - Client Name)
+      var nameCell = r.cells[2];
       var name = nameCell ? (nameCell.textContent || nameCell.innerText || '').toLowerCase() : '';
       var nameMatch = q === '' || name.indexOf(q) !== -1;
 
-      // Status filter (column 5)
-      var statusCell = r.cells[5];
-      var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
-      var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1 ||
-                        (statusVal === 'pending_refund' && statusText.indexOf('pending refund') !== -1);
+      // Combined search match (search in either booking ID or name)
+      var searchMatch = q === '' || bookingIdMatch || nameMatch;
 
-      // Date filter (column 3)
-      var dateCell = r.cells[3];
+      // Status filter using data attributes
+      var status = r.getAttribute('data-status') || '';
+      var paymentStatus = r.getAttribute('data-payment-status') || '';
+      var statusMatch = true;
+
+      if (statusVal !== '') {
+        switch(statusVal) {
+          case 'active':
+            // Active filter: Show all active bookings (both confirmed paid and payment pending)
+            statusMatch = status === 'active';
+            break;
+          case 'refunded':
+            // Refunded filter: Show only refunded bookings (payment_status='refunded')
+            statusMatch = paymentStatus === 'refunded';
+            break;
+          case 'completed':
+            // Completed filter: Show only completed bookings
+            statusMatch = status === 'completed';
+            break;
+          case 'cancelled':
+            // Cancelled filter: Show cancelled bookings (including refunded: payment_status='refunded')
+            statusMatch = status === 'cancelled';
+            break;
+          case 'pending_refund':
+            // Pending Refund filter: Show pending refund bookings
+            statusMatch = status === 'pending_refund';
+            break;
+          default:
+            statusMatch = true;
+        }
+      }
+
+      // Date filter (column 4)
+      var dateCell = r.cells[4];
       var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
       var dateMatch = true;
 
@@ -1661,7 +1775,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      var match = nameMatch && statusMatch && dateMatch;
+      var match = searchMatch && statusMatch && dateMatch;
       r.style.display = match ? '' : 'none';
     });
   }
@@ -1669,6 +1783,25 @@ document.addEventListener('DOMContentLoaded', function() {
   search.addEventListener('input', filterAppointments);
   if (statusFilter) statusFilter.addEventListener('change', filterAppointments);
   if (dateFilter) dateFilter.addEventListener('change', filterAppointments);
+
+  // Add click handler for booking ID badges to auto-fill search
+  var bookingIdBadges = tbody.querySelectorAll('td:nth-child(2) .badge');
+  bookingIdBadges.forEach(function(badge) {
+    badge.style.cursor = 'pointer';
+    badge.title = 'Click to search for this booking ID';
+    badge.addEventListener('click', function() {
+      var bookingId = this.textContent.trim();
+      search.value = bookingId;
+      filterAppointments();
+      search.focus();
+      
+      // Highlight the search box briefly
+      search.style.backgroundColor = '#fff3cd';
+      setTimeout(function() {
+        search.style.backgroundColor = '';
+      }, 1000);
+    });
+  });
 });
 </script>
 <script>
@@ -1689,20 +1822,28 @@ document.addEventListener('DOMContentLoaded', function() {
     var dateVal = walkinDateFilter ? walkinDateFilter.value : '';
 
     rows.forEach(function(r) {
-      if (r.cells.length < 6) return;
+      if (r.cells.length < 7) return;
 
-      // Name filter (column 1)
-      var nameCell = r.cells[1];
+      // Booking ID filter (column 1)
+      var bookingIdCell = r.cells[1];
+      var bookingId = bookingIdCell ? (bookingIdCell.textContent || bookingIdCell.innerText || '').toLowerCase() : '';
+      var bookingIdMatch = q === '' || bookingId.indexOf(q) !== -1;
+
+      // Name filter (column 2)
+      var nameCell = r.cells[2];
       var name = nameCell ? (nameCell.textContent || nameCell.innerText || '').toLowerCase() : '';
       var nameMatch = q === '' || name.indexOf(q) !== -1;
 
-      // Status filter (column 5)
-      var statusCell = r.cells[5];
+      // Combined search match (search in either booking ID or name)
+      var searchMatch = q === '' || bookingIdMatch || nameMatch;
+
+      // Status filter (column 7)
+      var statusCell = r.cells[7];
       var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
       var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1;
 
-      // Date filter (column 3)
-      var dateCell = r.cells[3];
+      // Date filter (column 4)
+      var dateCell = r.cells[4];
       var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
       var dateMatch = true;
 
@@ -1716,7 +1857,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      var match = nameMatch && statusMatch && dateMatch;
+      var match = searchMatch && statusMatch && dateMatch;
       r.style.display = match ? '' : 'none';
     });
   }
@@ -1724,6 +1865,25 @@ document.addEventListener('DOMContentLoaded', function() {
   search.addEventListener('input', filterWalkins);
   if (walkinStatusFilter) walkinStatusFilter.addEventListener('change', filterWalkins);
   if (walkinDateFilter) walkinDateFilter.addEventListener('change', filterWalkins);
+
+  // Add click handler for booking ID badges to auto-fill search
+  var bookingIdBadges = tbody.querySelectorAll('td:nth-child(2) .badge');
+  bookingIdBadges.forEach(function(badge) {
+    badge.style.cursor = 'pointer';
+    badge.title = 'Click to search for this booking ID';
+    badge.addEventListener('click', function() {
+      var bookingId = this.textContent.trim();
+      search.value = bookingId;
+      filterWalkins();
+      search.focus();
+      
+      // Highlight the search box briefly
+      search.style.backgroundColor = '#fff3cd';
+      setTimeout(function() {
+        search.style.backgroundColor = '';
+      }, 1000);
+    });
+  });
 });
 </script>
 <script>
@@ -1818,6 +1978,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
             }
+        });
+    });
+
+    // Specific handler for complete appointment with confirmation
+    const completeForms = document.querySelectorAll('.complete-appointment-form');
+    completeForms.forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            // SweetAlert confirmation
+            Swal.fire({
+                title: '✅ Mark Appointment as Complete?',
+                html: `
+                    <div style="text-align: left; padding: 10px;">
+                        <p style="margin-bottom: 15px; font-size: 1.1em;">Has the service been completed?</p>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                            <p style="margin: 8px 0;"><i class="fas fa-check-circle" style="color: #28a745; margin-right: 8px;"></i> Service has been performed</p>
+                            <p style="margin: 8px 0;"><i class="fas fa-check-circle" style="color: #28a745; margin-right: 8px;"></i> Client is satisfied</p>
+                            <p style="margin: 8px 0;"><i class="fas fa-check-circle" style="color: #28a745; margin-right: 8px;"></i> Payment confirmed</p>
+                        </div>
+                        <p style="margin-top: 15px; font-weight: 600; color: #e75480;">Click CONFIRM to mark this appointment as COMPLETED.</p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-check-double"></i> Mark Complete',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                customClass: {
+                    popup: 'swal-wide',
+                    title: 'swal-title-custom'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (submitBtn && !submitBtn.disabled) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Completing...';
+                    }
+                    form.submit();
+                }
+            });
         });
     });
 

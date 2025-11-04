@@ -30,7 +30,7 @@ class BookingConfirmation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Skin911 - Booking Confirmation',
+            subject: 'Skin911 - Booking Confirmation (ID: #' . $this->booking->id . ')',
         );
     }
 

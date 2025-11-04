@@ -153,6 +153,9 @@
         <div class="header">
             <h1>✨ Booking Confirmed!</h1>
             <p>Your appointment at Skin911 has been successfully booked</p>
+            <p style="font-size: 18px; margin-top: 15px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; display: inline-block;">
+                Booking ID: #{{ $booking->id }}
+            </p>
         </div>
 
         <!-- Content -->
@@ -165,6 +168,15 @@
                 Thank you for booking with <strong>Skin911</strong>! We're excited to serve you.
                 Below are the details of your appointment:
             </p>
+
+            <!-- Booking ID Notice -->
+            <div style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 25px 0;">
+                <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Your Booking Reference Number</p>
+                <h2 style="margin: 0; font-size: 36px; letter-spacing: 2px;">#{{ $booking->id }}</h2>
+                <p style="margin: 10px 0 0 0; font-size: 13px; opacity: 0.85;">
+                    📌 Please save this ID for verification when you visit our branch
+                </p>
+            </div>
 
             <!-- Booking Details -->
             <div class="info-box">
