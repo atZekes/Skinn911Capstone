@@ -39,36 +39,82 @@ if (is_dir($chatImagesDir)) {
 
 echo "<h3>Step 2: Create Symbolic Link</h3>";
 
+// Debug: Show paths
+echo "<strong>Checking paths:</strong><br>";
+echo "Target: $target<br>";
+echo "Link: $link<br>";
+echo "Target exists: " . (is_dir($target) ? "✅ Yes" : "❌ No") . "<br>";
+echo "Link exists: " . (file_exists($link) ? "✅ Yes" : "❌ No") . "<br><br>";
+
 // Check if link already exists
 if (file_exists($link)) {
     if (is_link($link)) {
+        $linkTarget = readlink($link);
         echo "✅ Storage link already exists!<br>";
-        echo "Target: " . readlink($link) . "<br>";
+        echo "Current Target: $linkTarget<br>";
+        
+        // Verify it points to the correct location
+        if ($linkTarget === $target || realpath($linkTarget) === realpath($target)) {
+            echo "✅ Link points to correct location!<br>";
+        } else {
+            echo "⚠️ Link points to wrong location!<br>";
+            echo "Attempting to fix...<br>";
+            unlink($link);
+            if (symlink($target, $link)) {
+                echo "✅ Link fixed!<br>";
+            } else {
+                echo "❌ Failed to fix link. Error: " . error_get_last()['message'] . "<br>";
+            }
+        }
     } else {
         echo "⚠️ 'public/storage' exists but is not a symbolic link.<br>";
+        echo "Type: " . (is_dir($link) ? "directory" : "file") . "<br>";
         echo "Attempting to remove it...<br>";
-        if (is_dir($link)) {
-            rmdir($link);
-        } else {
-            unlink($link);
-        }
-        echo "✅ Removed old public/storage<br>";
         
-        // Try to create symlink again
-        if (symlink($target, $link)) {
-            echo "✅ Storage link created successfully!<br>";
+        if (is_dir($link)) {
+            // Try to remove directory
+            $files = glob($link . '/*');
+            foreach ($files as $file) {
+                is_dir($file) ? rmdir($file) : unlink($file);
+            }
+            if (rmdir($link)) {
+                echo "✅ Removed old directory<br>";
+            } else {
+                echo "❌ Failed to remove directory. Please delete 'public/storage' manually.<br>";
+            }
         } else {
-            echo "❌ Failed to create storage link<br>";
+            if (unlink($link)) {
+                echo "✅ Removed old file<br>";
+            } else {
+                echo "❌ Failed to remove file<br>";
+            }
+        }
+        
+        // Try to create symlink after removal
+        if (!file_exists($link)) {
+            if (symlink($target, $link)) {
+                echo "✅ Storage link created successfully!<br>";
+            } else {
+                $error = error_get_last();
+                echo "❌ Failed to create storage link<br>";
+                echo "Error: " . ($error ? $error['message'] : 'Unknown error') . "<br>";
+            }
         }
     }
 } else {
     // Try to create the symbolic link
+    echo "Creating new symbolic link...<br>";
     if (symlink($target, $link)) {
         echo "✅ Storage link created successfully!<br>";
         echo "From: $link<br>";
         echo "To: $target<br>";
     } else {
-        echo "❌ Failed to create storage link.<br>";
+        $error = error_get_last();
+        echo "❌ Failed to create storage link<br>";
+        echo "Error: " . ($error ? $error['message'] : 'Unknown error') . "<br>";
+        echo "<br><strong>Manual Fix Required:</strong><br>";
+        echo "Contact Hostinger support and ask them to run:<br>";
+        echo "<code>cd " . __DIR__ . " && php artisan storage:link</code><br>";
     }
 }
 
