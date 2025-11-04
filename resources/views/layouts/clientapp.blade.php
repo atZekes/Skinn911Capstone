@@ -319,7 +319,13 @@
 	@auth
 	window.checkForUnreadMessages = function() {
 		fetch('/client/messages/new?since=0')
-			.then(response => response.json())
+			.then(response => {
+				// Check if response is ok (status 200-299)
+				if (!response.ok) {
+					throw new Error('Route not found or server error');
+				}
+				return response.json();
+			})
 			.then(data => {
 				if (data.success && data.count > 0) {
 					const badge = document.getElementById('messageNotificationBadge');
@@ -330,7 +336,9 @@
 				}
 			})
 			.catch(error => {
-				console.log('Error checking for unread messages:', error);
+				// Silently fail - don't spam console with errors
+				// This prevents the error from breaking other JavaScript
+				console.debug('Message notification system not available:', error.message);
 			});
 	};
 
@@ -338,9 +346,12 @@
 	document.addEventListener('DOMContentLoaded', function() {
 		// Only check if not on messages page
 		if (!window.location.pathname.includes('/client/messages')) {
-			window.checkForUnreadMessages();
-			// Check every 30 seconds
-			setInterval(window.checkForUnreadMessages, 30000);
+			// Add a small delay to ensure the page is fully loaded first
+			setTimeout(function() {
+				window.checkForUnreadMessages();
+				// Check every 30 seconds
+				setInterval(window.checkForUnreadMessages, 30000);
+			}, 1000);
 		}
 	});
 	@endauth
@@ -370,7 +381,7 @@
 	<script src="{{ asset('js/client/simple-header.js') }}"></script>
 	<script src="{{ asset('js/main.js') }}"></script>
 	@yield('scripts')
-	<link rel="stylesheet" href="{{ asset('css/app.css') }}">
-	<script src="{{ asset('js/app.js') }}" defer></script>
+	{{-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> --}}
+	{{-- <script src="{{ asset('js/app.js') }}" defer></script> --}}
 </body>
 </html>
