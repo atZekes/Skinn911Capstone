@@ -740,14 +740,21 @@ document.addEventListener('DOMContentLoaded', function() {
             messageDiv.style.marginRight = '0';
             messageDiv.style.maxWidth = '80%';
 
-            if (messageText) {
-                messageDiv.textContent = messageText;
+            // Add text if provided
+            if (messageText && messageText.trim()) {
+                var textSpan = document.createElement('div');
+                textSpan.textContent = messageText;
+                textSpan.style.marginBottom = '5px';
+                messageDiv.appendChild(textSpan);
             }
 
             // Add image preview to message
             var imgElement = document.createElement('img');
             imgElement.className = 'message-image';
             imgElement.src = URL.createObjectURL(selectedImage);
+            imgElement.style.maxWidth = '100%';
+            imgElement.style.borderRadius = '8px';
+            imgElement.style.marginTop = messageText && messageText.trim() ? '5px' : '0';
             messageDiv.appendChild(imgElement);
 
             messagesContainer.appendChild(messageDiv);
@@ -854,9 +861,10 @@ document.addEventListener('DOMContentLoaded', function() {
         messageDiv.appendChild(nameSpan);
 
         // Add message text if available
-        if (messageData.message) {
+        if (messageData.message && messageData.message.trim()) {
             var textSpan = document.createElement('div');
             textSpan.textContent = messageData.message;
+            textSpan.style.marginBottom = messageData.image ? '5px' : '0';
             messageDiv.appendChild(textSpan);
         }
 
@@ -864,6 +872,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (messageData.image) {
             var imgElement = document.createElement('img');
             imgElement.className = 'message-image';
+            imgElement.style.maxWidth = '100%';
+            imgElement.style.borderRadius = '8px';
+            imgElement.style.cursor = 'pointer';
+            imgElement.style.marginTop = (messageData.message && messageData.message.trim()) ? '5px' : '0';
             // Use image_url if available (with full URL), otherwise fall back to /storage/ path
             imgElement.src = messageData.image_url || ('/storage/' + messageData.image);
             imgElement.alt = 'Attached image';
@@ -941,14 +953,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         messageDiv.style.maxWidth = '80%';
 
                         // Add message text if available
-                        if (message.message) {
-                            messageDiv.textContent = message.message;
+                        if (message.message && message.message.trim()) {
+                            var textSpan = document.createElement('div');
+                            textSpan.textContent = message.message;
+                            textSpan.style.marginBottom = message.image ? '5px' : '0';
+                            messageDiv.appendChild(textSpan);
                         }
 
                         // Add image if available
                         if (message.image) {
                             var imgElement = document.createElement('img');
                             imgElement.className = 'message-image';
+                            imgElement.style.maxWidth = '100%';
+                            imgElement.style.borderRadius = '8px';
+                            imgElement.style.cursor = 'pointer';
+                            imgElement.style.marginTop = (message.message && message.message.trim()) ? '5px' : '0';
                             // Use image_url if available (with full URL), otherwise fall back to /storage/ path
                             imgElement.src = message.image_url || ('/storage/' + message.image);
                             imgElement.alt = 'Attached image';
