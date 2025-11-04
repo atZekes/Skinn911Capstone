@@ -34,7 +34,7 @@
     </thead>
     <tbody>
   @forelse($appointments as $appointment)
-  <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}">
+  <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}" data-date="{{ $appointment->date }}">
         <td>{{ $loop->iteration }}</td>
         <td><span class="badge bg-primary">#{{ $appointment->id }}</span></td>
         <td>{{ $appointment->user->name ?? 'Walk-in' }}</td>
@@ -1069,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </thead>
             <tbody>
                 @forelse($bookings as $booking)
-                <tr data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}">
+                <tr data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}" data-date="{{ $booking->date }}">
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $booking->user->name ?? 'Walk-in' }}</td>
           <td>
@@ -1670,19 +1670,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      // Date filter (column 3)
-      var dateCell = r.cells[3];
-      var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
+      // Date filter using data attribute
+      var rowDateVal = r.getAttribute('data-date') || '';
       var dateMatch = true;
 
-      if (dateVal) {
-        try {
-          var rowDate = new Date(dateText);
-          var filterDate = new Date(dateVal);
-          dateMatch = rowDate.toDateString() === filterDate.toDateString();
-        } catch (e) {
-          dateMatch = false;
-        }
+      if (dateVal && rowDateVal) {
+        // Direct string comparison (YYYY-MM-DD format)
+        dateMatch = rowDateVal === dateVal;
       }
 
       var match = nameMatch && statusMatch && dateMatch;
@@ -1760,19 +1754,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      // Date filter (column 4)
-      var dateCell = r.cells[4];
-      var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
+      // Date filter using data attribute
+      var rowDateVal = r.getAttribute('data-date') || '';
       var dateMatch = true;
 
-      if (dateVal) {
-        try {
-          var rowDate = new Date(dateText);
-          var filterDate = new Date(dateVal);
-          dateMatch = rowDate.toDateString() === filterDate.toDateString();
-        } catch (e) {
-          dateMatch = false;
-        }
+      if (dateVal && rowDateVal) {
+        // Direct string comparison (YYYY-MM-DD format)
+        dateMatch = rowDateVal === dateVal;
       }
 
       var match = searchMatch && statusMatch && dateMatch;

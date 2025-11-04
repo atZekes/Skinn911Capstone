@@ -793,11 +793,13 @@ public function calendarViewer()
             ->where('user_id', Auth::id())
             ->whereIn('status', ['active', 'pending_refund', 'refunded', 'cancelled', 'completed']);
 
-        // Apply search filter (search in branch name and service/package name)
+        // Apply search filter (search in booking ID, branch name and service/package name)
         if ($request->has('search') && !empty($request->search)) {
             $searchTerm = $request->search;
             $query->where(function($q) use ($searchTerm) {
-                $q->whereHas('branch', function($branchQuery) use ($searchTerm) {
+                // Search by booking ID
+                $q->where('id', 'like', '%' . $searchTerm . '%')
+                ->orWhereHas('branch', function($branchQuery) use ($searchTerm) {
                     $branchQuery->where('name', 'like', '%' . $searchTerm . '%');
                 })
                 ->orWhereHas('service', function($serviceQuery) use ($searchTerm) {
@@ -809,9 +811,34 @@ public function calendarViewer()
             });
         }
 
-        // Apply status filter
+        // Apply status filter with same logic as staff
         if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
+            $statusFilter = $request->status;
+            
+            switch($statusFilter) {
+                case 'active':
+                    // Active filter: Show all active bookings
+                    $query->where('status', 'active');
+                    break;
+                case 'refunded':
+                    // Refunded filter: Show only refunded bookings (payment_status='refunded')
+                    $query->where('payment_status', 'refunded');
+                    break;
+                case 'completed':
+                    // Completed filter: Show only completed bookings
+                    $query->where('status', 'completed');
+                    break;
+                case 'cancelled':
+                    // Cancelled filter: Show all cancelled bookings (including refunded)
+                    $query->where('status', 'cancelled');
+                    break;
+                case 'pending_refund':
+                    // Pending Refund filter: Show pending refund bookings
+                    $query->where('status', 'pending_refund');
+                    break;
+                default:
+                    $query->where('status', $statusFilter);
+            }
         }
 
         // Apply date filter
@@ -855,36 +882,42 @@ public function calendarViewer()
                 default => 'bg-warning'
             };
 
-            $html .= '<tr>';
-            // Column 0: Branch (matches blade template)
+            $html .= '<tr data-booking-id="' . $booking->id . '" data-status="' . $booking->status . '" data-payment-status="' . $booking->payment_status . '" data-date="' . $booking->date . '">';
+            // Column 0: Booking ID
+            $html .= '<td><span class="badge" style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color: white; cursor: pointer;" title="Click to search">#' . $booking->id . '</span></td>';
+            // Column 1: Branch
             $html .= '<td>' . e($booking->branch ? $booking->branch->name : 'N/A') . '</td>';
-            // Column 1: Service (matches blade template)
+            // Column 2: Service
             $html .= '<td>' . e($serviceName) . '</td>';
-            // Column 2: Date (matches blade template)
+            // Column 3: Date
             $html .= '<td>' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . '</td>';
-            // Column 3: Time Slot (matches blade template)
+            // Column 4: Time Slot
             $html .= '<td>' . e($displaySlot) . '</td>';
-            // Column 4: Status (matches blade template)
+            // Column 5: Status (same logic as staff)
             $html .= '<td>';
 
             if ($booking->status === 'pending_refund') {
-                $html .= '<span class="badge bg-warning text-dark">Pending Refund</span>';
+                $html .= '<span class="badge bg-warning">Pending Refund</span>';
             } elseif ($booking->payment_status === 'refunded') {
-                $html .= '<span class="badge bg-info">Refunded</span>';
-            } else {
-                $html .= '<span class="badge ' . $statusClass . '">' . ucfirst($booking->status) . '</span>';
-            }
-
-            if ($booking->status !== 'pending_refund' && $booking->payment_status !== 'refunded' && $booking->status !== 'cancelled') {
+                $html .= '<span class="badge bg-secondary">Cancelled & Refunded</span>';
+            } elseif ($booking->status === 'cancelled') {
+                $html .= '<span class="badge bg-danger">Cancelled</span>';
+            } elseif ($booking->status === 'completed') {
+                $html .= '<span class="badge bg-success">Completed</span>';
+            } elseif ($booking->status === 'active') {
                 if ($booking->payment_status === 'paid') {
-                    $html .= '<span class="badge bg-success ms-1">Confirmed Paid</span>';
+                    $html .= '<span class="badge bg-success">Confirmed</span>';
                 } elseif ($booking->payment_status === 'pending') {
-                    $html .= '<span class="badge bg-warning ms-1">Payment Pending</span>';
+                    $html .= '<span class="badge bg-warning">Payment Pending</span>';
+                } else {
+                    $html .= '<span class="badge bg-info">Active</span>';
                 }
+            } else {
+                $html .= '<span class="badge bg-secondary">' . ucfirst($booking->status) . '</span>';
             }
 
             $html .= '</td>';
-            // Column 5: Action (matches blade template)
+            // Column 6: Action
             $html .= '<td>';
 
             if (strtolower($booking->status) === 'active') {

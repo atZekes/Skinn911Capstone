@@ -179,6 +179,16 @@
 .swal2-timer-progress-bar {
     background: rgba(231, 84, 128, 0.8) !important;
 }
+
+/* Booking ID Badge Styling */
+#clientBookingQueue .badge[style*="gradient"] {
+    transition: all 0.3s ease;
+}
+
+#clientBookingQueue .badge[style*="gradient"]:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(231, 84, 128, 0.4);
+}
 </style>
 
 <div class="container py-4" style="margin-top:120px;">
@@ -551,7 +561,7 @@
                             @endif
                         </div>
                         <div class="d-flex gap-2">
-                            <input id="clientBookingSearch" class="form-control form-control-sm" type="search" placeholder="🔍 Search..." style="width: 180px; border-radius: 10px;">
+                            <input id="clientBookingSearch" class="form-control form-control-sm" type="search" placeholder="🔍 Search by ID, branch, service..." style="width: 250px; border-radius: 10px;">
                             <select id="clientStatusFilter" class="form-select form-select-sm" style="width: 150px; border-radius: 10px;">
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
@@ -568,6 +578,7 @@
                     <table class="table table-hover" style="border-radius:10px;overflow:hidden;">
                         <thead style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color:#fff;">
                             <tr>
+                                <th style="border: none; padding: 15px;">Booking ID</th>
                                 <th style="border: none; padding: 15px;">Branch</th>
                                 <th style="border: none; padding: 15px;">Service</th>
                                 <th style="border: none; padding: 15px;">Date</th>
@@ -578,7 +589,8 @@
                         </thead>
                         <tbody>
                             @forelse($activeBookings as $booking)
-                                <tr>
+                                <tr data-booking-id="{{ $booking->id }}" data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}" data-date="{{ $booking->date }}">
+                                    <td data-label="Booking ID"><span class="badge" style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color: white; cursor: pointer;" title="Click to search">#{{ $booking->id }}</span></td>
                                     <td data-label="Branch">{{ $booking->branch->name ?? '' }}</td>
                                     <td data-label="Service">
                                         @php
@@ -663,29 +675,24 @@
                                         {{ $displaySlot }}
                                     </td>
                                     <td data-label="Status">
-                                        @php
-                                            $statusClass = match(strtolower($booking->status)) {
-                                                'active' => 'bg-success',
-                                                'cancelled' => 'bg-danger',
-                                                'completed' => 'bg-secondary',
-                                                'pending_refund' => 'bg-warning',
-                                                'refunded' => 'bg-info',
-                                                default => 'bg-warning'
-                                            };
-                                        @endphp
                                         @if($booking->status === 'pending_refund')
-                                            <span class="badge bg-warning text-dark">Pending Refund</span>
+                                            <span class="badge bg-warning">Pending Refund</span>
                                         @elseif($booking->payment_status === 'refunded')
-                                            <span class="badge bg-info">Refunded</span>
-                                        @else
-                                            <span class="badge {{ $statusClass }}">{{ ucfirst($booking->status) }}</span>
-                                        @endif
-                                        @if($booking->status !== 'pending_refund' && $booking->payment_status !== 'refunded' && $booking->status !== 'cancelled')
+                                            <span class="badge bg-secondary">Cancelled & Refunded</span>
+                                        @elseif($booking->status === 'cancelled')
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        @elseif($booking->status === 'completed')
+                                            <span class="badge bg-success">Completed</span>
+                                        @elseif($booking->status === 'active')
                                             @if($booking->payment_status === 'paid')
-                                                <span class="badge bg-success ms-1">Confirmed Paid</span>
+                                                <span class="badge bg-success">Confirmed</span>
                                             @elseif($booking->payment_status === 'pending')
-                                                <span class="badge bg-warning ms-1">Payment Pending</span>
+                                                <span class="badge bg-warning">Payment Pending</span>
+                                            @else
+                                                <span class="badge bg-info">Active</span>
                                             @endif
+                                        @else
+                                            <span class="badge bg-secondary">{{ ucfirst($booking->status) }}</span>
                                         @endif
                                     </td>
                                     <td data-label="Actions">
@@ -726,7 +733,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="7" class="text-center py-5">
                                         <div class="py-4">
                                             <i class="fas fa-calendar-times" style="font-size: 4rem; color: #ddd;"></i>
                                             <h4 class="mt-3 text-muted">No Bookings Found</h4>
@@ -1036,7 +1043,7 @@
                 const dateVal = clientDateFilter ? clientDateFilter.value : '';
 
                 // Show loading state
-                bookingTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading bookings...</td></tr>';
+                bookingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading bookings...</td></tr>';
 
                 // Build query parameters
                 const params = new URLSearchParams();
@@ -1058,12 +1065,12 @@
                             // Reattach event listeners to new buttons
                             attachCancelButtonListeners();
                         } else {
-                            bookingTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Invalid response format</td></tr>';
+                            bookingTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Invalid response format</td></tr>';
                         }
                     })
                     .catch(error => {
                         console.error('Error loading bookings:', error);
-                        bookingTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle"></i> Error loading bookings. Please refresh the page.</td></tr>';
+                        bookingTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle"></i> Error loading bookings. Please refresh the page.</td></tr>';
                     });
             }
 
@@ -1102,6 +1109,26 @@
                             btn.setAttribute('data-bs-toggle', 'modal');
                             btn.setAttribute('data-bs-target', '#rescheduleModal' + bookingId);
                         }
+                    }
+                });
+
+                // Attach click-to-search for booking ID badges
+                document.querySelectorAll('#clientBookingQueue .badge').forEach(badge => {
+                    if (badge.textContent.includes('#')) {
+                        badge.addEventListener('click', function() {
+                            const bookingId = this.textContent.trim();
+                            if (clientBookingSearch) {
+                                clientBookingSearch.value = bookingId;
+                                debouncedLoadBookings();
+                                clientBookingSearch.focus();
+                                
+                                // Highlight the search box briefly
+                                clientBookingSearch.style.backgroundColor = '#fff3cd';
+                                setTimeout(function() {
+                                    clientBookingSearch.style.backgroundColor = '';
+                                }, 1000);
+                            }
+                        });
                     }
                 });
             }
