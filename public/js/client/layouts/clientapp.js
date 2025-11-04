@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ User menu simplified - no dropdown needed');
 
     // ================================================================
-    // HEADER SCROLL EFFECT
+    // HEADER SCROLL EFFECT - Always visible with shadow when scrolling
     // ================================================================
     const header = document.querySelector('.modern-header');
     let lastScrollTop = 0;
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-        // Add shadow when scrolled down
+        // Add shadow when scrolled down, navbar always visible
         if (scrollTop > scrollThreshold) {
             header.classList.add('scrolled');
         } else {

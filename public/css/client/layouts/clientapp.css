@@ -3,6 +3,12 @@
    Premium Design with Smooth Animations & Responsive Layout
    =================================================================== */
 
+/* Remove any white space above header */
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 /* CSS Variables for Easy Theme Customization */
 :root {
     --primary-color: #F56289;
@@ -31,11 +37,16 @@
     background: var(--white);
     box-shadow: var(--shadow-sm);
     z-index: 1000;
-    transition: var(--transition-smooth);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
 }
 
 .modern-header.scrolled {
     box-shadow: var(--shadow-md);
+}
+
+.modern-header.hidden {
+    transform: translateY(-100%);
+    box-shadow: none;
 }
 
 .header-container {

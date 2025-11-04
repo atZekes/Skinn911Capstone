@@ -753,7 +753,7 @@ h3 {
     .slider_bg_2 { background-image: url(../img/banner/banner22.png); }
     .slider_bg_3 { background-image: url(../img/banner/banner10.png); }
     .slider_bg_4 { background-image: url(../img/banner/banner3.png); }
-    .single_slider { min-height: 85vh; background-position: center; background-size: cover; }
+    .single_slider { min-height: 1000vh; background-position: center; background-size: cover; }
 }
 
 @media (max-width: 767.98px) {

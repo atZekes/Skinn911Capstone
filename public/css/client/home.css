@@ -1,17 +1,96 @@
 /* Styles extracted from resources/views/Client/home.blade.php */
-.responsive-banner-bg {
-    min-height: 350px;
-    background: url('/img/banner1111.png') center center/cover no-repeat;
+
+/* Remove any margin/padding from slider wrapper */
+.slider_area {
+    margin: 0 !important;
+    padding: 0 !important;
 }
-@media (max-width: 1199px) {
-    .responsive-banner-bg {
-        background-image: url('/img/banner-tablet.jpg');
+
+.slider_active {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.responsive-banner-bg {
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure content stays above animated backgrounds */
+.responsive-banner-bg .container,
+.responsive-banner-bg .slider_text {
+    position: relative;
+    z-index: 10;
+}
+
+/* Banner images with animation */
+.responsive-banner-bg::before,
+.responsive-banner-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    animation: bannerFade 8s infinite;
+}
+
+/* First image */
+.responsive-banner-bg::before {
+    background-image: url('/img/banner1111.png');
+    animation-delay: 0s;
+    z-index: 1;
+}
+
+/* Second image */
+.responsive-banner-bg::after {
+    background-image: url('/img/banner10.png');
+    animation-delay: 4s;
+    z-index: 2;
+}
+
+/* Fade animation */
+@keyframes bannerFade {
+    0%, 45% {
+        opacity: 1;
+    }
+    50%, 95% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
     }
 }
-@media (max-width: 767px) {
-    .responsive-banner-bg {
+
+@media (max-width: 1199px) {
+    .responsive-banner-bg::before {
+        background-image: url('/img/banner1111.png');
+    }
+    .responsive-banner-bg::after {
         background-image: url('/img/skin4.jpg');
     }
+}
+
+@media (max-width: 767px) {
+    .responsive-banner-bg::before {
+        background-image: url('/img/skin4.jpg');
+    }
+    .responsive-banner-bg::after {
+        background-image: url('/img/skin5.jpg');
+    }
+}
+
+/* Hide slider navigation arrows (left/right) */
+.slider_area .owl-nav,
+.owl-carousel .owl-nav {
+    display: none !important;
 }
 
 /* Video and layout tweaks */
