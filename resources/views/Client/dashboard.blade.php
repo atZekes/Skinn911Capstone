@@ -1121,7 +1121,7 @@
                                 clientBookingSearch.value = bookingId;
                                 debouncedLoadBookings();
                                 clientBookingSearch.focus();
-                                
+
                                 // Highlight the search box briefly
                                 clientBookingSearch.style.backgroundColor = '#fff3cd';
                                 setTimeout(function() {

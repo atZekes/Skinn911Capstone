@@ -764,8 +764,8 @@ public function calendarViewer()
                 default => 'bg-warning'
             };
 
-            $html .= '<div class="col-md-4 mb-3">';
-            $html .= '<div class="card h-100 shadow-sm" style="border-radius: 15px; border: none;">';
+            $html .= '<div class="mb-3 col-md-4">';
+            $html .= '<div class="shadow-sm card h-100" style="border-radius: 15px; border: none;">';
             $html .= '<div class="card-body">';
             $html .= '<h5 class="card-title" style="color:#e75480;">' . e($service ? $service->name : 'N/A') . '</h5>';
             $html .= '<p class="card-text"><strong>Price:</strong> ₱' . number_format($ps->price ?? 0, 2) . '</p>';
@@ -776,7 +776,7 @@ public function calendarViewer()
         }
 
         if (empty($html)) {
-            $html = '<div class="col-12 text-center py-5">';
+            $html = '<div class="py-5 text-center col-12">';
             $html .= '<i class="fas fa-shopping-cart" style="font-size: 4rem; color: #ddd;"></i>';
             $html .= '<h4 class="mt-3 text-muted">No Services Purchased Yet</h4>';
             $html .= '<p class="text-muted">Start exploring our services and make your first booking!</p>';
@@ -814,7 +814,7 @@ public function calendarViewer()
         // Apply status filter with same logic as staff
         if ($request->has('status') && !empty($request->status)) {
             $statusFilter = $request->status;
-            
+
             switch($statusFilter) {
                 case 'active':
                     // Active filter: Show all active bookings
@@ -921,7 +921,7 @@ public function calendarViewer()
             $html .= '<td>';
 
             if (strtolower($booking->status) === 'active') {
-                $html .= '<div class="d-flex gap-1 flex-wrap">';
+                $html .= '<div class="flex-wrap gap-1 d-flex">';
                 $html .= '<button type="button" class="btn btn-sm btn-info reschedule-booking-btn" data-booking-id="' . $booking->id . '" data-bs-toggle="modal" data-bs-target="#rescheduleModal' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-calendar-alt me-1"></i>Reschedule</button>';
 
                 if ($booking->payment_status === 'paid' && $booking->status !== 'pending_refund') {
@@ -933,7 +933,7 @@ public function calendarViewer()
                 $html .= '</div>';
 
                 if ($booking->status === 'pending_refund') {
-                    $html .= '<span class="badge bg-warning text-dark mt-1">Refund Requested</span>';
+                    $html .= '<span class="mt-1 badge bg-warning text-dark">Refund Requested</span>';
                 }
             } else {
                 $html .= '<span class="text-muted">-</span>';
@@ -944,7 +944,7 @@ public function calendarViewer()
         }
 
         if (empty($html)) {
-            $html = '<tr><td colspan="6" class="text-center py-5">';
+            $html = '<tr><td colspan="6" class="py-5 text-center">';
             $html .= '<div class="py-4">';
             $html .= '<i class="fas fa-calendar-times" style="font-size: 4rem; color: #ddd;"></i>';
             $html .= '<h4 class="mt-3 text-muted">No Bookings Found</h4>';
