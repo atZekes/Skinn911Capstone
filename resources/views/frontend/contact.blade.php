@@ -26,8 +26,13 @@
                 <div class="header">
                     <h1 class="clinic-name">Skin 911 Facial and Slimming Centre</h1>
                     <div class="header-buttons">
-                        <button class="enquire-btn">Enquire</button>
-                        <button class="book-now-btn">Book now</button>
+                        @auth
+                            <a href="{{ route('client.booking') }}" class="enquire-btn">Enquire</a>
+                            <a href="{{ route('client.booking') }}" class="book-now-btn">Book now</a>
+                        @else
+                            <button class="enquire-btn" onclick="openLoginModal()">Enquire</button>
+                            <button class="book-now-btn" onclick="openLoginModal()">Book now</button>
+                        @endauth
                     </div>
                 </div>
 
@@ -177,18 +182,27 @@
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
     }
     .enquire-btn {
         background-color: #fff;
-        color: #F56289;
+        color: #F56289 !important;
         border: 1px solid #F56289;
     }
-    .enquire-btn:hover { background-color: #fdeaf1; }
+    .enquire-btn:hover {
+        background-color: #fdeaf1;
+        color: #F56289 !important;
+    }
     .book-now-btn {
         background-color: #F56289;
-        color: #fff;
+        color: #fff !important;
     }
-    .book-now-btn:hover { background-color: #F56289; }
+    .book-now-btn:hover {
+        background-color: #d94e73;
+        color: #fff !important;
+    }
 
     .branch-selector { margin-top: 25px; }
     .branch-selector label {

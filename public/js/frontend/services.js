@@ -176,8 +176,10 @@ bookNowBtns.forEach(btn => {
         const serviceId = this.getAttribute('data-service-id');
 
         if (window.isLoggedIn) {
-            alert('You are logged in! Booking service ID: ' + serviceId);
+            // Redirect to booking page with service ID
+            window.location.href = '/client/booking?service_id=' + serviceId;
         } else {
+            // Show login modal using custom modal system
             const loginModal = document.getElementById('loginModal');
             if (loginModal) {
                 loginModal.classList.add('active');

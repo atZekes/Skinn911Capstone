@@ -113,3 +113,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (wrapper) wrapper.classList.remove('open');
     });
 });
+
+// Function to open login modal (called by Enquire and Book Now buttons)
+function openLoginModal() {
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.classList.add('active');
+        loginModal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+}
