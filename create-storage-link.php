@@ -8,6 +8,44 @@
  * After running successfully, DELETE this file for security!
  */
 
+// Helper function to copy directory recursively
+function copyDirectory($src, $dst) {
+    if (!is_dir($src)) {
+        return false;
+    }
+    
+    if (!is_dir($dst)) {
+        mkdir($dst, 0755, true);
+    }
+    
+    $dir = opendir($src);
+    if (!$dir) {
+        return false;
+    }
+    
+    $success = true;
+    while (($file = readdir($dir)) !== false) {
+        if ($file === '.' || $file === '..') {
+            continue;
+        }
+        
+        $srcPath = $src . '/' . $file;
+        $dstPath = $dst . '/' . $file;
+        
+        if (is_dir($srcPath)) {
+            $success &= copyDirectory($srcPath, $dstPath);
+        } else {
+            $success &= copy($srcPath, $dstPath);
+            if ($success) {
+                chmod($dstPath, 0644);
+            }
+        }
+    }
+    
+    closedir($dir);
+    return $success;
+}
+
 echo "<h2>Storage Link & Permissions Fixer</h2>";
 
 // Get the paths
@@ -38,6 +76,12 @@ if (is_dir($chatImagesDir)) {
 }
 
 echo "<h3>Step 2: Create Symbolic Link</h3>";
+
+// Check if symlink function is available
+echo "<strong>System Check:</strong><br>";
+echo "Symlink function available: " . (function_exists('symlink') ? "✅ Yes" : "❌ No") . "<br>";
+echo "Exec function available: " . (function_exists('exec') ? "✅ Yes" : "❌ No") . "<br>";
+echo "Safe mode: " . (ini_get('safe_mode') ? "❌ Enabled (may cause issues)" : "✅ Disabled") . "<br><br>";
 
 // Debug: Show paths
 echo "<strong>Checking paths:</strong><br>";
@@ -104,17 +148,84 @@ if (file_exists($link)) {
 } else {
     // Try to create the symbolic link
     echo "Creating new symbolic link...<br>";
-    if (symlink($target, $link)) {
+    flush(); // Force output before potentially hanging operation
+    
+    // Set a timeout for the symlink operation
+    $timeout = 10; // 10 seconds timeout
+    $startTime = time();
+    
+    // Try to create symlink with timeout
+    $symlinkResult = false;
+    $errorMessage = '';
+    
+    try {
+        // Use exec to try creating symlink with timeout
+        $command = "ln -s \"$target\" \"$link\" 2>&1";
+        $output = [];
+        $returnCode = 0;
+        
+        exec($command, $output, $returnCode);
+        
+        if ($returnCode === 0 && file_exists($link) && is_link($link)) {
+            $symlinkResult = true;
+            echo "✅ Storage link created successfully using exec!<br>";
+        } else {
+            $errorMessage = "Exec failed with code $returnCode: " . implode("\n", $output);
+        }
+    } catch (Exception $e) {
+        $errorMessage = "Exception: " . $e->getMessage();
+    }
+    
+    // If exec failed, try PHP symlink function
+    if (!$symlinkResult) {
+        echo "Exec method failed, trying PHP symlink function...<br>";
+        flush();
+        
+        // Try PHP symlink with error suppression and timeout
+        $symlinkResult = @symlink($target, $link);
+        
+        if (!$symlinkResult) {
+            $error = error_get_last();
+            $errorMessage = $error ? $error['message'] : 'Unknown PHP error';
+        }
+    }
+    
+    if ($symlinkResult && file_exists($link) && is_link($link)) {
         echo "✅ Storage link created successfully!<br>";
         echo "From: $link<br>";
         echo "To: $target<br>";
     } else {
-        $error = error_get_last();
         echo "❌ Failed to create storage link<br>";
-        echo "Error: " . ($error ? $error['message'] : 'Unknown error') . "<br>";
-        echo "<br><strong>Manual Fix Required:</strong><br>";
-        echo "Contact Hostinger support and ask them to run:<br>";
-        echo "<code>cd " . __DIR__ . " && php artisan storage:link</code><br>";
+        echo "Error: $errorMessage<br>";
+        echo "<br><strong>Alternative Solutions:</strong><br>";
+        
+        echo "<h4>Option 1: Manual SSH Command (if you have SSH access)</h4>";
+        echo "Run this command via SSH:<br>";
+        echo "<code>cd " . dirname($link) . " && ln -s \"$target\" storage</code><br><br>";
+        
+        echo "<h4>Option 2: Copy Files Instead of Symlink</h4>";
+        echo "If symlinks are disabled, we can copy the files instead:<br>";
+        
+        // Try to copy files as alternative
+        if (!is_dir($link)) {
+            mkdir($link, 0755, true);
+        }
+        
+        $copySuccess = copyDirectory($target, $link);
+        if ($copySuccess) {
+            echo "✅ Files copied successfully as alternative to symlink!<br>";
+            echo "<strong>Note:</strong> You'll need to re-copy files if new images are uploaded.<br>";
+        } else {
+            echo "❌ File copying also failed<br>";
+        }
+        
+        echo "<h4>Option 3: Contact Hostinger Support</h4>";
+        echo "Ask Hostinger to enable symbolic links or run:<br>";
+        echo "<code>cd " . __DIR__ . " && php artisan storage:link</code><br><br>";
+        
+        echo "<h4>Option 4: Use .htaccess Rewrite (Last Resort)</h4>";
+        echo "Add this to your public/.htaccess file:<br>";
+        echo "<pre>RewriteRule ^storage/(.*)$ ../storage/app/public/$1 [L]</pre><br>";
     }
 }
 
@@ -133,27 +244,73 @@ if (is_dir($chatImagesDir)) {
     echo "✅ Fixed permissions on $count image files (0644)<br>";
 }
 
-echo "<h3>Step 4: Test Image URLs</h3>";
+echo "<h3>Step 4: Test Image Access</h3>";
 
 // Test if storage is accessible
 $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
 $host = $_SERVER['HTTP_HOST'];
+$baseUrl = "$protocol://$host";
 
-// Test both possible URL structures
-echo "<strong>Test these URLs (one should work):</strong><br><br>";
-echo "1. With /public/: <a href='$protocol://$host/public/storage/chat_images/' target='_blank'>$protocol://$host/public/storage/chat_images/</a><br>";
-echo "2. Without /public/: <a href='$protocol://$host/storage/chat_images/' target='_blank'>$protocol://$host/storage/chat_images/</a><br>";
-echo "<br>";
-echo "(One of these should show a directory listing or access denied, not 403 Forbidden)<br>";
+// Test URLs
+$testUrls = [
+    "$baseUrl/storage/chat_images/",
+    "$baseUrl/public/storage/chat_images/"
+];
+
+echo "<strong>Testing image access:</strong><br><br>";
+
+foreach ($testUrls as $index => $url) {
+    echo "<strong>Test " . ($index + 1) . ":</strong> <a href='$url' target='_blank'>$url</a><br>";
+    
+    // Try to access the URL
+    $headers = @get_headers($url);
+    if ($headers) {
+        $statusCode = explode(' ', $headers[0])[1];
+        if ($statusCode == '200') {
+            echo "✅ Status: $statusCode (Accessible)<br>";
+        } elseif ($statusCode == '403') {
+            echo "❌ Status: $statusCode (Forbidden - This is the problem!)<br>";
+        } elseif ($statusCode == '404') {
+            echo "⚠️ Status: $statusCode (Not Found - Link may not be working)<br>";
+        } else {
+            echo "ℹ️ Status: $statusCode<br>";
+        }
+    } else {
+        echo "❓ Could not check status (connection issue)<br>";
+    }
+    echo "<br>";
+}
+
+// Check if there are any test images
+if (is_dir($chatImagesDir)) {
+    $files = glob($chatImagesDir . '/*');
+    $imageCount = count(array_filter($files, 'is_file'));
+    echo "📁 Found $imageCount image files in chat_images directory<br>";
+    
+    if ($imageCount > 0) {
+        echo "<strong>Sample image URLs to test:</strong><br>";
+        $sampleFiles = array_slice(array_filter($files, 'is_file'), 0, 3);
+        foreach ($sampleFiles as $file) {
+            $filename = basename($file);
+            echo "• <a href='$baseUrl/storage/chat_images/$filename' target='_blank'>$baseUrl/storage/chat_images/$filename</a><br>";
+        }
+    }
+}
 
 echo "<h3>Step 5: Check Your .env File</h3>";
 echo "Make sure your .env file on Hostinger has:<br>";
 echo "<code>APP_URL=$protocol://$host</code><br>";
 echo "<br>";
 
-echo "<h3>✅ All Done!</h3>";
-echo "<strong style='color: green;'>If one of the test URLs above works, your images should now display correctly!</strong><br><br>";
+echo "<h3>✅ Setup Complete!</h3>";
+echo "<strong style='color: green;'>Check the test results above to see if image access is working!</strong><br><br>";
+
+echo "<strong>Next Steps:</strong><br>";
+echo "1. Test the chat functionality by sending an image<br>";
+echo "2. If images still don't work, try the alternative solutions above<br>";
+echo "3. Contact Hostinger support if symlinks are disabled<br><br>";
 
 echo "<strong style='color: red; font-size: 18px;'>⚠️ IMPORTANT: Delete this file now for security!</strong><br>";
-echo "<code>Delete: create-storage-link.php</code>";
+echo "<code>rm create-storage-link.php</code><br>";
+echo "<em>This file contains sensitive system information and should not remain on your server.</em>";
 ?>

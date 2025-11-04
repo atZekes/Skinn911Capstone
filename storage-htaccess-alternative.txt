@@ -1,0 +1,5 @@
+# Alternative .htaccess solution for storage access
+# Add this to your public/.htaccess file if symlinks don't work
+
+RewriteEngine On
+RewriteRule ^storage/(.*)$ ../storage/app/public/$1 [L]
