@@ -5,7 +5,7 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title></title>
 	<meta name="description" content="">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
 	<meta name="csrf-token" content="{{ csrf_token() }}">
 
 	<!-- Prevent browser caching of client pages after logout -->
@@ -28,8 +28,8 @@
 	<link rel="stylesheet" href="{{ asset('css/animate.css') }}">
 	<link rel="stylesheet" href="{{ asset('css/slicknav.css') }}">
 	<link rel="stylesheet" href="{{ asset('css/style.css') }}">
-	<!-- Simple header styles -->
-	<link rel="stylesheet" href="{{ asset('css/client/simple-header.css') }}">
+	<!-- Client app layout styles - handles header, navigation, and mobile -->
+	<link rel="stylesheet" href="{{ asset('css/client/layouts/clientapp.css') }}?v={{ time() }}">
 
 	<!-- SweetAlert2 -->
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -37,97 +37,153 @@
 
 </head>
 <body>
-	<!-- Simple Header Start -->
-	<header>
-		<div class="header-area">
-			<!-- Main header container -->
-			<div id="sticky-header" class="main-header-area">
-				<div class="container-fluid" style="padding: 0;">
-					<!-- Header row with 3 sections -->
-					<div class="row align-items-center" style="margin: 0;">
+	<!-- Modern Header Start -->
+	<header class="modern-header">
+		<div class="header-container">
+			<div class="header-content">
+				<!-- Left Section: Logo -->
+				<div class="logo-section">
+					<a href="{{ route('home') }}" class="logo-link">
+						<img src="{{ asset('img/skinlogo.png') }}" alt="Skin911 Logo" class="logo-img">
+					</a>
+				</div>
 
-						<!-- Left Section: Logo -->
-						<div class="col-xl-3 col-lg-3" style="text-align: left;">
-							<div class="logo-container">
-								<a href="{{ route('home') }}">
-									<img src="{{ asset('img/skinlogo.png') }}" alt="Skin911 Logo" style="max-height: 40px;">
-								</a>
-								<!-- Mobile hamburger button (hidden on desktop) -->
-								<button class="mobile-hamburger" id="mobileMenuBtn" aria-label="Menu">
-									<span></span>
-									<span></span>
-									<span></span>
+				<!-- Middle Section: Desktop Navigation -->
+				<nav class="desktop-nav">
+					<ul class="nav-menu">
+						<li class="nav-item">
+							<a href="{{ route('client.home') }}" class="nav-link {{ Request::routeIs('client.home') ? 'active' : '' }}">
+								<i class="fas fa-home"></i>
+								<span>Home</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="{{ route('client.dashboard') }}" class="nav-link {{ Request::routeIs('client.dashboard') ? 'active' : '' }}">
+								<i class="fas fa-th-large"></i>
+								<span>Dashboard</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="{{ route('client.services') }}" class="nav-link {{ Request::routeIs('client.services') ? 'active' : '' }}">
+								<i class="fas fa-spa"></i>
+								<span>Services</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="{{ route('client.booking') }}" class="nav-link {{ Request::routeIs('client.booking') ? 'active' : '' }}">
+								<i class="fas fa-calendar-check"></i>
+								<span>Booking</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="{{ route('client.calendar') }}" class="nav-link {{ Request::routeIs('client.calendar') ? 'active' : '' }}">
+								<i class="fas fa-calendar-alt"></i>
+								<span>Calendar</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="{{ route('client.messages') }}" class="nav-link {{ Request::routeIs('client.messages') ? 'active' : '' }}">
+								<i class="fas fa-comments"></i>
+								<span>Messages</span>
+							</a>
+						</li>
+					</ul>
+				</nav>
+
+				<!-- Right Section: User Info & Actions -->
+				<div class="header-actions">
+					@auth
+					<div class="user-menu-dropdown">
+						<button class="user-menu-btn" id="userMenuBtn">
+							<div class="user-avatar">
+								<i class="fas fa-user"></i>
+							</div>
+							<span class="user-name">{{ Auth::user()->name }}</span>
+							<i class="fas fa-chevron-down dropdown-icon"></i>
+						</button>
+						<div class="user-dropdown-menu" id="userDropdownMenu">
+							<a href="{{ route('client.profile.edit') }}" class="dropdown-item">
+								<i class="fas fa-user-circle"></i>
+								<span>My Profile</span>
+							</a>
+							<div class="dropdown-divider"></div>
+							<form method="POST" action="{{ route('logout') }}">
+								@csrf
+								<button type="submit" class="dropdown-item logout-item">
+									<i class="fas fa-sign-out-alt"></i>
+									<span>Logout</span>
 								</button>
-							</div>
-						</div>
-
-						<!-- Middle Section: Navigation Menu -->
-						<div class="col-xl-6 col-lg-6">
-							<!-- Desktop navigation - shows on big screens -->
-							<div class="desktop-nav" style="text-align: center;">
-								<ul class="nav-list">
-									<li><a href="{{ route('client.home') }}" class="nav-link">Home</a></li>
-								<li><a href="{{ route('client.dashboard') }}" class="nav-link">Dashboard</a></li>
-								<li><a href="{{ route('client.services') }}" class="nav-link">Services</a></li>
-								<li><a href="{{ route('client.booking') }}" class="nav-link">Booking</a></li>
-								<li><a href="{{ route('client.calendar') }}" class="nav-link">Calendar</a></li>
-								<li><a href="{{ route('client.messages') }}" class="nav-link">Messages</a></li>
-							</ul>
-							</div>
-
-						<!-- Mobile drawer (hidden by default, slides from right) -->
-						<div class="mobile-drawer-overlay" id="mobileOverlay"></div>
-						<div class="mobile-drawer" id="mobileDrawer">
-							<div class="mobile-drawer-header">
-								<!-- Close button removed -->
-							</div>
-							<nav class="mobile-drawer-nav">
-								@auth
-								<div class="mobile-user-info">
-										<i class="fa fa-user"></i>
-										<span>{{ Auth::user()->name }}</span>
-									</div>
-									@endauth
-									<a href="{{ route('client.home') }}">Home</a>
-									<a href="{{ route('client.dashboard') }}">Dashboard</a>
-									<a href="{{ route('client.services') }}">Services</a>
-									<a href="{{ route('client.booking') }}">Booking</a>
-									<a href="{{ route('client.calendar') }}">Calendar</a>
-									<a href="{{ route('client.messages') }}">Messages</a>
-									@auth
-									<div class="mobile-drawer-footer">
-										<form method="POST" action="{{ route('logout') }}">
-											@csrf
-											<button type="submit" class="mobile-logout-btn">
-												<i class="fa fa-sign-out-alt"></i> Logout
-											</button>
-										</form>
-									</div>
-									@endauth
-								</nav>
-							</div>
-						</div>
-
-						<!-- Right Section: User Info (desktop only) -->
-						<div class="col-xl-3 col-lg-3 desktop-only">
-							@auth
-							<div class="user-section">
-								<div class="user-name">
-									<i class="fa fa-user"></i>
-									<a href="{{ route('client.profile.edit') }}">{{ Auth::user()->name }}</a>
-								</div>
-								<div class="logout-section">
-									<form method="POST" action="{{ route('logout') }}">
-										@csrf
-										<button type="submit" class="logout-btn">Logout</button>
-									</form>
-								</div>
-							</div>
-							@endauth
+							</form>
 						</div>
 					</div>
+					@endauth
+
+					<!-- Mobile Menu Button -->
+					<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+						<span></span>
+						<span></span>
+						<span></span>
+					</button>
 				</div>
 			</div>
+		</div>
+
+		<!-- Mobile Drawer -->
+		<div class="mobile-drawer-overlay" id="mobileOverlay"></div>
+		<div class="mobile-drawer" id="mobileDrawer">
+			<div class="mobile-drawer-header">
+				@auth
+				<a href="{{ route('client.profile.edit') }}" class="mobile-user-profile-link">
+					<div class="mobile-user-profile">
+						<div class="mobile-user-avatar">
+							<i class="fas fa-user"></i>
+						</div>
+						<div class="mobile-user-info">
+							<h3>{{ Auth::user()->name }}</h3>
+							<p>{{ Auth::user()->email }}</p>
+						</div>
+						<i class="fas fa-chevron-right profile-arrow"></i>
+					</div>
+				</a>
+				@endauth
+			</div>
+			<nav class="mobile-drawer-nav">
+				<a href="{{ route('client.home') }}" class="mobile-nav-link {{ Request::routeIs('client.home') ? 'active' : '' }}">
+					<i class="fas fa-home"></i>
+					<span>Home</span>
+				</a>
+				<a href="{{ route('client.dashboard') }}" class="mobile-nav-link {{ Request::routeIs('client.dashboard') ? 'active' : '' }}">
+					<i class="fas fa-th-large"></i>
+					<span>Dashboard</span>
+				</a>
+				<a href="{{ route('client.services') }}" class="mobile-nav-link {{ Request::routeIs('client.services') ? 'active' : '' }}">
+					<i class="fas fa-spa"></i>
+					<span>Services</span>
+				</a>
+				<a href="{{ route('client.booking') }}" class="mobile-nav-link {{ Request::routeIs('client.booking') ? 'active' : '' }}">
+					<i class="fas fa-calendar-check"></i>
+					<span>Booking</span>
+				</a>
+				<a href="{{ route('client.calendar') }}" class="mobile-nav-link {{ Request::routeIs('client.calendar') ? 'active' : '' }}">
+					<i class="fas fa-calendar-alt"></i>
+					<span>Calendar</span>
+				</a>
+				<a href="{{ route('client.messages') }}" class="mobile-nav-link {{ Request::routeIs('client.messages') ? 'active' : '' }}">
+					<i class="fas fa-comments"></i>
+					<span>Messages</span>
+				</a>
+			</nav>
+			@auth
+			<div class="mobile-drawer-footer">
+				<form method="POST" action="{{ route('logout') }}">
+					@csrf
+					<button type="submit" class="mobile-logout-btn">
+						<i class="fas fa-sign-out-alt"></i>
+						<span>Logout</span>
+					</button>
+				</form>
+			</div>
+			@endauth
 		</div>
 	</header>
 	<!-- Header End -->
@@ -253,8 +309,7 @@
 	<script src="{{ asset('js/owl.carousel.min.js') }}"></script>
 
 	@auth
-	<!-- BotMan widget (bottom-right) -->
-	<link rel="stylesheet" href="{{ asset('css/client/layouts/clientapp.css') }}">
+	<!-- Chat widget styles -->
 	<link rel="stylesheet" href="{{ asset('css/client/chat-widget.css') }}">
 	<script>
 	// Store current user ID for message notification

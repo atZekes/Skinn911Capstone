@@ -384,7 +384,7 @@
                                     }
                                 @endphp
                                 <tr>
-                                    <td>
+                                    <td data-label="Service">
                                         @php
                                             // Determine if this purchased service is actually part of a multi-service package
                                             $pkgToShow = $service->booking->package ?? null;
@@ -420,9 +420,9 @@
                                             @endif
                                         @endif
                                     </td>
-                                    <td>{{ $service->price ?? '' }}</td>
-                                    <td>{{ $service->created_at }}</td>
-                                    <td>
+                                    <td data-label="Price">{{ $service->price ?? '' }}</td>
+                                    <td data-label="Date Purchased">{{ $service->created_at }}</td>
+                                    <td data-label="Location">
                                         @if($booking && $booking->branch)
                                             {{ $booking->branch->name }}
                                         @else
@@ -487,7 +487,7 @@
                                         {{ $displaySlot }}
                                     </td>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         @if($status === 'cancelled')
                                             <span class="badge bg-danger">Cancelled</span>
                                         @elseif($status === 'completed')
@@ -579,8 +579,8 @@
                         <tbody>
                             @forelse($activeBookings as $booking)
                                 <tr>
-                                    <td>{{ $booking->branch->name ?? '' }}</td>
-                                    <td>
+                                    <td data-label="Branch">{{ $booking->branch->name ?? '' }}</td>
+                                    <td data-label="Service">
                                         @php
                                             $pkgToShow = $booking->package ?? null;
                                             if (!$pkgToShow) {
@@ -614,8 +614,8 @@
                                             @endif
                                         @endif
                                     </td>
-                                    <td>{{ $booking->date }}</td>
-                                    <td>
+                                    <td data-label="Date">{{ $booking->date }}</td>
+                                    <td data-label="Time Slot">
                                         @php
                                             // Compute duration for this booking (service or package)
                                             $bookingDuration = 1;
@@ -662,7 +662,7 @@
                                         @endphp
                                         {{ $displaySlot }}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         @php
                                             $statusClass = match(strtolower($booking->status)) {
                                                 'active' => 'bg-success',
@@ -688,7 +688,7 @@
                                             @endif
                                         @endif
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         @if(strtolower($booking->status) === 'active')
                                             <div class="d-flex gap-1 flex-wrap">
                                                 <button type="button" class="btn btn-sm btn-info reschedule-booking-btn"
@@ -937,6 +937,7 @@
 
         {{-- per-view CSS and JS for client dashboard --}}
         <link rel="stylesheet" href="{{ asset('css/client/dashboard.css') }}">
+
         <script src="{{ asset('js/client/dashboard.js') }}" defer></script>
         {{-- Ensure bootstrap bundle is present (modal support). If your layout already includes it, this can be removed. --}}
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

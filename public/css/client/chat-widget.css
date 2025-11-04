@@ -12,7 +12,7 @@
     border-radius: 50%;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 9999 !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -45,7 +45,7 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 9999 !important;
     display: none;
     flex-direction: column;
 }
@@ -365,4 +365,25 @@
     display: block;
     max-width: 100%;
     height: auto;
+}
+
+/* Force chat button position on mobile */
+@media (max-width: 991px) {
+    .chat-icon-button {
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        top: auto !important;
+        left: auto !important;
+        z-index: 9999 !important;
+    }
+
+    .chat-window {
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        top: auto !important;
+        left: auto !important;
+        z-index: 9999 !important;
+    }
 }

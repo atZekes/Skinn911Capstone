@@ -1,13 +1,83 @@
-/* Styles for client services page
-   Simple, clear selectors and comments.
-*/
+/* Styles for client services page - Beautiful, Modern Design */
+
+/* Page Header Styling */
+.container h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #F56289;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 2px 4px rgba(245, 98, 137, 0.1);
+}
+
+/* Category Filter Buttons */
+.category_filter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+.filter_btn {
+  padding: 10px 24px;
+  border: 2px solid #F56289;
+  background: #fff;
+  color: #F56289;
+  border-radius: 25px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.filter_btn:hover {
+  background: #F56289;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 98, 137, 0.3);
+}
+
+.filter_btn.active {
+  background: #F56289;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(245, 98, 137, 0.4);
+}
+
+/* Category Section */
+.category-section {
+  margin-bottom: 3rem;
+  animation: fadeInUp 0.6s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.category-header h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #F56289;
+  margin-bottom: 0.5rem;
+}
+
+.category-header p {
+  color: #666;
+  font-size: 1rem;
+}
 
 /* Carousel layout */
 .services-carousel {
   position: relative;
   width: 100%;
-  overflow: visible; /* Changed from hidden to allow scrolling */
-  min-height: 380px;
+  overflow: visible;
+  min-height: 420px;
 }
 
 .carousel-container {
@@ -117,50 +187,148 @@
   width: 320px !important;
   min-width: 320px !important;
   max-width: 320px !important;
-  height: 380px !important;
+  height: 400px !important;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  border-radius: 16px;
+  border-radius: 20px;
   background: #fff;
-  box-shadow: 0 2px 12px rgba(245,98,137,0.08), 0 1.5px 6px rgba(0,0,0,0.07);
+  box-shadow: 0 4px 20px rgba(245,98,137,0.12), 0 2px 8px rgba(0,0,0,0.08);
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(245,98,137,0.1);
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(245,98,137,0.25), 0 4px 12px rgba(0,0,0,0.12);
+  border-color: rgba(245,98,137,0.3);
+}
+
+.service-card .service-image {
+  position: relative;
+  overflow: hidden;
+  height: 180px;
 }
 
 .service-card-client .service-image img,
 .service-card .service-image img {
-  border-radius: 16px 16px 0 0;
+  border-radius: 20px 20px 0 0;
+  transition: transform 0.4s ease;
+}
+
+.service-card:hover .service-image img {
+  transform: scale(1.08);
+}
+
+.service-card .service-info {
+  padding: 1.25rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.service-card .service-info h4 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #F56289;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.service-card .service-info .price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.service-card .service-info .sessions {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 0.75rem;
+}
+
+.service-card .expand-btn {
+  background: linear-gradient(135deg, #F56289 0%, #ff8ba7 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(245,98,137,0.3);
+}
+
+.service-card .expand-btn:hover {
+  background: linear-gradient(135deg, #ff8ba7 0%, #F56289 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245,98,137,0.4);
 }
 
 .service-details {
-  box-shadow: 0 2px 12px rgba(245,98,137,0.08);
-  font-size: 0.95rem;
-  line-height: 1.4;
-  word-break: break-word;
-  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #fff 0%, #fff5f8 100%);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(245,98,137,0.15);
+  padding: 1.5rem !important;
+  animation: slideIn 0.3s ease;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
-.service-details p {
-  font-size: 1.35rem !important;
-  line-height: 1.6;
-  word-break: break-word;
-  margin-bottom: 0.5rem;
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .service-details h5 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
   color: #F56289;
+  border-bottom: 2px solid #F56289;
+  padding-bottom: 0.5rem;
+}
+
+.service-details p {
+  font-size: 0.95rem !important;
+  line-height: 1.7;
+  word-break: break-word;
+  margin-bottom: 1rem;
+  color: #555;
 }
 
 .service-details ul {
-  font-size: 0.95rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
   color: #666;
-  padding-left: 18px;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.service-details ul li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.service-details ul li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #F56289;
+  font-weight: bold;
+  font-size: 1.1rem;
 }
 
 .booking-actions {
@@ -168,20 +336,46 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 1.25rem;
 }
 
 .book-now-btn {
   display: inline-block;
   text-align: center;
-  background: #F56289;
+  background: linear-gradient(135deg, #F56289 0%, #ff8ba7 100%);
   color: #fff;
   font-size: 0.95rem;
-  border-radius: 6px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(245,98,137,0.3);
+}
+
+.book-now-btn:hover {
+  background: linear-gradient(135deg, #ff8ba7 0%, #F56289 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245,98,137,0.4);
+  color: #fff;
+  text-decoration: none;
 }
 
 .consultation-btn.back-btn {
-  border-radius: 6px;
+  background: #fff;
+  color: #666;
+  border: 2px solid #ddd;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.consultation-btn.back-btn:hover {
+  background: #f8f8f8;
+  border-color: #F56289;
+  color: #F56289;
+  transform: translateY(-2px);
 }
 
 .carousel-nav {

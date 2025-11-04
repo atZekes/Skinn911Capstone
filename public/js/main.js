@@ -118,21 +118,25 @@ autoplaySpeed: 800,
 });
 
 // for filter
-  // init Isotope
-  var $grid = $('.grid').isotope({
-    itemSelector: '.grid-item',
-    percentPosition: true,
-    masonry: {
-      // use outer width of grid-sizer for columnWidth
-      columnWidth: 1
-    }
-  });
+  // init Isotope (only if library is loaded)
+  if (typeof $.fn.isotope !== 'undefined' && $('.grid').length) {
+    var $grid = $('.grid').isotope({
+      itemSelector: '.grid-item',
+      percentPosition: true,
+      masonry: {
+        // use outer width of grid-sizer for columnWidth
+        columnWidth: 1
+      }
+    });
+  }
 
   // filter items on button click
-  $('.portfolio-menu').on('click', 'button', function () {
-    var filterValue = $(this).attr('data-filter');
-    $grid.isotope({ filter: filterValue });
-  });
+  if (typeof $grid !== 'undefined') {
+    $('.portfolio-menu').on('click', 'button', function () {
+      var filterValue = $(this).attr('data-filter');
+      $grid.isotope({ filter: filterValue });
+    });
+  }
 
   //for menu active class
   $('.portfolio-menu button').on('click', function (event) {
@@ -140,15 +144,19 @@ autoplaySpeed: 800,
     $(this).addClass('active');
     event.preventDefault();
 	});
-  
-  // wow js
-  new WOW().init();
 
-  // counter 
-  $('.counter').counterUp({
-    delay: 10,
-    time: 10000
-  });
+  // wow js
+  if (typeof WOW !== 'undefined') {
+    new WOW().init();
+  }
+
+  // counter
+  if (typeof $.fn.counterUp !== 'undefined') {
+    $('.counter').counterUp({
+      delay: 10,
+      time: 10000
+    });
+  }
 
 /* magnificPopup img view */
 $('.popup-image').magnificPopup({
@@ -319,9 +327,11 @@ $(document).ready(function() {
 
 
 
-//------- Mailchimp js --------//  
+//------- Mailchimp js --------//
 function mailChimp() {
-  $('#mc_embed_signup').find('form').ajaxChimp();
+  if (typeof $.fn.ajaxChimp !== 'undefined' && $('#mc_embed_signup').length) {
+    $('#mc_embed_signup').find('form').ajaxChimp();
+  }
 }
 mailChimp();
 
@@ -343,4 +353,4 @@ mailChimp();
             $("#search_input").focus();
         });
 
-})(jQuery);	
+})(jQuery);
