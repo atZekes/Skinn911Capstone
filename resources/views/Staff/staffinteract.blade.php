@@ -432,7 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Add image if available
                     if (message.image) {
-                        messageContent += `<img src="/storage/${message.image}"
+                        const imageSrc = message.image_url || `/storage/${message.image}`;
+                        messageContent += `<img src="${imageSrc}"
                             alt="Attached image"
                             class="message-image"
                             style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 8px; cursor: pointer;"
@@ -658,7 +659,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add image if available
         if (messageData.image) {
-            messageContent += `<img src="/storage/${messageData.image}"
+            const imageSrc = messageData.image_url || `/storage/${messageData.image}`;
+            messageContent += `<img src="${imageSrc}"
                 alt="Attached image"
                 class="message-image"
                 style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 8px; cursor: pointer; display: block;"

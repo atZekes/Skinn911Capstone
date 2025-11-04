@@ -852,7 +852,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (messageData.image) {
             var imgElement = document.createElement('img');
             imgElement.className = 'message-image';
-            imgElement.src = '/storage/' + messageData.image;
+            // Use image_url if available (with full URL), otherwise fall back to /storage/ path
+            imgElement.src = messageData.image_url || ('/storage/' + messageData.image);
             imgElement.alt = 'Attached image';
             imgElement.onclick = function() {
                 window.open(this.src, '_blank');
@@ -936,7 +937,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (message.image) {
                             var imgElement = document.createElement('img');
                             imgElement.className = 'message-image';
-                            imgElement.src = '/storage/' + message.image;
+                            // Use image_url if available (with full URL), otherwise fall back to /storage/ path
+                            imgElement.src = message.image_url || ('/storage/' + message.image);
                             imgElement.alt = 'Attached image';
                             imgElement.onclick = function() {
                                 window.open(this.src, '_blank');

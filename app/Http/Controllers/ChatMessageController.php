@@ -95,6 +95,11 @@ class ChatMessageController extends Controller
         // Load relationships for response
         $chatMessage->load(['user', 'staff', 'branch']);
 
+        // Add full image URL for proper display
+        if ($chatMessage->image) {
+            $chatMessage->image_url = asset('storage/' . $chatMessage->image);
+        }
+
         // Broadcast event for real-time updates
         broadcast(new MessageSent($chatMessage))->toOthers();
 
@@ -129,6 +134,13 @@ class ChatMessageController extends Controller
         }
 
         $messages = $query->limit($limit)->get();
+
+        // Add full image URLs to all messages
+        $messages->each(function ($message) {
+            if ($message->image) {
+                $message->image_url = asset('storage/' . $message->image);
+            }
+        });
 
         return response()->json([
             'success' => true,
