@@ -1,12 +1,12 @@
 /* Per-view services CSS (copied from public/css/services.css) */
 
 .responsive-banner-bg {
-    min-height: 600px;
+    min-height: 900px;
     background: url('/img/banner4.png') center center/cover no-repeat;
 }
 @media (max-width: 1199px) {
     .responsive-banner-bg {
-        background-image: url('/img/banner-tablet.jpg');
+        background-image: url('/img/banner/banner1.jpg');
     }
 }
 @media (max-width: 767px) {
