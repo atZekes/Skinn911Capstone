@@ -31,39 +31,46 @@
 					@php
 						$serviceSlug = strtolower(str_replace(' ', '-', $service->name));
 
-						// Map service names to ACTUAL existing image files (no spaces in URLs)
+						// Map ALL service slugs to their correct images
 						$imageMap = [
 							// Facial Services
 							'hydrafacial' => 'HydraFacial.jpg',
-							'diamond-peel' => 'Diamond peel.jpg',
+							'diamond-peel-with-complete-facial' => 'Diamond peel.jpg',
 							'acne-laser-+-acne-facial' => 'Acne laser + Acne Facial.jpg',
-							'acne-treatment' => 'Acne Treatment.jpg',
+							'microneedling' => 'Acne Treatment.jpg',
+							'pigmentation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
 							'skin-rejuvenation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
+							'skin911-complete-facial' => 'HydraFacial.jpg',
 							'wart-removal-(face-and-neck)' => 'Wart removal (face and neck).jpg',
+							'hifu-ultralift' => 'HIFU Ultralift.jpg',
 
 							// Immuno Boosters
-							'immuno-gold-+-vitamin-c-treatment' => 'Immuno Gold + Vitamin C Treatment.jpg',
-							'cinderella-drip-treatment' => 'Cinderella Drip Treatment.jpg',
-							'cindella-drip-treatment' => 'Cinderella Drip Treatment.jpg',
-							'luminous-white-drip-treatment' => 'Luminous White Drip Treatment.jpg',
-							'elea-white-treatment' => 'Elea White Treatment.jpg',
+							'cindella-drip' => 'Cinderella Drip Treatment.jpg',
 							'collagen-injection' => 'Collagen Injection.jpg',
+							'elea-white-drip' => 'Elea White Treatment.jpg',
+							'immuno-gold-+-vitamin-c' => 'Immuno Gold + Vitamin C Treatment.jpg',
+							'luminous-white-drip' => 'Luminous White Drip Treatment.jpg',
 							'placenta-injection' => 'Placenta Injection.jpg',
 
-							// Permanent Hair Removal & Body
-							'underarm-whitening' => 'Underarm whitening.jpg',
+							// Permanent Hair Removal
+							'beard' => 'Underarm whitening.jpg',
+							'bikini' => 'Underarm whitening.jpg',
+							'chest/back' => 'Underarm whitening.jpg',
+							'full-arms' => 'Underarm whitening.jpg',
+							'full-brazilian' => 'Underarm whitening.jpg',
+							'full-face' => 'Underarm whitening.jpg',
+							'full-legs' => 'Underarm whitening.jpg',
+							'half-legs' => 'Underarm whitening.jpg',
+							'mustache' => 'Underarm whitening.jpg',
+							'mustache-&-beard' => 'Underarm whitening.jpg',
 							'underarms' => 'Underarm whitening.jpg',
-							'underarms-3-sessions' => 'Underarm whitening.jpg',
 
 							// Slimming Services
-							'radio-frequency-rf' => 'Radio frequency RF.jpg',
-							'rf' => 'Radio frequency RF.jpg',
-							'lipo-cavitation' => 'Lipo-cavitation.jpg',
-							'lipo-cavitation-+-rf' => 'Lipo Cavitation + RF.jpg',
-							'trio-slim' => 'TRIO slim.jpg',
 							'diode-lipo-laser' => 'Diode Lipo Laser.jpg',
-							'hifu' => 'HIFU.jpg',
-							'hifu-ultralift' => 'HIFU Ultralift.jpg',
+							'lipo-cavitation-+-rf' => 'Lipo Cavitation + RF.jpg',
+							'lipo-cavitation' => 'Lipo-cavitation.jpg',
+							'radio-frequency-rf' => 'Radio frequency RF.jpg',
+							'trio-slim' => 'TRIO slim.jpg',
 						];
 
 						// Get correct image or fallback to database image
