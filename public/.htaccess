@@ -24,9 +24,10 @@
     RewriteRule ^storage/(.*)$ ../storage/app/public/$1 [L]
 
     # Security: Prevent access to sensitive Laravel files
-    RewriteRule ^storage/app/(framework|cache|logs|sessions|views)/.*$ - [F,L]
-    RewriteRule ^storage/framework/.*$ - [F,L]
-    RewriteRule ^storage/logs/.*$ - [F,L]
+    # Temporarily disabled for testing
+    # RewriteRule ^storage/app/(framework|cache|logs|sessions|views)/.*$ - [F,L]
+    # RewriteRule ^storage/framework/.*$ - [F,L]
+    # RewriteRule ^storage/logs/.*$ - [F,L]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
