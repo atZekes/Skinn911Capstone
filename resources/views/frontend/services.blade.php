@@ -55,9 +55,9 @@
                     <div class="services-carousel">
                         <div class="carousel-container">
                             @foreach($filteredServices as $service)
-                                @php 
+                                @php
                                     $serviceSlug = strtolower(str_replace(' ', '-', $service->name));
-                                    
+
                                     // Map service names to correct image files
                                     $imageMap = [
                                         // Facial Services
@@ -70,7 +70,7 @@
                                         'acne-scar-peel' => 'Acne Scar Peel.jpg',
                                         'acne-scar-treatment' => 'Acne Scar Treatment.jpg',
                                         'co2-laser' => 'CO2 Laser.jpg',
-                                        
+
                                         // Immuno Boosters
                                         'immuno-gold' => 'Immuno gold.jpg',
                                         'cindella-drip' => 'Cindella Drip.jpg',
@@ -78,7 +78,7 @@
                                         'mega-white-glutathione-drip' => 'Mega White Glutathione Drip.jpg',
                                         'collagen-booster-drip' => 'Collagen Booster Drip.jpg',
                                         'reiki-energy-healing' => 'Reiki Energy Healing.jpg',
-                                        
+
                                         // Permanent Hair Removal
                                         'underarms' => 'Underarms.jpg',
                                         'underarms-3-sessions' => 'Underarms.jpg',
@@ -91,7 +91,7 @@
                                         'mustache-+-chin' => 'Mustache + Chin.jpg',
                                         'mustache-or-chin' => 'Mustache or Chin.jpg',
                                         'full-face-neck' => 'Full Face Neck.jpg',
-                                        
+
                                         // Slimming Services
                                         'rf' => 'RF.jpg',
                                         'lipo-cavitation' => 'Lipo Cavitation.jpg',
@@ -99,9 +99,9 @@
                                         'coolsculpting' => 'Coolsculpting.jpg',
                                         'detox-program' => 'Detox Program.jpg',
                                     ];
-                                    
+
                                     // Get correct image or fallback to database image
-                                    $correctImage = isset($imageMap[$serviceSlug]) 
+                                    $correctImage = isset($imageMap[$serviceSlug])
                                         ? 'img/services/' . $imageMap[$serviceSlug]
                                         : $service->image;
                                 @endphp
