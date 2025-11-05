@@ -58,51 +58,44 @@
                                 @php
                                     $serviceSlug = strtolower(str_replace(' ', '-', $service->name));
 
-                                    // Map service names to correct image files
+                                    // Map service names to ACTUAL existing image files (no spaces in URLs)
                                     $imageMap = [
                                         // Facial Services
                                         'hydrafacial' => 'HydraFacial.jpg',
-                                        'microneedling' => 'Microneedling.jpg',
-                                        'diamond-peel' => 'Diamond Peel.jpg',
-                                        'chemical-peel' => 'Chemical Peel.jpg',
-                                        'facial-laser' => 'Facial Laser.jpg',
-                                        'oxygen-facial' => 'Oxygen Facial.jpg',
-                                        'acne-scar-peel' => 'Acne Scar Peel.jpg',
-                                        'acne-scar-treatment' => 'Acne Scar Treatment.jpg',
-                                        'co2-laser' => 'CO2 Laser.jpg',
+                                        'diamond-peel' => 'Diamond peel.jpg',
+                                        'acne-laser-+-acne-facial' => 'Acne laser + Acne Facial.jpg',
+                                        'acne-treatment' => 'Acne Treatment.jpg',
+                                        'skin-rejuvenation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
+                                        'wart-removal-(face-and-neck)' => 'Wart removal (face and neck).jpg',
 
-                                        // Immuno Boosters
-                                        'immuno-gold' => 'Immuno gold.jpg',
-                                        'cindella-drip' => 'Cindella Drip.jpg',
-                                        'vitamin-c-drip' => 'Vitamin C Drip.jpg',
-                                        'mega-white-glutathione-drip' => 'Mega White Glutathione Drip.jpg',
-                                        'collagen-booster-drip' => 'Collagen Booster Drip.jpg',
-                                        'reiki-energy-healing' => 'Reiki Energy Healing.jpg',
+                                        // Immuno Boosters  
+                                        'immuno-gold-+-vitamin-c-treatment' => 'Immuno Gold + Vitamin C Treatment.jpg',
+                                        'cinderella-drip-treatment' => 'Cinderella Drip Treatment.jpg',
+                                        'cindella-drip-treatment' => 'Cinderella Drip Treatment.jpg',
+                                        'luminous-white-drip-treatment' => 'Luminous White Drip Treatment.jpg',
+                                        'elea-white-treatment' => 'Elea White Treatment.jpg',
+                                        'collagen-injection' => 'Collagen Injection.jpg',
+                                        'placenta-injection' => 'Placenta Injection.jpg',
 
-                                        // Permanent Hair Removal
-                                        'underarms' => 'Underarms.jpg',
-                                        'underarms-3-sessions' => 'Underarms.jpg',
-                                        'bikini' => 'Bikini.jpg',
-                                        'full-brazilian' => 'Full Brazilian.jpg',
-                                        'half-legs' => 'Half Legs.jpg',
-                                        'full-legs' => 'Full Legs.jpg',
-                                        'half-arms' => 'Half Arms.jpg',
-                                        'full-arms' => 'Full Arms.jpg',
-                                        'mustache-+-chin' => 'Mustache + Chin.jpg',
-                                        'mustache-or-chin' => 'Mustache or Chin.jpg',
-                                        'full-face-neck' => 'Full Face Neck.jpg',
+                                        // Permanent Hair Removal & Body
+                                        'underarm-whitening' => 'Underarm whitening.jpg',
+                                        'underarms' => 'Underarm whitening.jpg',
+                                        'underarms-3-sessions' => 'Underarm whitening.jpg',
 
                                         // Slimming Services
-                                        'rf' => 'RF.jpg',
-                                        'lipo-cavitation' => 'Lipo Cavitation.jpg',
+                                        'radio-frequency-rf' => 'Radio frequency RF.jpg',
+                                        'rf' => 'Radio frequency RF.jpg',
+                                        'lipo-cavitation' => 'Lipo-cavitation.jpg',
+                                        'lipo-cavitation-+-rf' => 'Lipo Cavitation + RF.jpg',
                                         'trio-slim' => 'TRIO slim.jpg',
-                                        'coolsculpting' => 'Coolsculpting.jpg',
-                                        'detox-program' => 'Detox Program.jpg',
+                                        'diode-lipo-laser' => 'Diode Lipo Laser.jpg',
+                                        'hifu' => 'HIFU.jpg',
+                                        'hifu-ultralift' => 'HIFU Ultralift.jpg',
                                     ];
 
                                     // Get correct image or fallback to database image
                                     $correctImage = isset($imageMap[$serviceSlug])
-                                        ? 'img/services/' . $imageMap[$serviceSlug]
+                                        ? '/img/services/' . $imageMap[$serviceSlug]
                                         : $service->image;
                                 @endphp
                                 <div class="service-card" data-service="{{ $serviceSlug }}">
