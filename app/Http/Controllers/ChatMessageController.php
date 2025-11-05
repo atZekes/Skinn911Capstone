@@ -79,7 +79,7 @@ class ChatMessageController extends Controller
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-            
+
             // Store directly in public/chat_images/ to avoid symlink issues
             $image->move(public_path('chat_images'), $imageName);
             $imagePath = 'chat_images/' . $imageName;
