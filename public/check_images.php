@@ -12,7 +12,7 @@ echo "<h3>Checking directory: {$servicesDir}</h3>";
 
 if (is_dir($servicesDir)) {
     echo "<p style='color:green;'>✓ Services directory exists</p>";
-    
+
     $images = glob($servicesDir . '*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE);
     echo "<h3>Found " . count($images) . " images:</h3>";
     echo "<ul>";
@@ -30,7 +30,7 @@ if (is_dir($servicesDir)) {
 } else {
     echo "<p style='color:red;'>✗ Services directory does NOT exist!</p>";
     echo "<p>Expected path: {$servicesDir}</p>";
-    
+
     // Check if img directory exists
     $imgDir = __DIR__ . '/img/';
     if (is_dir($imgDir)) {

@@ -31,9 +31,9 @@
 					@php $serviceSlug = strtolower(str_replace(' ', '-', $service->name)); @endphp
 					<div class="service-card" data-service="{{ $serviceSlug }}" style="width:320px;min-width:320px;max-width:320px;border-radius:16px;position:relative;">
 						<div class="service-image" style="border-radius:16px 16px 0 0;overflow:hidden;">
-							<img src="{{ asset($service->image) }}" 
-								 onerror="this.onerror=null; this.src='{{ asset('img/services/default-service.jpg') }}';" 
-								 alt="{{ $service->name }}" 
+							<img src="{{ asset($service->image) }}"
+								 onerror="this.onerror=null; this.src='{{ asset('img/services/default-service.jpg') }}';"
+								 alt="{{ $service->name }}"
 								 style="width:100%;height:160px;object-fit:cover;">
 						</div>
 						<div class="p-3 service-info" style="border-radius:0 0 16px 16px;">
