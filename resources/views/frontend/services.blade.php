@@ -55,10 +55,59 @@
                     <div class="services-carousel">
                         <div class="carousel-container">
                             @foreach($filteredServices as $service)
-                                @php $serviceSlug = strtolower(str_replace(' ', '-', $service->name)); @endphp
+                                @php 
+                                    $serviceSlug = strtolower(str_replace(' ', '-', $service->name));
+                                    
+                                    // Map service names to correct image files
+                                    $imageMap = [
+                                        // Facial Services
+                                        'hydrafacial' => 'HydraFacial.jpg',
+                                        'microneedling' => 'Microneedling.jpg',
+                                        'diamond-peel' => 'Diamond Peel.jpg',
+                                        'chemical-peel' => 'Chemical Peel.jpg',
+                                        'facial-laser' => 'Facial Laser.jpg',
+                                        'oxygen-facial' => 'Oxygen Facial.jpg',
+                                        'acne-scar-peel' => 'Acne Scar Peel.jpg',
+                                        'acne-scar-treatment' => 'Acne Scar Treatment.jpg',
+                                        'co2-laser' => 'CO2 Laser.jpg',
+                                        
+                                        // Immuno Boosters
+                                        'immuno-gold' => 'Immuno gold.jpg',
+                                        'cindella-drip' => 'Cindella Drip.jpg',
+                                        'vitamin-c-drip' => 'Vitamin C Drip.jpg',
+                                        'mega-white-glutathione-drip' => 'Mega White Glutathione Drip.jpg',
+                                        'collagen-booster-drip' => 'Collagen Booster Drip.jpg',
+                                        'reiki-energy-healing' => 'Reiki Energy Healing.jpg',
+                                        
+                                        // Permanent Hair Removal
+                                        'underarms' => 'Underarms.jpg',
+                                        'underarms-3-sessions' => 'Underarms.jpg',
+                                        'bikini' => 'Bikini.jpg',
+                                        'full-brazilian' => 'Full Brazilian.jpg',
+                                        'half-legs' => 'Half Legs.jpg',
+                                        'full-legs' => 'Full Legs.jpg',
+                                        'half-arms' => 'Half Arms.jpg',
+                                        'full-arms' => 'Full Arms.jpg',
+                                        'mustache-+-chin' => 'Mustache + Chin.jpg',
+                                        'mustache-or-chin' => 'Mustache or Chin.jpg',
+                                        'full-face-neck' => 'Full Face Neck.jpg',
+                                        
+                                        // Slimming Services
+                                        'rf' => 'RF.jpg',
+                                        'lipo-cavitation' => 'Lipo Cavitation.jpg',
+                                        'trio-slim' => 'TRIO slim.jpg',
+                                        'coolsculpting' => 'Coolsculpting.jpg',
+                                        'detox-program' => 'Detox Program.jpg',
+                                    ];
+                                    
+                                    // Get correct image or fallback to database image
+                                    $correctImage = isset($imageMap[$serviceSlug]) 
+                                        ? 'img/services/' . $imageMap[$serviceSlug]
+                                        : $service->image;
+                                @endphp
                                 <div class="service-card" data-service="{{ $serviceSlug }}">
                                     <div class="service-image"
-                                         style="background-image:url('{{ asset($service->image) }}');background-size:cover;background-position:center;">
+                                         style="background-image:url('{{ asset($correctImage) }}');background-size:cover;background-position:center;">
                                     </div>
                                     <div class="service-info">
                                         <h4>{{ $service->name }}</h4>
