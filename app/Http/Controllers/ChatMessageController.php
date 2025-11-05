@@ -77,10 +77,25 @@ class ChatMessageController extends Controller
 
         // Handle image upload
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-
-            $imagePath = $image->storeAs('chat_images', $imageName, 'public');
+            try {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('chat_images', $imageName, 'public');
+                
+                if (!$imagePath) {
+                    Log::error('Image storage failed');
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to store image'
+                    ], 500);
+                }
+            } catch (\Exception $e) {
+                Log::error('Image upload error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Image upload failed: ' . $e->getMessage()
+                ], 500);
+            }
         }
 
         $chatMessage = ChatMessage::create([
