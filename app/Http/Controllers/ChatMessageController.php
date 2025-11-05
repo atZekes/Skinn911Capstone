@@ -79,15 +79,7 @@ class ChatMessageController extends Controller
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-            
-            // Store in public/uploads/chat_images/ - should be accessible
-            $uploadPath = public_path('uploads/chat_images');
-            if (!is_dir($uploadPath)) {
-                mkdir($uploadPath, 0755, true);
-            }
-            
-            $image->move($uploadPath, $imageName);
-            $imagePath = 'uploads/chat_images/' . $imageName;
+            $imagePath = $image->storeAs('chat_images', $imageName, 'public');
         }        $chatMessage = ChatMessage::create([
             'user_id' => $request->sender_type === 'client' ? $user->id : null,
             'staff_id' => $request->sender_type === 'staff' ? $user->id : null,
@@ -103,7 +95,7 @@ class ChatMessageController extends Controller
 
         // Add full image URL for proper display
         if ($chatMessage->image) {
-            $chatMessage->image_url = asset($chatMessage->image);
+            $chatMessage->image_url = asset('storage/' . $chatMessage->image);
         }
 
         // Broadcast event for real-time updates
@@ -144,7 +136,7 @@ class ChatMessageController extends Controller
         // Add full image URLs to all messages
         $messages->each(function ($message) {
             if ($message->image) {
-                $message->image_url = asset($message->image);
+                $message->image_url = asset('storage/' . $message->image);
             }
         });
 
