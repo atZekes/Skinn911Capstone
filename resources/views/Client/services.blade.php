@@ -41,7 +41,7 @@
 							'skin-rejuvenation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
 							'wart-removal-(face-and-neck)' => 'Wart removal (face and neck).jpg',
 
-							// Immuno Boosters  
+							// Immuno Boosters
 							'immuno-gold-+-vitamin-c-treatment' => 'Immuno Gold + Vitamin C Treatment.jpg',
 							'cinderella-drip-treatment' => 'Cinderella Drip Treatment.jpg',
 							'cindella-drip-treatment' => 'Cinderella Drip Treatment.jpg',
