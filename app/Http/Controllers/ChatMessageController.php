@@ -80,9 +80,14 @@ class ChatMessageController extends Controller
             $image = $request->file('image');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
 
-            // Store directly in public/chat_images/ to avoid symlink issues
-            $image->move(public_path('chat_images'), $imageName);
-            $imagePath = 'chat_images/' . $imageName;
+            // Store in public/uploads/chat_images/ - works on all hosting
+            $uploadPath = public_path('uploads/chat_images');
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+            
+            $image->move($uploadPath, $imageName);
+            $imagePath = 'uploads/chat_images/' . $imageName;
         }
 
         $chatMessage = ChatMessage::create([
