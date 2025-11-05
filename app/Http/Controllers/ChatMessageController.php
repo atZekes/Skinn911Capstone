@@ -80,23 +80,14 @@ class ChatMessageController extends Controller
             $image = $request->file('image');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
             
-            // Ensure directory exists
-            $uploadPath = public_path('chat_images');
-            if (!file_exists($uploadPath)) {
+            // Store in public/uploads/chat_images/ - should be accessible
+            $uploadPath = public_path('uploads/chat_images');
+            if (!is_dir($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
             
-            // Store directly in public/chat_images/ to avoid symlink issues
-            try {
-                $image->move($uploadPath, $imageName);
-                $imagePath = 'chat_images/' . $imageName;
-            } catch (\Exception $e) {
-                Log::error('Image upload failed: ' . $e->getMessage());
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to upload image'
-                ], 500);
-            }
+            $image->move($uploadPath, $imageName);
+            $imagePath = 'uploads/chat_images/' . $imageName;
         }        $chatMessage = ChatMessage::create([
             'user_id' => $request->sender_type === 'client' ? $user->id : null,
             'staff_id' => $request->sender_type === 'staff' ? $user->id : null,
