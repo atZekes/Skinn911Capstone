@@ -61,7 +61,7 @@
                                     // Map service names to ACTUAL existing image files (no spaces in URLs)
                                     $imageMap = [
                                         // Facial Services
-                                        'hydrafacial' => 'HydraFacial.jpg',
+                                        'hydrafacial' => 'skin5.jpg',
                                         'diamond-peel' => 'Diamond peel.jpg',
                                         'acne-laser-+-acne-facial' => 'Acne laser + Acne Facial.jpg',
                                         'acne-treatment' => 'Acne Treatment.jpg',
