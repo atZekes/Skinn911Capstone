@@ -23,11 +23,12 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^storage/(.*)$ ../storage/app/public/$1 [L]
 
-    # Security: Prevent access to sensitive Laravel files
-    # Temporarily disabled for testing
-    # RewriteRule ^storage/app/(framework|cache|logs|sessions|views)/.*$ - [F,L]
-    # RewriteRule ^storage/framework/.*$ - [F,L]
-    # RewriteRule ^storage/logs/.*$ - [F,L]
+    # Protect sensitive files (using RewriteRule instead of FilesMatch to avoid conflicts)
+    RewriteRule ^\.env$ - [F,L]
+    RewriteRule ^\.env\..+$ - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^package\.json$ - [F,L]
+    RewriteRule ^(artisan|server\.php|phpunit\.xml|webpack\.mix\.js)$ - [F,L]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
