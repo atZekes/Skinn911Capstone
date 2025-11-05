@@ -57,10 +57,8 @@
                             @foreach($filteredServices as $service)
                                 @php $serviceSlug = strtolower(str_replace(' ', '-', $service->name)); @endphp
                                 <div class="service-card" data-service="{{ $serviceSlug }}">
-                                    <div class="service-image">
-                                        <img src="{{ asset($service->image) }}"
-                                             onerror="this.onerror=null; this.src='{{ asset('img/services/skin1.jpg') }}';"
-                                             alt="{{ $service->name }}">
+                                    <div class="service-image"
+                                         style="background-image:url('{{ asset($service->image) }}');background-size:cover;background-position:center;">
                                     </div>
                                     <div class="service-info">
                                         <h4>{{ $service->name }}</h4>

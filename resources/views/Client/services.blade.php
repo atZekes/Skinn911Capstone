@@ -30,11 +30,8 @@
 					@foreach($services->where('category', $category)->whereNotNull('treatment_details')->whereNotNull('image')->unique('name') as $service)
 					@php $serviceSlug = strtolower(str_replace(' ', '-', $service->name)); @endphp
 					<div class="service-card" data-service="{{ $serviceSlug }}" style="width:320px;min-width:320px;max-width:320px;border-radius:16px;position:relative;">
-						<div class="service-image" style="border-radius:16px 16px 0 0;overflow:hidden;">
-							<img src="{{ asset($service->image) }}"
-								 onerror="this.onerror=null; this.src='{{ asset('img/services/default-service.jpg') }}';"
-								 alt="{{ $service->name }}"
-								 style="width:100%;height:160px;object-fit:cover;">
+						<div class="service-image"
+							 style="border-radius:16px 16px 0 0;overflow:hidden;width:100%;height:160px;background-image:url('{{ asset($service->image) }}');background-size:cover;background-position:center;">
 						</div>
 						<div class="p-3 service-info" style="border-radius:0 0 16px 16px;">
 							<h4 class="mb-1" style="color:#F56289;font-size:1.1rem;font-weight:600;">{{ $service->name }}</h4>

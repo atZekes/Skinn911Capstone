@@ -156,7 +156,7 @@
                                                            style="border: 2px solid #e75480; border-radius: 12px; padding: 12px;">
                                                 </div>
                                                 <button type="submit" class="btn w-100" style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color: white; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 1.1rem; border: none; box-shadow: 0 4px 12px rgba(231, 84, 128, 0.3);">
-                                                    <i class="fas fa-shield-check me-2"></i>Enable 2FA
+                                                    <i class="fas fa-power-off me-2"></i>Turn On 2FA
                                                 </button>
                                             </form>
                                         </div>
@@ -179,14 +179,14 @@
 
                                 <div class="mt-4" style="background: linear-gradient(135deg, #fff0f5 0%, #ffffff 100%); padding: 20px; border-radius: 15px; border-left: 4px solid #dc3545;">
                                     <h5 style="color: #dc3545; margin-bottom: 15px;">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>Disable Two-Factor Authentication
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Turn Off Two-Factor Authentication
                                     </h5>
                                     <p class="text-muted mb-3">
                                         Disabling 2FA will make your account less secure. You'll only need your password to log in.
                                     </p>
 
-                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#disableModal" style="border-radius: 10px; padding: 10px 20px; font-weight: 600;">
-                                        <i class="fas fa-shield-alt me-2"></i>Disable 2FA
+                                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#disableModal" style="border-radius: 10px; padding: 12px 24px; font-weight: 600;">
+                                        <i class="fas fa-power-off me-2"></i>Turn Off 2FA
                                     </button>
                                 </div>
                             @endif
@@ -199,22 +199,34 @@
 </div>
 
 <!-- Disable 2FA Modal -->
-<div class="modal fade" id="disableModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 20px; border: none;">
+<div class="modal fade" id="disableModal" tabindex="-1" style="z-index: 9999;">
+    <div class="modal-dialog modal-dialog-centered" style="z-index: 10000;">
+        <div class="modal-content" style="border-radius: 20px; border: none; z-index: 10001;">
             <div class="modal-header" style="background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%); color: white; border-radius: 20px 20px 0 0; border: none;">
                 <h5 class="modal-title">
                     <i class="fas fa-shield-alt me-2"></i>Disable Two-Factor Authentication
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('two-factor.disable') }}">
+            <form method="POST" action="{{ route('two-factor.disable') }}" id="disable2faForm">
                 @csrf
                 <div class="modal-body p-4">
                     <div class="alert alert-warning" style="border-radius: 12px; border: none;">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         <strong>Warning:</strong> Your account will be less secure without 2FA.
                     </div>
+
+                    @if($errors->has('password') || $errors->has('one_time_password'))
+                        <div class="alert alert-danger" style="border-radius: 12px; border: none;">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            @if($errors->has('password'))
+                                <div>{{ $errors->first('password') }}</div>
+                            @endif
+                            @if($errors->has('one_time_password'))
+                                <div>{{ $errors->first('one_time_password') }}</div>
+                            @endif
+                        </div>
+                    @endif
 
                     <div class="mb-3">
                         <label for="disable_one_time_password" class="form-label" style="font-weight: 600;">
@@ -294,5 +306,206 @@
         opacity: 1;
     }
 }
+
+/* Fix modal z-index issues */
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+
+.modal {
+    z-index: 9999 !important;
+}
+
+.modal-dialog {
+    z-index: 10000 !important;
+}
+
+.modal-content {
+    z-index: 10001 !important;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('2FA page loaded');
+
+    // Check if Bootstrap modal is available
+    if (typeof bootstrap !== 'undefined') {
+        console.log('Bootstrap 5 is loaded ✓');
+    } else if (typeof $ !== 'undefined' && typeof $.fn.modal !== 'undefined') {
+        console.log('Bootstrap 4 (jQuery) is loaded ✓');
+    } else {
+        console.error('Bootstrap is NOT loaded - modal will not work!');
+    }
+
+    // Function to close modal
+    function closeModal(modalElement) {
+        if (typeof bootstrap !== 'undefined') {
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            } else {
+                // Fallback manual close
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                document.querySelector('.modal-backdrop')?.remove();
+            }
+            console.log('Modal closed with Bootstrap 5');
+        } else if (typeof $ !== 'undefined') {
+            $('#disableModal').modal('hide');
+            console.log('Modal closed with Bootstrap 4/jQuery');
+        } else {
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            document.getElementById('customBackdrop')?.remove();
+            console.log('Modal closed manually');
+        }
+    }
+
+    // Manual modal trigger with Bootstrap 5
+    const disableBtn = document.querySelector('[data-bs-target="#disableModal"]');
+    const modalElement = document.getElementById('disableModal');
+
+    if (disableBtn && modalElement) {
+        console.log('Disable button found ✓');
+        console.log('Modal element found ✓');
+
+        // Remove default Bootstrap behavior and handle manually
+        disableBtn.removeAttribute('data-bs-toggle');
+        disableBtn.removeAttribute('data-bs-target');
+
+        let modalInstance = null;
+
+        disableBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Disable button clicked - opening modal manually');
+
+            // Try Bootstrap 5 first
+            if (typeof bootstrap !== 'undefined') {
+                modalInstance = new bootstrap.Modal(modalElement);
+                modalInstance.show();
+                console.log('Modal opened with Bootstrap 5');
+            }
+            // Fallback to Bootstrap 4/jQuery
+            else if (typeof $ !== 'undefined') {
+                $('#disableModal').modal('show');
+                console.log('Modal opened with Bootstrap 4/jQuery');
+            }
+            // Fallback to manual display
+            else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+
+                // Create backdrop
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.id = 'customBackdrop';
+                document.body.appendChild(backdrop);
+                console.log('Modal opened manually');
+            }
+
+            // Setup close handlers after modal is opened
+            setTimeout(() => {
+                const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"], .btn-secondary, .btn-close');
+                console.log('Found ' + closeButtons.length + ' close buttons');
+                closeButtons.forEach((btn, index) => {
+                    // Remove any existing handlers
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Close button ' + (index + 1) + ' clicked');
+
+                        if (modalInstance) {
+                            modalInstance.hide();
+                            console.log('Modal closed using instance');
+                        } else {
+                            closeModal(modalElement);
+                        }
+                    });
+                });
+
+                // Close modal when clicking outside (backdrop)
+                document.querySelector('.modal-backdrop')?.addEventListener('click', function() {
+                    console.log('Backdrop clicked - closing');
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    } else {
+                        closeModal(modalElement);
+                    }
+                });
+            }, 100);
+        });
+    } else {
+        if (!disableBtn) console.error('Disable button NOT found!');
+        if (!modalElement) console.error('Modal element NOT found!');
+    }
+
+    // Auto-open modal if there are validation errors
+    @if($errors->has('password') || $errors->has('one_time_password'))
+        setTimeout(function() {
+            if (typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(document.getElementById('disableModal'));
+                modal.show();
+            } else if (typeof $ !== 'undefined') {
+                $('#disableModal').modal('show');
+            }
+            console.log('Modal opened due to validation errors');
+        }, 100);
+    @endif
+
+    // Handle enable 2FA form
+    const enableForm = document.getElementById('enable2faForm');
+    if (enableForm) {
+        console.log('Enable form found ✓');
+        enableForm.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Turning On...';
+
+            console.log('Enable form submitted');
+
+            // Allow form to submit normally
+            setTimeout(() => {
+                if (!this.submitted) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            }, 3000);
+
+            this.submitted = true;
+        });
+    }
+
+    // Handle disable 2FA form
+    const disableForm = document.getElementById('disable2faForm');
+    if (disableForm) {
+        console.log('Disable form found ✓');
+        disableForm.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Turning Off...';
+
+            console.log('Disable form submitted');
+
+            // Allow form to submit normally
+            setTimeout(() => {
+                if (!this.submitted) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            }, 3000);
+
+            this.submitted = true;
+        });
+    }
+});
+</script>
 @endsection
