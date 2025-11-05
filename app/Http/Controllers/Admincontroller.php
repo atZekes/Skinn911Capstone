@@ -521,7 +521,8 @@ class Admincontroller extends Controller{
             'category' => 'required|string',
         ]);
         $cat = $request->input('category');
-        \App\Models\Service::where('category', $cat)->update(['category' => null]);
+        // Set category to empty string instead of null to avoid database constraint violation
+        \App\Models\Service::where('category', $cat)->update(['category' => '']);
         return redirect()->back()->with('success', "Category '{$cat}' removed from services.");
     }
 
