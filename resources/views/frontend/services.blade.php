@@ -80,16 +80,16 @@
                                         'placenta-injection' => 'Placenta Injection.jpg',
 
                                         // Permanent Hair Removal
-                                        'beard' => 'Underarm whitening.jpg',
-                                        'bikini' => 'Underarm whitening.jpg',
-                                        'chest/back' => 'Underarm whitening.jpg',
-                                        'full-arms' => 'Underarm whitening.jpg',
-                                        'full-brazilian' => 'Underarm whitening.jpg',
-                                        'full-face' => 'Underarm whitening.jpg',
-                                        'full-legs' => 'Underarm whitening.jpg',
-                                        'half-legs' => 'Underarm whitening.jpg',
-                                        'mustache' => 'Underarm whitening.jpg',
-                                        'mustache-&-beard' => 'Underarm whitening.jpg',
+                                        'beard' => 'beard.png',
+                                        'bikini' => 'bikini.png',
+                                        'chest/back' => 'chest.png',
+                                        'full-arms' => 'fullarms.png',
+                                        'full-brazilian' => 'wax.png',
+                                        'full-face' => 'fullface.png',
+                                        'full-legs' => 'fulllegs.png',
+                                        'half-legs' => 'halflegs.png',
+                                        'mustache' => 'mus.png',
+                                        'mustache-&-beard' => 'full.png',
                                         'underarms' => 'Underarm whitening.jpg',
 
                                         // Slimming Services
