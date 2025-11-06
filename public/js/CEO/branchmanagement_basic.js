@@ -90,10 +90,10 @@ function createNewBranch(event) {
         isCreatingBranch = false;
         return false;
     }
-    
+
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
-    
+
     // Also disable the form to prevent any other submission attempts
     const form = event.target;
     form.style.pointerEvents = 'none';

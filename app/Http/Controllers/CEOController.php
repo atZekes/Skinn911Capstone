@@ -466,15 +466,15 @@ class CEOController extends Controller
     public function storeBranch(Request $request)
     {
         // TRIPLE LAYER PROTECTION against double submission:
-        
+
         // Layer 1: Session-based lock (prevents multiple clicks from same user)
         $sessionKey = 'creating_branch_' . session()->getId();
-        
+
         // Layer 2: Request signature lock (prevents race conditions)
         // Create a unique signature for this exact request
         $requestSignature = md5($request->name . '|' . $request->address . '|' . session()->getId());
         $signatureKey = 'branch_request_' . $requestSignature;
-        
+
         $lockTimeout = 30; // 30 seconds
 
         if (cache()->has($sessionKey)) {
@@ -612,7 +612,7 @@ class CEOController extends Controller
             // Get the first error message
             $errors = $e->errors();
             $errorMessage = 'Validation failed';
-            
+
             if (isset($errors['contact_number'])) {
                 $errorMessage = $errors['contact_number'][0];
             } elseif (isset($errors['telephone_number'])) {

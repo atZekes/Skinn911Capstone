@@ -247,10 +247,10 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Contact Number (Mobile)</label>
-                        <input type="text" 
-                               name="contact_number" 
+                        <input type="text"
+                               name="contact_number"
                                id="addContactNumber"
-                               class="form-control" 
+                               class="form-control"
                                placeholder="09171234567"
                                pattern="09[0-9]{9}"
                                maxlength="11"
@@ -259,10 +259,10 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Telephone Number (Landline)</label>
-                        <input type="text" 
-                               name="telephone_number" 
+                        <input type="text"
+                               name="telephone_number"
                                id="addTelephoneNumber"
-                               class="form-control" 
+                               class="form-control"
                                placeholder="1234567 or 12345678"
                                pattern="[0-9]{7,8}"
                                maxlength="8"
@@ -338,10 +338,10 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Contact Number (Mobile)</label>
-                        <input type="text" 
-                               id="editBranchContactNumber" 
-                               name="contact_number" 
-                               class="form-control" 
+                        <input type="text"
+                               id="editBranchContactNumber"
+                               name="contact_number"
+                               class="form-control"
                                placeholder="09171234567"
                                pattern="09[0-9]{9}"
                                maxlength="11"
@@ -350,10 +350,10 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Telephone Number (Landline)</label>
-                        <input type="text" 
-                               id="editBranchTelephoneNumber" 
-                               name="telephone_number" 
-                               class="form-control" 
+                        <input type="text"
+                               id="editBranchTelephoneNumber"
+                               name="telephone_number"
+                               class="form-control"
                                placeholder="1234567 or 12345678"
                                pattern="[0-9]{7,8}"
                                maxlength="8"
@@ -440,28 +440,28 @@
             // Add phone number validation for ADD form
             const addContactNumber = document.getElementById('addContactNumber');
             const addTelephoneNumber = document.getElementById('addTelephoneNumber');
-            
+
             // Add phone number validation for EDIT form
             const editContactNumber = document.getElementById('editBranchContactNumber');
             const editTelephoneNumber = document.getElementById('editBranchTelephoneNumber');
-            
+
             // Function to restrict input to numbers only
             function numbersOnly(event) {
                 const input = event.target;
                 input.value = input.value.replace(/[^0-9]/g, '');
             }
-            
+
             // Function to validate mobile number (09XXXXXXXXX)
             function validateMobile(event) {
                 const input = event.target;
                 // Remove non-digits
                 input.value = input.value.replace(/[^0-9]/g, '');
-                
+
                 // Enforce 11 digit limit
                 if (input.value.length > 11) {
                     input.value = input.value.substring(0, 11);
                 }
-                
+
                 // Validate format on blur
                 if (event.type === 'blur' && input.value.length > 0) {
                     if (!input.value.match(/^09[0-9]{9}$/)) {
@@ -473,18 +473,18 @@
                     }
                 }
             }
-            
+
             // Function to validate telephone number (7-8 digits)
             function validateTelephone(event) {
                 const input = event.target;
                 // Remove non-digits
                 input.value = input.value.replace(/[^0-9]/g, '');
-                
+
                 // Enforce 8 digit limit
                 if (input.value.length > 8) {
                     input.value = input.value.substring(0, 8);
                 }
-                
+
                 // Validate format on blur
                 if (event.type === 'blur' && input.value.length > 0) {
                     if (!input.value.match(/^[0-9]{7,8}$/)) {
@@ -496,7 +496,7 @@
                     }
                 }
             }
-            
+
             // Attach listeners to ADD form fields
             if (addContactNumber) {
                 addContactNumber.addEventListener('input', validateMobile);
@@ -505,7 +505,7 @@
                     this.classList.remove('is-invalid');
                 });
             }
-            
+
             if (addTelephoneNumber) {
                 addTelephoneNumber.addEventListener('input', validateTelephone);
                 addTelephoneNumber.addEventListener('blur', validateTelephone);
@@ -513,7 +513,7 @@
                     this.classList.remove('is-invalid');
                 });
             }
-            
+
             // Attach listeners to EDIT form fields
             if (editContactNumber) {
                 editContactNumber.addEventListener('input', validateMobile);
@@ -522,7 +522,7 @@
                     this.classList.remove('is-invalid');
                 });
             }
-            
+
             if (editTelephoneNumber) {
                 editTelephoneNumber.addEventListener('input', validateTelephone);
                 editTelephoneNumber.addEventListener('blur', validateTelephone);
