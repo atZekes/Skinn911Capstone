@@ -57,7 +57,7 @@ class ClientController extends Controller
 
         // Get saved card data for the authenticated user
         $savedCardData = Auth::user()->saved_card_data ?? null;
-        
+
         // Decrypt card numbers for display
         if ($savedCardData) {
             foreach ($savedCardData as $cardType => $cardInfo) {
