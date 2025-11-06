@@ -65,9 +65,10 @@ class ClientController extends Controller
                     try {
                         // Decrypt the card number
                         $decryptedNumber = decrypt($cardInfo['card_number']);
-                        // Format with spaces for display
-                        $formattedNumber = chunk_split($decryptedNumber, 4, ' ');
-                        $savedCardData[$cardType]['card_number'] = trim($formattedNumber);
+                        // Mask the card number (show only last 4 digits)
+                        $lastFour = substr($decryptedNumber, -4);
+                        $maskedNumber = '**** **** **** ' . $lastFour;
+                        $savedCardData[$cardType]['card_number'] = $maskedNumber;
                     } catch (\Exception $e) {
                         // If decryption fails, set to null
                         $savedCardData[$cardType]['card_number'] = null;
