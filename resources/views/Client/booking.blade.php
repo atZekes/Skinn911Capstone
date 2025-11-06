@@ -488,7 +488,15 @@
                             </div>
                             <div class="mb-3">
                                 <label for="card_number" class="form-label">Card Number</label>
-                                <input type="text" class="form-control" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" maxlength="19" pattern="[0-9\s]*" inputmode="numeric" required>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" maxlength="19" pattern="[0-9\s]*" inputmode="numeric" required>
+                                    <button type="button" class="btn btn-outline-secondary" id="clearCardBtn" style="display:none;" title="Use different card">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <small class="text-success" id="savedCardHint" style="display:none;">
+                                    <i class="fas fa-check-circle"></i> Saved card loaded. You can proceed or click X to use a different card.
+                                </small>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
@@ -1585,9 +1593,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (savedCardData && cardType && savedCardData[cardType]) {
             const cardInfo = savedCardData[cardType];
 
-            // Populate card number
+            // Populate card number (masked)
             if (cardInfo.card_number) {
-                document.getElementById('card_number').value = cardInfo.card_number;
+                const cardNumberField = document.getElementById('card_number');
+                cardNumberField.value = cardInfo.card_number;
+                cardNumberField.setAttribute('data-saved-card', 'true');
+                cardNumberField.setAttribute('data-masked-value', cardInfo.card_number);
+                cardNumberField.setAttribute('readonly', 'readonly');
+                cardNumberField.style.backgroundColor = '#e9ecef';
+                cardNumberField.style.cursor = 'not-allowed';
+                
+                // Show clear button and hint
+                document.getElementById('clearCardBtn').style.display = 'block';
+                document.getElementById('savedCardHint').style.display = 'block';
             }
 
             // Populate expiry date
@@ -1769,10 +1787,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Card number formatting - numbers only with spaces
     const cardNumberInput = document.getElementById('card_number');
     if (cardNumberInput) {
+        // Clear button functionality
+        const clearCardBtn = document.getElementById('clearCardBtn');
+        if (clearCardBtn) {
+            clearCardBtn.addEventListener('click', function() {
+                cardNumberInput.value = '';
+                cardNumberInput.removeAttribute('data-saved-card');
+                cardNumberInput.removeAttribute('data-masked-value');
+                cardNumberInput.removeAttribute('readonly');
+                cardNumberInput.style.backgroundColor = '';
+                cardNumberInput.style.cursor = '';
+                cardNumberInput.focus();
+                clearCardBtn.style.display = 'none';
+                document.getElementById('savedCardHint').style.display = 'none';
+            });
+        }
+
         cardNumberInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formattedValue;
+            // Only format if not a saved card (saved cards are readonly)
+            if (!e.target.hasAttribute('data-saved-card')) {
+                let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
+                let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+                e.target.value = formattedValue;
+            }
         });
     }
 
@@ -1958,9 +1995,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     cardForm.reportValidity();
                     return;
                 }
+                const cardNumberField = document.getElementById('card_number');
+                let cardNumber = cardNumberField.value;
+                
+                // Allow submission with saved card (the backend will use the saved encrypted card)
+                // The masked value is just for display, backend has the real encrypted card
+                
                 paymentData = {
                     card_type: document.getElementById('card_type').value,
-                    card_number: document.getElementById('card_number').value,
+                    card_number: cardNumber,
                     card_expiry: document.getElementById('card_expiry').value,
                     card_cvv: document.getElementById('card_cvv').value,
                     billing_first_name: document.getElementById('billing_first_name').value,

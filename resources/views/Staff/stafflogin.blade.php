@@ -83,12 +83,15 @@
             @csrf
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" name="email" class="form-control" required autofocus>
+                <div style="width:80%; margin:0 auto;">
+                    <input type="email" name="email" class="form-control" required autofocus style="width:100%; margin:0;">
+                </div>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
                 <div style="position:relative; width:80%; margin:0 auto;">
-                    <input id="staff-password" type="password" name="password" class="form-control" required style="width:100%; padding-right:40px;">
+                    <input id="staff-password" type="password" name="password" class="form-control" required style="width:100%; margin:0; padding-right:1
+                    px;">
                     <i class="fa fa-eye" id="toggleStaffPassword" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:#e75480;"></i>
                 </div>
             </div>

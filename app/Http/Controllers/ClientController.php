@@ -295,7 +295,24 @@ public function submitBooking(Request $request)
                 $cardNumber = $paymentData['card_number'] ?? null;
                 if ($cardNumber) {
                     $cardNumber = str_replace(' ', '', $cardNumber); // Remove spaces
-                    $cardNumber = encrypt($cardNumber); // Encrypt
+                    
+                    // Check if this is a masked card number from saved data
+                    if (strpos($cardNumber, '*') !== false) {
+                        // This is a masked saved card, retrieve the existing encrypted value
+                        $cardType = $paymentData['card_type'] ?? null;
+                        $existingCards = $user->saved_card_data ?? [];
+                        
+                        if ($cardType && isset($existingCards[$cardType]['card_number'])) {
+                            // Use the existing encrypted card number
+                            $cardNumber = $existingCards[$cardType]['card_number'];
+                        } else {
+                            // Invalid masked card, set to null
+                            $cardNumber = null;
+                        }
+                    } else {
+                        // This is a new card number, encrypt it
+                        $cardNumber = encrypt($cardNumber);
+                    }
                 }
 
                 // Save card data (excluding CVV for security) indexed by card type
