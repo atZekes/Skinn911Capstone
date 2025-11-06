@@ -398,7 +398,7 @@
                                          data-name="{{ $package->name }}">
                                         <div class="flex-grow-1">
                                             <div class="fw-bold">{{ $package->name }}</div>
-                                            <div class="text-muted small mb-1">{{ Str::limit($package->description, 80) }}</div>
+                                            <div class="mb-1 text-muted small">{{ Str::limit($package->description, 80) }}</div>
                                             <div class="text-muted" style="font-size: 0.75rem;">
                                                 <i class="bi bi-geo-alt"></i>
                                                 Available at: <span class="text-primary fw-semibold">{{ implode(', ', $packageBranches) }}</span>
@@ -493,7 +493,38 @@
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label for="card_expiry" class="form-label">Expiry Date</label>
-                                    <input type="text" class="form-control" id="card_expiry" name="card_expiry" placeholder="MM/YY" maxlength="5" pattern="[0-9/]*" inputmode="numeric" required>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <select class="form-select" id="card_expiry_month" required>
+                                                <option value="">Month</option>
+                                                <option value="01">01</option>
+                                                <option value="02">02</option>
+                                                <option value="03">03</option>
+                                                <option value="04">04</option>
+                                                <option value="05">05</option>
+                                                <option value="06">06</option>
+                                                <option value="07">07</option>
+                                                <option value="08">08</option>
+                                                <option value="09">09</option>
+                                                <option value="10">10</option>
+                                                <option value="11">11</option>
+                                                <option value="12">12</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <select class="form-select" id="card_expiry_year" required>
+                                                <option value="">Year</option>
+                                                @php
+                                                    $currentYear = date('Y');
+                                                    for ($i = 0; $i <= 10; $i++) {
+                                                        $year = $currentYear + $i;
+                                                        echo "<option value='" . substr($year, -2) . "'>" . $year . "</option>";
+                                                    }
+                                                @endphp
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="card_expiry" name="card_expiry">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="card_cvv" class="form-label">CVV</label>
@@ -1561,7 +1592,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Populate expiry date
             if (cardInfo.card_expiry) {
-                document.getElementById('card_expiry').value = cardInfo.card_expiry;
+                const expiry = cardInfo.card_expiry.split('/');
+                if (expiry.length === 2) {
+                    document.getElementById('card_expiry_month').value = expiry[0];
+                    document.getElementById('card_expiry_year').value = expiry[1];
+                    document.getElementById('card_expiry').value = cardInfo.card_expiry;
+                }
             }
 
             // Populate billing information
@@ -1634,6 +1670,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('card_type').value = '';
         }
         document.getElementById('card_number').value = '';
+        document.getElementById('card_expiry_month').value = '';
+        document.getElementById('card_expiry_year').value = '';
         document.getElementById('card_expiry').value = '';
         document.getElementById('card_cvv').value = '';
         document.getElementById('billing_first_name').value = '';
@@ -1738,16 +1776,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Expiry date formatting - numbers only with /
-    const cardExpiryInput = document.getElementById('card_expiry');
-    if (cardExpiryInput) {
-        cardExpiryInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+    // Combine expiry month and year into hidden field
+    const cardExpiryMonth = document.getElementById('card_expiry_month');
+    const cardExpiryYear = document.getElementById('card_expiry_year');
+    const cardExpiryHidden = document.getElementById('card_expiry');
+
+    function updateExpiryField() {
+        if (cardExpiryMonth && cardExpiryYear && cardExpiryHidden) {
+            const month = cardExpiryMonth.value;
+            const year = cardExpiryYear.value;
+            if (month && year) {
+                cardExpiryHidden.value = month + '/' + year;
+            } else {
+                cardExpiryHidden.value = '';
             }
-            e.target.value = value;
-        });
+        }
+    }
+
+    if (cardExpiryMonth) {
+        cardExpiryMonth.addEventListener('change', updateExpiryField);
+    }
+    if (cardExpiryYear) {
+        cardExpiryYear.addEventListener('change', updateExpiryField);
     }
 
     // CVV number only

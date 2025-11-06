@@ -57,6 +57,24 @@ class ClientController extends Controller
 
         // Get saved card data for the authenticated user
         $savedCardData = Auth::user()->saved_card_data ?? null;
+        
+        // Decrypt card numbers for display
+        if ($savedCardData) {
+            foreach ($savedCardData as $cardType => $cardInfo) {
+                if (isset($cardInfo['card_number'])) {
+                    try {
+                        // Decrypt the card number
+                        $decryptedNumber = decrypt($cardInfo['card_number']);
+                        // Format with spaces for display
+                        $formattedNumber = chunk_split($decryptedNumber, 4, ' ');
+                        $savedCardData[$cardType]['card_number'] = trim($formattedNumber);
+                    } catch (\Exception $e) {
+                        // If decryption fails, set to null
+                        $savedCardData[$cardType]['card_number'] = null;
+                    }
+                }
+            }
+        }
 
         return view('Client.booking', compact('branches', 'services', 'packages', 'savedCardData', 'userPreferences'));
     }
@@ -272,9 +290,16 @@ public function submitBooking(Request $request)
                 // Get existing saved cards or initialize empty array
                 $existingCards = $user->saved_card_data ?? [];
 
+                // Encrypt card number for security
+                $cardNumber = $paymentData['card_number'] ?? null;
+                if ($cardNumber) {
+                    $cardNumber = str_replace(' ', '', $cardNumber); // Remove spaces
+                    $cardNumber = encrypt($cardNumber); // Encrypt
+                }
+
                 // Save card data (excluding CVV for security) indexed by card type
                 $cardData = [
-                    'card_number' => $paymentData['card_number'] ?? null,
+                    'card_number' => $cardNumber,
                     'card_expiry' => $paymentData['card_expiry'] ?? null,
                     'billing_first_name' => $paymentData['billing_first_name'] ?? null,
                     'billing_last_name' => $paymentData['billing_last_name'] ?? null,
