@@ -1602,7 +1602,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cardNumberField.setAttribute('readonly', 'readonly');
                 cardNumberField.style.backgroundColor = '#e9ecef';
                 cardNumberField.style.cursor = 'not-allowed';
-                
+
                 // Show clear button and hint
                 document.getElementById('clearCardBtn').style.display = 'block';
                 document.getElementById('savedCardHint').style.display = 'block';
@@ -1997,10 +1997,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 const cardNumberField = document.getElementById('card_number');
                 let cardNumber = cardNumberField.value;
-                
+
                 // Allow submission with saved card (the backend will use the saved encrypted card)
                 // The masked value is just for display, backend has the real encrypted card
-                
+
                 paymentData = {
                     card_type: document.getElementById('card_type').value,
                     card_number: cardNumber,
