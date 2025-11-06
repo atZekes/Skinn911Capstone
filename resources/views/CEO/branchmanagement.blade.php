@@ -246,14 +246,28 @@
                         <small class="form-text text-muted">Paste the Google Maps embed URL here (optional)</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Contact Number</label>
-                        <input type="text" name="contact_number" class="form-control" placeholder="09XX XXX XXXX">
-                        <small class="form-text text-muted">Mobile phone number (optional)</small>
+                        <label class="form-label">Contact Number (Mobile)</label>
+                        <input type="text" 
+                               name="contact_number" 
+                               id="addContactNumber"
+                               class="form-control" 
+                               placeholder="09171234567"
+                               pattern="09[0-9]{9}"
+                               maxlength="11"
+                               title="Must be 11 digits starting with 09">
+                        <small class="form-text text-muted">Format: 09XXXXXXXXX (11 digits, optional)</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Telephone Number</label>
-                        <input type="text" name="telephone_number" class="form-control" placeholder="(032) XXX XXXX">
-                        <small class="form-text text-muted">Landline phone number (optional)</small>
+                        <label class="form-label">Telephone Number (Landline)</label>
+                        <input type="text" 
+                               name="telephone_number" 
+                               id="addTelephoneNumber"
+                               class="form-control" 
+                               placeholder="1234567 or 12345678"
+                               pattern="[0-9]{7,8}"
+                               maxlength="8"
+                               title="Must be 7-8 digits">
+                        <small class="form-text text-muted">Format: 7-8 digits (optional)</small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Operating Days</label>
@@ -323,14 +337,28 @@
                         <small class="form-text text-muted">Paste the Google Maps embed URL here (optional)</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Contact Number</label>
-                        <input type="text" id="editBranchContactNumber" name="contact_number" class="form-control" placeholder="09XX XXX XXXX">
-                        <small class="form-text text-muted">Mobile phone number (optional)</small>
+                        <label class="form-label">Contact Number (Mobile)</label>
+                        <input type="text" 
+                               id="editBranchContactNumber" 
+                               name="contact_number" 
+                               class="form-control" 
+                               placeholder="09171234567"
+                               pattern="09[0-9]{9}"
+                               maxlength="11"
+                               title="Must be 11 digits starting with 09">
+                        <small class="form-text text-muted">Format: 09XXXXXXXXX (11 digits, optional)</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Telephone Number</label>
-                        <input type="text" id="editBranchTelephoneNumber" name="telephone_number" class="form-control" placeholder="(032) XXX XXXX">
-                        <small class="form-text text-muted">Landline phone number (optional)</small>
+                        <label class="form-label">Telephone Number (Landline)</label>
+                        <input type="text" 
+                               id="editBranchTelephoneNumber" 
+                               name="telephone_number" 
+                               class="form-control" 
+                               placeholder="1234567 or 12345678"
+                               pattern="[0-9]{7,8}"
+                               maxlength="8"
+                               title="Must be 7-8 digits">
+                        <small class="form-text text-muted">Format: 7-8 digits (optional)</small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Operating Days</label>
@@ -406,5 +434,103 @@
 
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Philippine phone number validation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add phone number validation for ADD form
+            const addContactNumber = document.getElementById('addContactNumber');
+            const addTelephoneNumber = document.getElementById('addTelephoneNumber');
+            
+            // Add phone number validation for EDIT form
+            const editContactNumber = document.getElementById('editBranchContactNumber');
+            const editTelephoneNumber = document.getElementById('editBranchTelephoneNumber');
+            
+            // Function to restrict input to numbers only
+            function numbersOnly(event) {
+                const input = event.target;
+                input.value = input.value.replace(/[^0-9]/g, '');
+            }
+            
+            // Function to validate mobile number (09XXXXXXXXX)
+            function validateMobile(event) {
+                const input = event.target;
+                // Remove non-digits
+                input.value = input.value.replace(/[^0-9]/g, '');
+                
+                // Enforce 11 digit limit
+                if (input.value.length > 11) {
+                    input.value = input.value.substring(0, 11);
+                }
+                
+                // Validate format on blur
+                if (event.type === 'blur' && input.value.length > 0) {
+                    if (!input.value.match(/^09[0-9]{9}$/)) {
+                        input.setCustomValidity('Mobile number must be 11 digits starting with 09');
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.setCustomValidity('');
+                        input.classList.remove('is-invalid');
+                    }
+                }
+            }
+            
+            // Function to validate telephone number (7-8 digits)
+            function validateTelephone(event) {
+                const input = event.target;
+                // Remove non-digits
+                input.value = input.value.replace(/[^0-9]/g, '');
+                
+                // Enforce 8 digit limit
+                if (input.value.length > 8) {
+                    input.value = input.value.substring(0, 8);
+                }
+                
+                // Validate format on blur
+                if (event.type === 'blur' && input.value.length > 0) {
+                    if (!input.value.match(/^[0-9]{7,8}$/)) {
+                        input.setCustomValidity('Telephone number must be 7-8 digits');
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.setCustomValidity('');
+                        input.classList.remove('is-invalid');
+                    }
+                }
+            }
+            
+            // Attach listeners to ADD form fields
+            if (addContactNumber) {
+                addContactNumber.addEventListener('input', validateMobile);
+                addContactNumber.addEventListener('blur', validateMobile);
+                addContactNumber.addEventListener('focus', function() {
+                    this.classList.remove('is-invalid');
+                });
+            }
+            
+            if (addTelephoneNumber) {
+                addTelephoneNumber.addEventListener('input', validateTelephone);
+                addTelephoneNumber.addEventListener('blur', validateTelephone);
+                addTelephoneNumber.addEventListener('focus', function() {
+                    this.classList.remove('is-invalid');
+                });
+            }
+            
+            // Attach listeners to EDIT form fields
+            if (editContactNumber) {
+                editContactNumber.addEventListener('input', validateMobile);
+                editContactNumber.addEventListener('blur', validateMobile);
+                editContactNumber.addEventListener('focus', function() {
+                    this.classList.remove('is-invalid');
+                });
+            }
+            
+            if (editTelephoneNumber) {
+                editTelephoneNumber.addEventListener('input', validateTelephone);
+                editTelephoneNumber.addEventListener('blur', validateTelephone);
+                editTelephoneNumber.addEventListener('focus', function() {
+                    this.classList.remove('is-invalid');
+                });
+            }
+        });
+    </script>
     <script src="{{ asset('js/CEO/branchmanagement_basic.js') }}"></script>
 @endsection

@@ -465,12 +465,20 @@ class CEOController extends Controller
 
     public function storeBranch(Request $request)
     {
-        // SUPER AGGRESSIVE session lock with longer timeout
+        // TRIPLE LAYER PROTECTION against double submission:
+        
+        // Layer 1: Session-based lock (prevents multiple clicks from same user)
         $sessionKey = 'creating_branch_' . session()->getId();
+        
+        // Layer 2: Request signature lock (prevents race conditions)
+        // Create a unique signature for this exact request
+        $requestSignature = md5($request->name . '|' . $request->address . '|' . session()->getId());
+        $signatureKey = 'branch_request_' . $requestSignature;
+        
         $lockTimeout = 30; // 30 seconds
 
         if (cache()->has($sessionKey)) {
-            Log::warning('Duplicate branch creation attempt blocked', [
+            Log::warning('Duplicate branch creation attempt blocked by session lock', [
                 'session_id' => session()->getId(),
                 'ip' => $request->ip(),
                 'branch_name' => $request->name
@@ -482,26 +490,57 @@ class CEOController extends Controller
             ], 429);
         }
 
-        // Set lock for longer time
+        if (cache()->has($signatureKey)) {
+            Log::warning('Duplicate branch creation attempt blocked by request signature', [
+                'session_id' => session()->getId(),
+                'signature' => $requestSignature,
+                'branch_name' => $request->name
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'This exact branch is already being created. Please wait.'
+            ], 429);
+        }
+
+        // Set BOTH locks
         cache()->put($sessionKey, true, $lockTimeout);
+        cache()->put($signatureKey, true, $lockTimeout);
 
         try {
-            // Check required fields with MORE specific validation
+            // Check required fields with Philippine phone number validation
             $request->validate([
-                'name' => 'required|string|max:255|unique:branches,name',
+                'name' => 'required|string|max:255',
                 'address' => 'required|string|max:500',
                 'map_src' => 'nullable|url|max:1000',
-                'contact_number' => 'nullable|string|max:20',
-                'telephone_number' => 'nullable|string|max:20',
+                'contact_number' => [
+                    'nullable',
+                    'string',
+                    'regex:/^09[0-9]{9}$/' // Philippine mobile: 09XXXXXXXXX (11 digits)
+                ],
+                'telephone_number' => [
+                    'nullable',
+                    'string',
+                    'regex:/^[0-9]{7,8}$/' // Philippine landline: 7-8 digits
+                ],
                 'operating_days' => 'nullable|array',
                 'operating_days.*' => 'string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday'
+            ], [
+                'contact_number.regex' => 'Mobile number must be 11 digits starting with 09 (e.g., 09171234567)',
+                'telephone_number.regex' => 'Telephone number must be 7-8 digits (e.g., 1234567 or 12345678)'
             ]);
 
             // Use database transaction to prevent race conditions
             $branch = DB::transaction(function () use ($request) {
-                // Double-check name uniqueness inside transaction
-                if (Branch::where('name', $request->name)->exists()) {
-                    throw new \Exception('Branch name already exists');
+                // Double-check name uniqueness inside transaction (silent check)
+                $existingBranch = Branch::where('name', $request->name)->first();
+                if ($existingBranch) {
+                    // Return existing branch silently instead of throwing error
+                    Log::info('Branch already exists, returning existing branch', [
+                        'branch_id' => $existingBranch->id,
+                        'branch_name' => $existingBranch->name
+                    ]);
+                    return $existingBranch;
                 }
 
                 // Create the branch and let Laravel assign the auto-increment ID
@@ -551,8 +590,9 @@ class CEOController extends Controller
                 return $branch;
             }, 5); // 5 second timeout for transaction
 
-            // Remove lock after successful creation
+            // Remove both locks after successful creation
             cache()->forget($sessionKey);
+            cache()->forget($signatureKey);
 
             Log::info('Branch created successfully', [
                 'branch_id' => $branch->id,
@@ -565,12 +605,22 @@ class CEOController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Remove lock if validation fails
+            // Remove both locks if validation fails
             cache()->forget($sessionKey);
+            cache()->forget($signatureKey);
 
+            // Get the first error message
+            $errors = $e->errors();
             $errorMessage = 'Validation failed';
-            if (isset($e->errors()['name'])) {
-                $errorMessage = 'Branch name already exists';
+            
+            if (isset($errors['contact_number'])) {
+                $errorMessage = $errors['contact_number'][0];
+            } elseif (isset($errors['telephone_number'])) {
+                $errorMessage = $errors['telephone_number'][0];
+            } elseif (isset($errors['name'])) {
+                $errorMessage = $errors['name'][0];
+            } elseif (isset($errors['address'])) {
+                $errorMessage = 'Address is required';
             }
 
             return response()->json([
@@ -579,8 +629,9 @@ class CEOController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-            // Remove lock if there's an error
+            // Remove both locks if there's an error
             cache()->forget($sessionKey);
+            cache()->forget($signatureKey);
 
             Log::error('Branch creation failed', [
                 'error' => $e->getMessage(),
@@ -626,15 +677,26 @@ class CEOController extends Controller
             }
         }
 
-        // Handle full branch update
+        // Handle full branch update with Philippine phone number validation
         $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:500',
             'map_src' => 'nullable|url|max:1000',
-            'contact_number' => 'nullable|string|max:20',
-            'telephone_number' => 'nullable|string|max:20',
+            'contact_number' => [
+                'nullable',
+                'string',
+                'regex:/^09[0-9]{9}$/' // Philippine mobile: 09XXXXXXXXX (11 digits)
+            ],
+            'telephone_number' => [
+                'nullable',
+                'string',
+                'regex:/^[0-9]{7,8}$/' // Philippine landline: 7-8 digits
+            ],
             'operating_days' => 'nullable|array',
             'operating_days.*' => 'string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday'
+        ], [
+            'contact_number.regex' => 'Mobile number must be 11 digits starting with 09 (e.g., 09171234567)',
+            'telephone_number.regex' => 'Telephone number must be 7-8 digits (e.g., 1234567 or 12345678)'
         ]);
 
         try {

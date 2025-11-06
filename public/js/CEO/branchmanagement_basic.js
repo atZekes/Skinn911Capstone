@@ -72,20 +72,32 @@ function openAddBranchPopup() {
 function createNewBranch(event) {
     // Stop the form from submitting normally
     event.preventDefault();
+    event.stopImmediatePropagation(); // Prevent other listeners from firing
 
     // Check if we're already creating a branch (prevent double-click)
     if (isCreatingBranch) {
         console.log('Already creating a branch, please wait...');
-        return;
+        return false;
     }
 
     // Set flag to prevent double submission
     isCreatingBranch = true;
 
-    // Get the submit button and disable it
+    // Get the submit button and disable it immediately
     const submitButton = event.target.querySelector('button[type="submit"]');
+    if (!submitButton) {
+        console.error('Submit button not found');
+        isCreatingBranch = false;
+        return false;
+    }
+    
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+    
+    // Also disable the form to prevent any other submission attempts
+    const form = event.target;
+    form.style.pointerEvents = 'none';
+    form.style.opacity = '0.6';
 
     // Get all the form data
     const formData = new FormData(event.target);
@@ -128,7 +140,10 @@ function createNewBranch(event) {
             // Show error message
             showMessage(result.message, false);
 
-            // Re-enable the button
+            // Re-enable the form and button
+            const form = document.getElementById('addBranchForm');
+            form.style.pointerEvents = '';
+            form.style.opacity = '';
             submitButton.disabled = false;
             submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Add Branch';
         }
@@ -143,7 +158,10 @@ function createNewBranch(event) {
         // Show error message
         showMessage('Failed to create branch. Please try again.', false);
 
-        // Re-enable the button
+        // Re-enable the form and button
+        const form = document.getElementById('addBranchForm');
+        form.style.pointerEvents = '';
+        form.style.opacity = '';
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Add Branch';
     });
