@@ -61,7 +61,7 @@
                                     // Map ALL service slugs to their correct images
                                     $imageMap = [
                                         // Facial Services
-                                        'hydrafacial' => 'HydraFacial.jpg',
+                                        'hydrafacial' => 'Diamond peel.jpg',
                                         'diamond-peel-with-complete-facial' => 'Diamond peel.jpg',
                                         'acne-laser-+-acne-facial' => 'Acne laser + Acne Facial.jpg',
                                         'microneedling' => 'Acne Treatment.jpg',

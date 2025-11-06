@@ -81,7 +81,7 @@ class ChatMessageController extends Controller
                 $image = $request->file('image');
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
                 $imagePath = $image->storeAs('chat_images', $imageName, 'public');
-                
+
                 if (!$imagePath) {
                     Log::error('Image storage failed');
                     return response()->json([
