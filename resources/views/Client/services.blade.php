@@ -34,13 +34,13 @@
 						// Map ALL service slugs to their correct images
 						$imageMap = [
 							// Facial Services
-							'hydrafacial' => 'HydraFacial.jpg',
+							'hydrafacial' => 'hydrafacial.png',
 							'diamond-peel-with-complete-facial' => 'Diamond peel.jpg',
 							'acne-laser-+-acne-facial' => 'Acne laser + Acne Facial.jpg',
 							'microneedling' => 'Acne Treatment.jpg',
-							'pigmentation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
+							'pigmentation-laser-+-facial' => 'pigmentation.png',
 							'skin-rejuvenation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
-							'skin911-complete-facial' => 'HydraFacial.jpg',
+							'skin911-complete-facial' => 'complete.png',
 							'wart-removal-(face-and-neck)' => 'Wart removal (face and neck).jpg',
 							'hifu-ultralift' => 'HIFU Ultralift.jpg',
 
