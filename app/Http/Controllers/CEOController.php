@@ -465,51 +465,9 @@ class CEOController extends Controller
 
     public function storeBranch(Request $request)
     {
-        // TRIPLE LAYER PROTECTION against double submission:
-
-        // Layer 1: Session-based lock (prevents multiple clicks from same user)
-        $sessionKey = 'creating_branch_' . session()->getId();
-
-        // Layer 2: Request signature lock (prevents race conditions)
-        // Create a unique signature for this exact request
-        $requestSignature = md5($request->name . '|' . $request->address . '|' . session()->getId());
-        $signatureKey = 'branch_request_' . $requestSignature;
-
-        $lockTimeout = 30; // 30 seconds
-
-        if (cache()->has($sessionKey)) {
-            Log::warning('Duplicate branch creation attempt blocked by session lock', [
-                'session_id' => session()->getId(),
-                'ip' => $request->ip(),
-                'branch_name' => $request->name
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Branch creation already in progress. Please wait.'
-            ], 429);
-        }
-
-        if (cache()->has($signatureKey)) {
-            Log::warning('Duplicate branch creation attempt blocked by request signature', [
-                'session_id' => session()->getId(),
-                'signature' => $requestSignature,
-                'branch_name' => $request->name
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'This exact branch is already being created. Please wait.'
-            ], 429);
-        }
-
-        // Set BOTH locks
-        cache()->put($sessionKey, true, $lockTimeout);
-        cache()->put($signatureKey, true, $lockTimeout);
-
         try {
-            // Check required fields with Philippine phone number validation
-            $request->validate([
+            // VALIDATE FIRST before any database operations
+            $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'address' => 'required|string|max:500',
                 'map_src' => 'nullable|url|max:1000',
@@ -530,12 +488,52 @@ class CEOController extends Controller
                 'telephone_number.regex' => 'Telephone number must be 7-8 digits (e.g., 1234567 or 12345678)'
             ]);
 
+            // TRIPLE LAYER PROTECTION against double submission (AFTER VALIDATION)
+            
+            // Layer 1: Session-based lock
+            $sessionKey = 'creating_branch_' . session()->getId();
+
+            // Layer 2: Request signature lock
+            $requestSignature = md5($validated['name'] . '|' . $validated['address'] . '|' . session()->getId());
+            $signatureKey = 'branch_request_' . $requestSignature;
+
+            $lockTimeout = 30; // 30 seconds
+
+            if (cache()->has($sessionKey)) {
+                Log::warning('Duplicate branch creation attempt blocked by session lock', [
+                    'session_id' => session()->getId(),
+                    'ip' => $request->ip(),
+                    'branch_name' => $validated['name']
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Branch creation already in progress. Please wait.'
+                ], 429);
+            }
+
+            if (cache()->has($signatureKey)) {
+                Log::warning('Duplicate branch creation attempt blocked by request signature', [
+                    'session_id' => session()->getId(),
+                    'signature' => $requestSignature,
+                    'branch_name' => $validated['name']
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This exact branch is already being created. Please wait.'
+                ], 429);
+            }
+
+            // Set BOTH locks
+            cache()->put($sessionKey, true, $lockTimeout);
+            cache()->put($signatureKey, true, $lockTimeout);
+
             // Use database transaction to prevent race conditions
-            $branch = DB::transaction(function () use ($request) {
-                // Double-check name uniqueness inside transaction (silent check)
-                $existingBranch = Branch::where('name', $request->name)->first();
+            $branch = DB::transaction(function () use ($validated) {
+                // Double-check name uniqueness inside transaction
+                $existingBranch = Branch::where('name', $validated['name'])->first();
                 if ($existingBranch) {
-                    // Return existing branch silently instead of throwing error
                     Log::info('Branch already exists, returning existing branch', [
                         'branch_id' => $existingBranch->id,
                         'branch_name' => $existingBranch->name
@@ -543,16 +541,18 @@ class CEOController extends Controller
                     return $existingBranch;
                 }
 
-                // Create the branch and let Laravel assign the auto-increment ID
-                $operatingDays = $request->operating_days ? implode(',', $request->operating_days) : null;
+                // Create the branch
+                $operatingDays = isset($validated['operating_days']) && $validated['operating_days'] 
+                    ? implode(',', $validated['operating_days']) 
+                    : null;
 
                 $branch = Branch::create([
                     'key' => 'temp_key', // Temporary key
-                    'name' => $request->name,
-                    'address' => $request->address,
-                    'map_src' => $request->map_src,
-                    'contact_number' => $request->contact_number,
-                    'telephone_number' => $request->telephone_number,
+                    'name' => $validated['name'],
+                    'address' => $validated['address'],
+                    'map_src' => $validated['map_src'] ?? null,
+                    'contact_number' => $validated['contact_number'] ?? null,
+                    'telephone_number' => $validated['telephone_number'] ?? null,
                     'operating_days' => $operatingDays,
                     'active' => true
                 ]);
@@ -565,32 +565,26 @@ class CEOController extends Controller
                     }
                 }
 
-                // Now create key based on branch name + actual ID
-                $branchName = $request->name;
-
-                // Convert name to a clean key
-                $cleanName = strtolower($branchName);
+                // Create key based on branch name + ID
+                $cleanName = strtolower($validated['name']);
                 $cleanName = str_replace(' ', '_', $cleanName);
                 $cleanName = preg_replace('/[^a-z0-9_]/', '', $cleanName);
-
-                // Create key: branch_name_id (using the actual auto-increment ID)
                 $branchKey = $cleanName . '_' . $branch->id;
 
                 // Update the branch with the proper key
                 $branch->update(['key' => $branchKey]);
 
-                // Log branch creation
                 Log::info('Creating new branch', [
-                    'name' => $request->name,
+                    'name' => $validated['name'],
                     'key' => $branchKey,
                     'id' => $branch->id,
                     'session_id' => session()->getId()
                 ]);
 
                 return $branch;
-            }, 5); // 5 second timeout for transaction
+            }, 5);
 
-            // Remove both locks after successful creation
+            // Remove locks after successful creation
             cache()->forget($sessionKey);
             cache()->forget($signatureKey);
 
@@ -605,10 +599,6 @@ class CEOController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Remove both locks if validation fails
-            cache()->forget($sessionKey);
-            cache()->forget($signatureKey);
-
             // Get the first error message
             $errors = $e->errors();
             $errorMessage = 'Validation failed';
@@ -629,14 +619,10 @@ class CEOController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-            // Remove both locks if there's an error
-            cache()->forget($sessionKey);
-            cache()->forget($signatureKey);
-
             Log::error('Branch creation failed', [
                 'error' => $e->getMessage(),
                 'session_id' => session()->getId(),
-                'branch_name' => $request->name ?? 'unknown'
+                'branch_name' => $validated['name'] ?? 'unknown'
             ]);
 
             return response()->json([

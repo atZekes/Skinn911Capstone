@@ -106,11 +106,11 @@
                                         <i class="fas fa-check me-1"></i>Enable
                                     </button>
                                 @endif
-                                <button class="btn btn-action btn-delete"
+                                <!--<button class="btn btn-action btn-delete"
                                         data-branch-id="{{ $branch->id }}"
                                         data-branch-name="{{ $branch->name }}">
                                     <i class="fas fa-trash me-1"></i>Delete
-                                </button>
+                                </button>-->
                             </div>
                         </td>
                     </tr>
@@ -198,11 +198,11 @@
                             <i class="fas fa-check"></i> Enable
                         </button>
                     @endif
-                    <button class="btn btn-action btn-delete"
+                    <!-- <button class="btn btn-action btn-delete"
                             data-branch-id="{{ $branch->id }}"
                             data-branch-name="{{ $branch->name }}">
                         <i class="fas fa-trash"></i> Delete
-                    </button>
+                    </button> -->
                 </div>
             </div>
             @endforeach
