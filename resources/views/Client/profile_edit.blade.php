@@ -34,14 +34,14 @@
         <!-- Mobile phone -->
         <div class="mb-3">
             <label for="mobile_phone">Mobile phone</label>
-            <input id="mobile_phone" name="mobile_phone" class="form-control" value="{{ old('mobile_phone', $user->mobile_phone ?? '') }}">
+            <input id="mobile_phone" name="mobile_phone" class="form-control" value="{{ old('mobile_phone', $user->mobile_phone ?? '') }}" placeholder="09XXXXXXXXX"pattern="^\d{11}$" inputmode="numeric" maxlength="11" required>
             @error('mobile_phone') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
         <!-- Telephone -->
         <div class="mb-3">
             <label for="telephone">Telephone</label>
-            <input id="telephone" name="telephone" class="form-control" value="{{ old('telephone', $user->telephone ?? '') }}">
+            <input id="telephone" name="telephone" class="form-control" value="{{ old('telephone', $user->telephone ?? '') }}" placeholder="e.g. (02)81234567 or (032)1234567"  pattern="^(0\d{1,3})\d{7}$"   inputmode="tel"  maxlength="10"  required >
             @error('telephone') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 

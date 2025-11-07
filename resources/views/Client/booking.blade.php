@@ -565,7 +565,7 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="billing_zip" class="form-label">Zip Code</label>
-                                    <input type="text" class="form-control" id="billing_zip" name="billing_zip" pattern="[0-9]*" inputmode="numeric" required>
+                                    <input type="text" class="form-control" id="billing_zip" name="billing_zip" pattern="[0-9]*" inputmode="numeric" maxlength="4"required>
                                 </div>
                             </div>
                             <div class="row">
@@ -575,7 +575,7 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="billing_phone" class="form-label">Phone Number</label>
-                                    <input type="text" class="form-control" id="billing_phone" name="billing_phone" placeholder="+63 XXX XXX XXXX" pattern="[0-9+\s]*" inputmode="tel" required>
+                                    <input type="text" class="form-control" id="billing_phone" name="billing_phone" placeholder="09XX XXX XXXX" pattern="^\d{11}$"  inputmode="numeric" maxlength="11" required>
                                 </div>
                             </div>
 
