@@ -564,7 +564,7 @@
                                     <input type="text" class="form-control" id="billing_city" name="billing_city" required>
                                 </div>
                                 <div class="mb-3 col-md-6">
-                                    <label for="billing_zip" class="form-label">Zip Code</label>
+                                    <label for="billing_zip" class="form-label">Zip Codee</label>
                                     <input type="text" class="form-control" id="billing_zip" name="billing_zip" pattern="[0-9]*" inputmode="numeric" maxlength="4"required>
                                 </div>
                             </div>
