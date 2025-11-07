@@ -33,8 +33,8 @@ class Admincontroller extends Controller{
             ->first();
 
         if ($admin && Hash::check($request->password, $admin->password)) {
-            // Log the admin in so Auth::user() is available throughout the session
-            Auth::login($admin);
+            // Log the admin in using the 'admin' guard to keep admin separate from client sessions
+            Auth::guard('admin')->login($admin);
             return redirect()->route('admin.dashboard')->with('success', 'Welcome, Admin!');
         }
 
@@ -45,7 +45,7 @@ class Admincontroller extends Controller{
     {
         $today = Carbon::today()->toDateString();
 
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         $adminBranchId = ($admin && $admin->role === 'admin' && $admin->branch_id) ? $admin->branch_id : null;
 
         // KPIs (filter by branch if admin has an assigned branch)
@@ -154,7 +154,7 @@ class Admincontroller extends Controller{
 
     public function promo()
     {
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
     if ($admin && $admin->role === 'admin' && $admin->branch_id) {
             // show global promos + promos for this admin's branch
             $promos = Promo::with(['services','branch'])->whereNull('branch_id')->orWhere('branch_id', $admin->branch_id)->get();
@@ -189,7 +189,7 @@ class Admincontroller extends Controller{
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
-    $admin = Auth::user();
+    $admin = Auth::guard('admin')->user();
     $data = $request->only(['code','title','description','discount','start_date','end_date','category']);
     $data['branch_id'] = ($admin && $admin->role === 'admin') ? $admin->branch_id : null;
         $promo = Promo::create($data);
@@ -212,7 +212,7 @@ class Admincontroller extends Controller{
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         if ($admin && $admin->role === 'admin' && $admin->branch_id && $promo->branch_id && $promo->branch_id !== $admin->branch_id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage promos in your branch.']);
         }
@@ -228,7 +228,7 @@ class Admincontroller extends Controller{
     // Delete a promo
     public function deletePromo(Request $request, Promo $promo)
     {
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         if ($admin && $admin->role === 'admin' && $admin->branch_id && $promo->branch_id && $promo->branch_id !== $admin->branch_id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage promos in your branch.']);
         }
@@ -239,7 +239,7 @@ class Admincontroller extends Controller{
     // Toggle promo active/inactive
     public function togglePromo(Request $request, Promo $promo)
     {
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         if ($admin && $admin->role === 'admin' && $admin->branch_id && $promo->branch_id && $promo->branch_id !== $admin->branch_id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage promos in your branch.']);
         }
@@ -251,7 +251,7 @@ class Admincontroller extends Controller{
     public function userManage()
     {
         // Get the currently authenticated admin
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
 
         // If admin has a specific branch assigned, filter users by that branch
         if ($admin && $admin->role === 'admin' && $admin->branch_id) {
@@ -292,7 +292,7 @@ class Admincontroller extends Controller{
         ]);
 
         // Get the currently authenticated admin
-    $admin = Auth::user();
+    $admin = Auth::guard('admin')->user();
         // If there's no authenticated user or the user is not an admin, block the action
         if (!$admin || $admin->role !== 'admin') {
             // Redirect to admin login or return an error if called via AJAX
@@ -317,7 +317,7 @@ class Admincontroller extends Controller{
     public function branchManagement()
     {
         // Use authenticated admin instead of relying on session('admin_id')
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         // Admins should be able to manage their branch even if it's inactive, so bypass the active global scope here
         if ($admin && $admin->branch_id) {
             $branches = Branch::withoutGlobalScope('active')->where('id', $admin->branch_id)->get();
@@ -444,7 +444,7 @@ class Admincontroller extends Controller{
     {
         // Find the branch bypassing the global 'active' scope so inactive branches can be activated
         $branch = Branch::withoutGlobalScope('active')->findOrFail($branchId);
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         // only allow admin of same branch or global admin (no branch_id) to toggle
         if ($admin && $admin->role === 'admin' && $admin->branch_id && $admin->branch_id !== $branch->id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage your own branch.']);
@@ -753,7 +753,7 @@ class Admincontroller extends Controller{
         if ($staff->role !== 'staff') {
             return redirect()->back()->withErrors(['error' => 'User is not staff.']);
         }
-    $admin = Auth::user();
+    $admin = Auth::guard('admin')->user();
         if (!$admin || $admin->role !== 'admin') {
             return redirect()->back()->withErrors(['error' => 'Unauthorized.']);
         }
@@ -782,7 +782,7 @@ class Admincontroller extends Controller{
         if ($staff->role !== 'staff') {
             return redirect()->back()->withErrors(['error' => 'User is not staff.']);
         }
-    $admin = Auth::user();
+    $admin = Auth::guard('admin')->user();
         if (!$admin || $admin->role !== 'admin') {
             return redirect()->back()->withErrors(['error' => 'Unauthorized.']);
         }
@@ -801,7 +801,7 @@ class Admincontroller extends Controller{
         if ($staff->role !== 'staff') {
             return redirect()->back()->withErrors(['error' => 'User is not staff.']);
         }
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         if (!$admin || $admin->role !== 'admin') {
             return redirect()->back()->withErrors(['error' => 'Unauthorized.']);
         }
@@ -821,7 +821,7 @@ class Admincontroller extends Controller{
         if ($staff->role !== 'staff') {
             return redirect()->back()->withErrors(['error' => 'User is not staff.']);
         }
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         if (!$admin || $admin->role !== 'admin') {
             return redirect()->back()->withErrors(['error' => 'Unauthorized.']);
         }
@@ -877,7 +877,7 @@ class Admincontroller extends Controller{
         ];
 
         // Get admin's branch information for context
-        $admin = Auth::user();
+        $admin = Auth::guard('admin')->user();
         $branch = $admin && $admin->branch_id ? Branch::find($admin->branch_id) : null;
 
         return view('admin.booking-settings', compact('currentSettings', 'branch'));
@@ -912,7 +912,7 @@ class Admincontroller extends Controller{
             ]);
 
             // Log the change with admin information
-            $admin = Auth::user();
+            $admin = Auth::guard('admin')->user();
             Log::info('Booking settings updated by admin', [
                 'admin_id' => $admin->id,
                 'admin_name' => $admin->name,

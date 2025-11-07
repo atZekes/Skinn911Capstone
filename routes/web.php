@@ -34,36 +34,26 @@ Route::post('/admin', [Admincontroller::class, 'login'])->name('admin.adminlogin
 
 Route::get('/admin/register', [Admincontroller::class, 'showRegisterForm'])->name('admin.register');
 Route::post('/admin/register', [Admincontroller::class, 'register'])->name('admin.register.submit');
-Route::get('/admin/dashboard', [Admincontroller::class, 'dashboard'])->middleware('admin')->name('admin.dashboard');
 
 
-Route::get('/client/home', [App\Http\Controllers\ClientController::class, 'home'])->middleware('auth')->name('client.home');
-
-
-Route::get('/client/services', [ClientController::class, 'clientServices'])->middleware('auth')->name('client.services');
-// Promo validation (AJAX) - web route fallback
-Route::get('/promo/validate', [App\Http\Controllers\ClientController::class, 'validatePromo'])->name('promo.validate');
-Route::get('/client/booking', [App\Http\Controllers\ClientController::class, 'showBookingForm'])->middleware('auth')->name('client.booking');
-Route::post('/client/booking', [App\Http\Controllers\ClientController::class, 'submitBooking'])->middleware('auth')->name('client.booking.submit');
-Route::delete('/client/booking/{id}/cancel', [App\Http\Controllers\ClientController::class, 'cancelBooking'])->middleware('auth')->name('client.booking.cancel');
-Route::delete('/client/booking/cancel-all', [App\Http\Controllers\ClientController::class, 'cancelAllBookings'])->middleware('auth')->name('client.booking.cancelAll');
-Route::put('/client/booking/{id}/reschedule', [App\Http\Controllers\ClientController::class, 'rescheduleBooking'])->middleware('auth')->name('client.booking.reschedule');
-Route::post('/client/booking/{id}/request-refund', [App\Http\Controllers\ClientController::class, 'requestRefund'])->middleware('auth')->name('client.booking.requestRefund');
-Route::get('/client/calendar', [App\Http\Controllers\ClientController::class, 'calendarViewer'])->middleware('auth')->name('client.calendar');
-
-// API endpoint for client booking slot availability
-Route::get('/api/booking/slots', [App\Http\Controllers\ClientController::class, 'getFullSlots'])->name('api.booking.slots');
-// API endpoint to fetch authoritative service details (duration, price), optional branch scoping
-Route::get('/api/service/{id}', [App\Http\Controllers\ClientController::class, 'serviceDetail'])->name('api.service.detail');
-
-// AJAX endpoints for client dashboard
-Route::get('/api/client/dashboard/stats', [App\Http\Controllers\ClientController::class, 'getDashboardStats'])->middleware('auth')->name('api.client.dashboard.stats');
-Route::get('/api/client/dashboard/purchased-services', [App\Http\Controllers\ClientController::class, 'getPurchasedServices'])->middleware('auth')->name('api.client.dashboard.purchased');
-Route::get('/api/client/dashboard/bookings', [App\Http\Controllers\ClientController::class, 'getBookings'])->middleware('auth')->name('api.client.dashboard.bookings');
-
-Route::get('/client/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->middleware(['auth'])->name('client.dashboard');
-
-Route::middleware('auth')->group(function () {
+// Client protected routes - all use the same 'web' guard middleware
+Route::middleware('web')->group(function () {
+    Route::get('/client/home', [App\Http\Controllers\ClientController::class, 'home'])->name('client.home');
+    Route::get('/client/services', [ClientController::class, 'clientServices'])->name('client.services');
+    Route::get('/client/booking', [App\Http\Controllers\ClientController::class, 'showBookingForm'])->name('client.booking');
+    Route::post('/client/booking', [App\Http\Controllers\ClientController::class, 'submitBooking'])->name('client.booking.submit');
+    Route::delete('/client/booking/{id}/cancel', [App\Http\Controllers\ClientController::class, 'cancelBooking'])->name('client.booking.cancel');
+    Route::delete('/client/booking/cancel-all', [App\Http\Controllers\ClientController::class, 'cancelAllBookings'])->name('client.booking.cancelAll');
+    Route::put('/client/booking/{id}/reschedule', [App\Http\Controllers\ClientController::class, 'rescheduleBooking'])->name('client.booking.reschedule');
+    Route::post('/client/booking/{id}/request-refund', [App\Http\Controllers\ClientController::class, 'requestRefund'])->name('client.booking.requestRefund');
+    Route::get('/client/calendar', [App\Http\Controllers\ClientController::class, 'calendarViewer'])->name('client.calendar');
+    Route::get('/client/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->name('client.dashboard');
+    
+    // AJAX endpoints for client dashboard
+    Route::get('/api/client/dashboard/stats', [App\Http\Controllers\ClientController::class, 'getDashboardStats'])->name('api.client.dashboard.stats');
+    Route::get('/api/client/dashboard/purchased-services', [App\Http\Controllers\ClientController::class, 'getPurchasedServices'])->name('api.client.dashboard.purchased');
+    Route::get('/api/client/dashboard/bookings', [App\Http\Controllers\ClientController::class, 'getBookings'])->name('api.client.dashboard.bookings');
+    
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -83,10 +73,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/chat/unread-count', [ChatMessageController::class, 'getUnreadCount']);
     Route::get('/api/chat/active-chats', [ChatMessageController::class, 'getActiveChats']);
 
-    // Chat UI and API routes were removed in favor of BotMan widget and controller.
-    // If you need the old endpoints, a backup of the controller is in
-    // storage/backups/chat-deleted-2025-09-19/ChatController.php
+    // Two-Factor Authentication Routes
+    Route::get('/two-factor/setup', [App\Http\Controllers\TwoFactorController::class, 'showSetup'])->name('two-factor.setup');
+    Route::post('/two-factor/enable', [App\Http\Controllers\TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::post('/two-factor/disable', [App\Http\Controllers\TwoFactorController::class, 'disable'])->name('two-factor.disable');
+
+    // 2FA verification (after login, before full access)
+    Route::get('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'showVerify'])->name('two-factor.verify');
+    Route::post('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'verify'])->name('two-factor.verify.post');
 });
+
+// Promo validation (AJAX) - web route fallback
+Route::get('/promo/validate', [App\Http\Controllers\ClientController::class, 'validatePromo'])->name('promo.validate');
+
+// API endpoint for client booking slot availability
+Route::get('/api/booking/slots', [App\Http\Controllers\ClientController::class, 'getFullSlots'])->name('api.booking.slots');
+// API endpoint to fetch authoritative service details (duration, price), optional branch scoping
+Route::get('/api/service/{id}', [App\Http\Controllers\ClientController::class, 'serviceDetail'])->name('api.service.detail');
 
 // BotMan endpoint (web widget) - exclude from CSRF so the widget can POST without a session token
 Route::match(['get','post'], '/botman', [App\Http\Controllers\BotManController::class, 'handle'])
@@ -148,79 +151,84 @@ Route::middleware('staff')->group(function () {
 
 // Admin routes
 Route::get('/admin/login', [App\Http\Controllers\Admincontroller::class, 'admin'])->name('admin.login');
-Route::get('/admin/dashboard', [App\Http\Controllers\Admincontroller::class, 'dashboard'])->name('admin.dashboard');
-Route::get('/admin/promo', [App\Http\Controllers\Admincontroller::class, 'promo'])->name('admin.promo');
-// Promo CRUD for admin
-Route::post('/admin/promos', [App\Http\Controllers\Admincontroller::class, 'storePromo'])->name('admin.promos.store');
-Route::put('/admin/promos/{promo}', [App\Http\Controllers\Admincontroller::class, 'updatePromo'])->name('admin.promos.update');
-Route::delete('/admin/promos/{promo}', [App\Http\Controllers\Admincontroller::class, 'deletePromo'])->name('admin.promos.delete');
-Route::put('/admin/promos/{promo}/toggle', [App\Http\Controllers\Admincontroller::class, 'togglePromo'])->name('admin.promos.toggle');
-// Admin Service Management
-Route::post('/admin/branch/{branch}/service', [App\Http\Controllers\Admincontroller::class, 'addService'])->name('admin.addService');
-// Branch service assignment (assign/unassign services, set branch price)
-Route::post('/admin/branch/{branch}/services', [App\Http\Controllers\Admincontroller::class, 'updateBranchServices'])->name('admin.updateBranchServices');
-// Category management (delete category string from services)
-Route::post('/admin/categories/delete', [App\Http\Controllers\Admincontroller::class, 'deleteCategory'])->name('admin.deleteCategory');
-Route::put('/admin/service/{service}', [App\Http\Controllers\Admincontroller::class, 'updateService'])->name('admin.updateService');
-Route::put('/admin/service/{service}/price', [App\Http\Controllers\Admincontroller::class, 'updateServicePrice'])->name('admin.updateServicePrice');
-Route::delete('/admin/service/{service}', [App\Http\Controllers\Admincontroller::class, 'deleteService'])->name('admin.deleteService');
-Route::get('/admin/user-manage', [App\Http\Controllers\Admincontroller::class, 'userManage'])->name('admin.usermanage');
-Route::get('/admin/branch-management', [App\Http\Controllers\Admincontroller::class, 'branchManagement'])->name('admin.branchmanagement');
-Route::post('/admin/logout', function (\Illuminate\Http\Request $request) {
-    $request->session()->flush();
-    return redirect()->route('adminlogin');
-})->name('admin.logout');
-// (Removed) activate/deactivate toggle route — replaced by delete action
-// Staff password management by admin
-Route::post('/admin/users/{id}/reset-password', [App\Http\Controllers\Admincontroller::class, 'resetStaffPassword'])->name('admin.resetStaffPassword');
-Route::put('/admin/users/{id}/change-password', [App\Http\Controllers\Admincontroller::class, 'changeStaffPassword'])->name('admin.changeStaffPassword');
+Route::post('/admin', [Admincontroller::class, 'login'])->name('admin.adminlogin');
+Route::get('/admin/register', [Admincontroller::class, 'showRegisterForm'])->name('admin.register');
+Route::post('/admin/register', [Admincontroller::class, 'register'])->name('admin.register.submit');
+
+// Admin protected routes - all use the same 'admin' guard middleware
+Route::middleware('admin')->group(function () {
+    Route::get('/admin/dashboard', [App\Http\Controllers\Admincontroller::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/admin/promo', [App\Http\Controllers\Admincontroller::class, 'promo'])->name('admin.promo');
+    // Promo CRUD for admin
+    Route::post('/admin/promos', [App\Http\Controllers\Admincontroller::class, 'storePromo'])->name('admin.promos.store');
+    Route::put('/admin/promos/{promo}', [App\Http\Controllers\Admincontroller::class, 'updatePromo'])->name('admin.promos.update');
+    Route::delete('/admin/promos/{promo}', [App\Http\Controllers\Admincontroller::class, 'deletePromo'])->name('admin.promos.delete');
+    Route::put('/admin/promos/{promo}/toggle', [App\Http\Controllers\Admincontroller::class, 'togglePromo'])->name('admin.promos.toggle');
+    // Admin Service Management
+    Route::post('/admin/branch/{branch}/service', [App\Http\Controllers\Admincontroller::class, 'addService'])->name('admin.addService');
+    // Branch service assignment (assign/unassign services, set branch price)
+    Route::post('/admin/branch/{branch}/services', [App\Http\Controllers\Admincontroller::class, 'updateBranchServices'])->name('admin.updateBranchServices');
+    // Category management (delete category string from services)
+    Route::post('/admin/categories/delete', [App\Http\Controllers\Admincontroller::class, 'deleteCategory'])->name('admin.deleteCategory');
+    Route::put('/admin/service/{service}', [App\Http\Controllers\Admincontroller::class, 'updateService'])->name('admin.updateService');
+    Route::put('/admin/service/{service}/price', [App\Http\Controllers\Admincontroller::class, 'updateServicePrice'])->name('admin.updateServicePrice');
+    Route::delete('/admin/service/{service}', [App\Http\Controllers\Admincontroller::class, 'deleteService'])->name('admin.deleteService');
+    Route::get('/admin/user-manage', [App\Http\Controllers\Admincontroller::class, 'userManage'])->name('admin.usermanage');
+    Route::get('/admin/branch-management', [App\Http\Controllers\Admincontroller::class, 'branchManagement'])->name('admin.branchmanagement');
+    Route::post('/admin/logout', function (\Illuminate\Http\Request $request) {
+        auth('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('admin.login');
+    })->name('admin.logout');
+    // Staff password management by admin
+    Route::post('/admin/users/{id}/reset-password', [App\Http\Controllers\Admincontroller::class, 'resetStaffPassword'])->name('admin.resetStaffPassword');
+    Route::put('/admin/users/{id}/change-password', [App\Http\Controllers\Admincontroller::class, 'changeStaffPassword'])->name('admin.changeStaffPassword');
+    Route::post('/admin/create-staff', [Admincontroller::class, 'createStaff'])->name('admin.createStaff');
+    Route::put('/admin/branch-management/{branch}', [App\Http\Controllers\Admincontroller::class, 'updateBranch'])->name('admin.updateBranch');
+    Route::put('/admin/service/{service}/toggle', [App\Http\Controllers\Admincontroller::class, 'toggleService'])->name('admin.toggleService');
+    // Delete staff (admin action)
+    Route::delete('/admin/users/{id}', [App\Http\Controllers\Admincontroller::class, 'deleteStaff'])->name('admin.deleteStaff');
+    // Toggle staff active/inactive (admin action, scoped to admin's branch)
+    Route::put('/admin/users/{id}/toggle-active', [App\Http\Controllers\Admincontroller::class, 'toggleStaffActive'])->name('admin.toggleStaffActive');
+    // Toggle branch active/inactive
+    Route::put('/admin/branch/{branchId}/toggle', [App\Http\Controllers\Admincontroller::class, 'toggleBranch'])->name('admin.branch.toggle');
+    // Package management (branch-scoped)
+    Route::get('/admin/branch/{branch}/packages', [App\Http\Controllers\Admincontroller::class, 'branchPackages'])->name('admin.branchPackages');
+    Route::post('/admin/branch/{branch}/packages', [App\Http\Controllers\Admincontroller::class, 'storePackage'])->name('admin.packages.store');
+    Route::put('/admin/packages/{package}', [App\Http\Controllers\Admincontroller::class, 'updatePackage'])->name('admin.packages.update');
+    Route::delete('/admin/packages/{package}', [App\Http\Controllers\Admincontroller::class, 'deletePackage'])->name('admin.packages.delete');
+    Route::post('/admin/packages/{package}/services', [App\Http\Controllers\Admincontroller::class, 'attachPackageServices'])->name('admin.packages.attachServices');
+    // Booking settings (Admin only)
+    Route::get('/admin/booking-settings', [App\Http\Controllers\Admincontroller::class, 'bookingSettings'])->name('admin.booking-settings');
+    Route::post('/admin/booking-settings', [App\Http\Controllers\Admincontroller::class, 'updateBookingSettings'])->name('admin.booking-settings.update');
+});
+
 // Staff-facing password reset form (token link)
 Route::get('/staff/password/reset', [App\Http\Controllers\Admincontroller::class, 'showStaffPasswordResetForm'])->name('staff.password.reset');
 Route::post('/staff/password/reset', [App\Http\Controllers\Admincontroller::class, 'submitStaffPasswordReset'])->name('staff.password.reset.submit');
-Route::post('/admin/create-staff', [Admincontroller::class, 'createStaff'])->name('admin.createStaff');
-Route::put('/admin/branch-management/{branch}', [App\Http\Controllers\Admincontroller::class, 'updateBranch'])->name('admin.updateBranch');
-Route::put('/admin/service/{service}/toggle', [App\Http\Controllers\Admincontroller::class, 'toggleService'])->name('admin.toggleService');
-// Delete staff (admin action)
-Route::delete('/admin/users/{id}', [App\Http\Controllers\Admincontroller::class, 'deleteStaff'])->name('admin.deleteStaff');
-
-// Toggle staff active/inactive (admin action, scoped to admin's branch)
-Route::put('/admin/users/{id}/toggle-active', [App\Http\Controllers\Admincontroller::class, 'toggleStaffActive'])->name('admin.toggleStaffActive');
-
-// Toggle branch active/inactive
-Route::put('/admin/branch/{branchId}/toggle', [App\Http\Controllers\Admincontroller::class, 'toggleBranch'])->name('admin.branch.toggle');
-
-// Package management (branch-scoped)
-Route::get('/admin/branch/{branch}/packages', [App\Http\Controllers\Admincontroller::class, 'branchPackages'])->name('admin.branchPackages');
-Route::post('/admin/branch/{branch}/packages', [App\Http\Controllers\Admincontroller::class, 'storePackage'])->name('admin.packages.store');
-Route::put('/admin/packages/{package}', [App\Http\Controllers\Admincontroller::class, 'updatePackage'])->name('admin.packages.update');
-Route::delete('/admin/packages/{package}', [App\Http\Controllers\Admincontroller::class, 'deletePackage'])->name('admin.packages.delete');
-Route::post('/admin/packages/{package}/services', [App\Http\Controllers\Admincontroller::class, 'attachPackageServices'])->name('admin.packages.attachServices');
-
-// Booking settings (Admin only)
-Route::get('/admin/booking-settings', [App\Http\Controllers\Admincontroller::class, 'bookingSettings'])->name('admin.booking-settings');
-Route::post('/admin/booking-settings', [App\Http\Controllers\Admincontroller::class, 'updateBookingSettings'])->name('admin.booking-settings.update');
 
 
-// CEO routes - protected with CEO middleware
+// CEO routes - login routes (outside middleware group)
 Route::get('/ceo/login', [App\Http\Controllers\CEOController::class, 'loginForm'])->name('ceo.login');
 Route::post('/ceo/login', [App\Http\Controllers\CEOController::class, 'login'])->name('ceo.login.submit');
 
-// CEO protected routes - only CEO users can access these
-Route::get('/ceo/dashboard', [App\Http\Controllers\CEOController::class, 'dashboard'])->middleware('ceo')->name('ceo.dashboard');
-Route::post('/ceo/compare-branches', [CEOController::class, 'compareBranches'])->middleware('ceo')->name('ceo.compare.branches');
-Route::get('/ceo/adduseradmin', [App\Http\Controllers\CEOController::class, 'addUserAdmin'])->middleware('ceo')->name('ceo.adduseradmin');
-Route::get('/ceo/user-manage', [App\Http\Controllers\CEOController::class, 'userManage'])->middleware('ceo')->name('ceo.usermanage');
-Route::post('/ceo/create-admin', [App\Http\Controllers\CEOController::class, 'storeAdmin'])->middleware('ceo')->name('ceo.createAdmin');
-Route::put('/ceo/user-manage/{user}', [App\Http\Controllers\CEOController::class, 'updateAdmin'])->name('ceo.updateAdmin');
-Route::delete('/ceo/user-manage/{user}', [App\Http\Controllers\CEOController::class, 'deleteAdmin'])->name('ceo.deleteAdmin');
-Route::get('/ceo/branchmanagement', [App\Http\Controllers\CEOController::class, 'branchManagement'])->name('ceo.branchmanagement');
-Route::post('/ceo/create-branch', [App\Http\Controllers\CEOController::class, 'storeBranch'])->name('ceo.createBranch');
-Route::put('/ceo/branch-manage/{branch}', [App\Http\Controllers\CEOController::class, 'updateBranch'])->name('ceo.updateBranch');
-Route::delete('/ceo/branch-manage/{branch}', [App\Http\Controllers\CEOController::class, 'deleteBranch'])->name('ceo.deleteBranch');
-Route::get('/ceo/logout', [CEOController::class, 'logout'])->name('ceo.logout');
-Route::post('/ceo/change-password', [App\Http\Controllers\CEOController::class, 'changePassword'])->name('ceo.changePassword');
-Route::post('/ceo/user-manage/{user}/change-password', [App\Http\Controllers\CEOController::class, 'adminChangePassword'])->name('ceo.adminChangePassword');
-Route::post('/ceo/user-manage/{user}/reset-password', [App\Http\Controllers\CEOController::class, 'resetAdminPassword'])->name('ceo.resetAdminPassword');
-
-
+// CEO protected routes - all use the same 'ceo' guard middleware
+Route::middleware('ceo')->group(function () {
+    Route::get('/ceo/dashboard', [App\Http\Controllers\CEOController::class, 'dashboard'])->name('ceo.dashboard');
+    Route::post('/ceo/compare-branches', [CEOController::class, 'compareBranches'])->name('ceo.compare.branches');
+    Route::get('/ceo/adduseradmin', [App\Http\Controllers\CEOController::class, 'addUserAdmin'])->name('ceo.adduseradmin');
+    Route::get('/ceo/user-manage', [App\Http\Controllers\CEOController::class, 'userManage'])->name('ceo.usermanage');
+    Route::post('/ceo/create-admin', [App\Http\Controllers\CEOController::class, 'storeAdmin'])->name('ceo.createAdmin');
+    Route::put('/ceo/user-manage/{user}', [App\Http\Controllers\CEOController::class, 'updateAdmin'])->name('ceo.updateAdmin');
+    Route::delete('/ceo/user-manage/{user}', [App\Http\Controllers\CEOController::class, 'deleteAdmin'])->name('ceo.deleteAdmin');
+    Route::get('/ceo/branchmanagement', [App\Http\Controllers\CEOController::class, 'branchManagement'])->name('ceo.branchmanagement');
+    Route::post('/ceo/create-branch', [App\Http\Controllers\CEOController::class, 'storeBranch'])->name('ceo.createBranch');
+    Route::put('/ceo/branch-manage/{branch}', [App\Http\Controllers\CEOController::class, 'updateBranch'])->name('ceo.updateBranch');
+    Route::delete('/ceo/branch-manage/{branch}', [App\Http\Controllers\CEOController::class, 'deleteBranch'])->name('ceo.deleteBranch');
+    Route::get('/ceo/logout', [CEOController::class, 'logout'])->name('ceo.logout');
+    Route::post('/ceo/change-password', [App\Http\Controllers\CEOController::class, 'changePassword'])->name('ceo.changePassword');
+    Route::post('/ceo/user-manage/{user}/change-password', [App\Http\Controllers\CEOController::class, 'adminChangePassword'])->name('ceo.adminChangePassword');
+    Route::post('/ceo/user-manage/{user}/reset-password', [App\Http\Controllers\CEOController::class, 'resetAdminPassword'])->name('ceo.resetAdminPassword');
+});
 

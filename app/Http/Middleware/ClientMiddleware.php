@@ -10,19 +10,20 @@ class ClientMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // Step 1: Check if user is logged in
-        if (!Auth::check()) {
+        // Step 1: Check if user is logged in using web guard
+        if (!Auth::guard('web')->check()) {
             // If not logged in, send to login page
             return redirect('/login')->with('error', 'Please login first');
         }
 
-        // Step 2: Get the logged in user
-        $user = Auth::user();
+        // Step 2: Get the logged in client user
+        $user = Auth::guard('web')->user();
 
         // Step 3: Check if user is client (has role 'client')
         if ($user->role !== 'client') {
             // If not client, show error message
-            return redirect('/')->with('error', 'You are not authorized to access client area');
+            Auth::guard('web')->logout();
+            return redirect('/login')->with('error', 'Only client accounts can access this area');
         }
 
         // Step 4: If everything is OK, let the user continue

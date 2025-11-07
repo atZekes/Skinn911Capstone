@@ -33,8 +33,8 @@ class CEOController extends Controller
             ->first();
 
         if ($ceo && Hash::check($request->password, $ceo->password)) {
-            // Log the CEO in so Auth::user() is available throughout the session
-            Auth::login($ceo);
+            // Log the CEO in using the 'ceo' guard to keep CEO separate from other sessions
+            Auth::guard('ceo')->login($ceo);
             return redirect()->route('ceo.dashboard')->with('success', 'Welcome, CEO!');
         }
 

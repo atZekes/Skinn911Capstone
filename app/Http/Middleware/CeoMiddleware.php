@@ -10,19 +10,20 @@ class CeoMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // Step 1: Check if user is logged in
-        if (!Auth::check()) {
-            // If not logged in, send to login page
-            return redirect('/login')->with('error', 'Please login first');
+        // Step 1: Check if user is logged in using ceo guard
+        if (!Auth::guard('ceo')->check()) {
+            // If not logged in, send to CEO login page
+            return redirect('/ceo/login')->with('error', 'Please login first');
         }
 
-        // Step 2: Get the logged in user
-        $user = Auth::user();
+        // Step 2: Get the logged in CEO user
+        $user = Auth::guard('ceo')->user();
 
         // Step 3: Check if user is CEO (has role 'ceo')
         if ($user->role !== 'ceo') {
             // If not CEO, show error message
-            return redirect('/')->with('error', 'You are not authorized to access CEO area');
+            Auth::guard('ceo')->logout();
+            return redirect('/ceo/login')->with('error', 'Only CEO accounts can access this area');
         }
 
         // Step 4: If everything is OK, let the user continue
