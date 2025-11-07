@@ -48,12 +48,12 @@ Route::middleware('web')->group(function () {
     Route::post('/client/booking/{id}/request-refund', [App\Http\Controllers\ClientController::class, 'requestRefund'])->name('client.booking.requestRefund');
     Route::get('/client/calendar', [App\Http\Controllers\ClientController::class, 'calendarViewer'])->name('client.calendar');
     Route::get('/client/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->name('client.dashboard');
-    
+
     // AJAX endpoints for client dashboard
     Route::get('/api/client/dashboard/stats', [App\Http\Controllers\ClientController::class, 'getDashboardStats'])->name('api.client.dashboard.stats');
     Route::get('/api/client/dashboard/purchased-services', [App\Http\Controllers\ClientController::class, 'getPurchasedServices'])->name('api.client.dashboard.purchased');
     Route::get('/api/client/dashboard/bookings', [App\Http\Controllers\ClientController::class, 'getBookings'])->name('api.client.dashboard.bookings');
-    
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
