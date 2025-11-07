@@ -232,3 +232,35 @@ Route::middleware('ceo')->group(function () {
     Route::post('/ceo/user-manage/{user}/reset-password', [App\Http\Controllers\CEOController::class, 'resetAdminPassword'])->name('ceo.resetAdminPassword');
 });
 
+// Catch-all for old hashed URLs - redirect to their intended pages
+Route::get('/{hash}', function ($hash) {
+    // Check if this looks like a hash (16 hex characters)
+    if (preg_match('/^[a-f0-9]{16}$/i', $hash)) {
+        // Extract the intended route from query parameter 'r'
+        $intended = request()->query('r');
+        
+        if ($intended) {
+            // Map hashed route names to actual routes
+            $routeMap = [
+                'home' => '/',
+                'services' => '/services',
+                'aboutus' => '/aboutus',
+                'contact' => '/contact',
+                'client.home' => '/client/home',
+                'client.services' => '/client/services',
+                'client.booking' => '/client/booking',
+                'client.dashboard' => '/client/dashboard',
+                'client.calendar' => '/client/calendar',
+                'client.messages' => '/client/messages',
+            ];
+            
+            // Redirect to the actual route
+            if (isset($routeMap[$intended])) {
+                return redirect($routeMap[$intended]);
+            }
+        }
+    }
+    
+    // If not a valid hash or unmapped route, return 404
+    abort(404);
+})->where('hash', '[a-f0-9]{16}');
