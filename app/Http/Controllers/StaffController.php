@@ -8,6 +8,8 @@ use \App\Events\MessageSent;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Mail\BookingReminder;
+use App\Mail\BookingRefundConfirmed;
+use App\Mail\BookingReschedule;
 
 class StaffController extends Controller
 {
@@ -642,6 +644,18 @@ class StaffController extends Controller
         $booking->date = $request->date;
         $booking->time_slot = $request->time_slot;
         $booking->save();
+
+        // Send reschedule confirmation email
+        try {
+            Mail::to($booking->user->email)->send(new BookingReschedule($booking));
+        } catch (\Exception $e) {
+            Log::error('Failed to send booking reschedule email', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage()
+            ]);
+            // Don't fail the reschedule if email fails
+        }
+
     if ($request->ajax()) {
             $userName = $booking->user ? $booking->user->name : ($booking->walkin_name ?? 'Walk-in');
             $serviceName = null;
@@ -862,6 +876,17 @@ class StaffController extends Controller
             foreach ($purchasedServices as $ps) {
                 $ps->status = 'refunded';
                 $ps->save();
+            }
+
+            // Send refund confirmed email
+            try {
+                Mail::to($booking->user->email)->send(new BookingRefundConfirmed($booking));
+            } catch (\Exception $e) {
+                Log::error('Failed to send booking refund confirmed email', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the refund process if email fails
             }
 
             return redirect()->route('staff.appointments')->with('success', 'Refund processed successfully for Booking #' . $booking->id);

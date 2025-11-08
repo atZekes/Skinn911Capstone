@@ -489,7 +489,7 @@ class CEOController extends Controller
             ]);
 
             // TRIPLE LAYER PROTECTION against double submission (AFTER VALIDATION)
-            
+
             // Layer 1: Session-based lock
             $sessionKey = 'creating_branch_' . session()->getId();
 
@@ -542,8 +542,8 @@ class CEOController extends Controller
                 }
 
                 // Create the branch
-                $operatingDays = isset($validated['operating_days']) && $validated['operating_days'] 
-                    ? implode(',', $validated['operating_days']) 
+                $operatingDays = isset($validated['operating_days']) && $validated['operating_days']
+                    ? implode(',', $validated['operating_days'])
                     : null;
 
                 $branch = Branch::create([

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Models\PurchasedService;
+use App\Mail\BookingReschedule;
 
 class ClientController extends Controller
 {
@@ -428,6 +430,19 @@ public function cancelBooking($id)
         $ps->status = 'cancelled';
         $ps->save();
     }
+
+    // Send cancellation email
+    try {
+        Mail::to($booking->user->email)->send(new \App\Mail\BookingCancellation($booking));
+    } catch (\Exception $e) {
+        Log::error('Failed to send booking cancellation email', [
+            'booking_id' => $booking->id,
+            'user_email' => $booking->user->email,
+            'error' => $e->getMessage()
+        ]);
+        // Don't fail the cancellation if email fails
+    }
+
     return redirect()->route('client.dashboard')->with('success', 'Successfully cancelled booking!');
 }
 
@@ -448,6 +463,18 @@ public function requestRefund($id)
     // Update booking status to pending_refund
     $booking->status = 'pending_refund';
     $booking->save();
+
+    // Send refund request email
+    try {
+        Mail::to($booking->user->email)->send(new \App\Mail\BookingRefund($booking));
+    } catch (\Exception $e) {
+        Log::error('Failed to send booking refund email', [
+            'booking_id' => $booking->id,
+            'user_email' => $booking->user->email,
+            'error' => $e->getMessage()
+        ]);
+        // Don't fail the refund request if email fails
+    }
 
     return redirect()->route('client.dashboard')->with('success', 'Refund requested successfully! Please visit the branch to collect your refund once approved by staff.');
 }
@@ -479,6 +506,18 @@ public function cancelAllBookings()
         foreach ($purchasedServices as $ps) {
             $ps->status = 'cancelled';
             $ps->save();
+        }
+
+        // Send cancellation email for this booking
+        try {
+            Mail::to($booking->user->email)->send(new \App\Mail\BookingCancellation($booking));
+        } catch (\Exception $e) {
+            Log::error('Failed to send booking cancellation email for bulk cancel', [
+                'booking_id' => $booking->id,
+                'user_email' => $booking->user->email,
+                'error' => $e->getMessage()
+            ]);
+            // Continue with other cancellations even if one email fails
         }
 
         $cancelledCount++;
@@ -531,6 +570,17 @@ public function rescheduleBooking(Request $request, $id)
     $booking->date = $newDate->format('Y-m-d');
     $booking->time_slot = $request->new_time_slot;
     $booking->save();
+
+    // Send reschedule confirmation email
+    try {
+        Mail::to($booking->user->email)->send(new BookingReschedule($booking));
+    } catch (\Exception $e) {
+        Log::error('Failed to send booking reschedule email', [
+            'booking_id' => $booking->id,
+            'error' => $e->getMessage()
+        ]);
+        // Don't fail the reschedule if email fails
+    }
 
     return redirect()->route('client.dashboard')->with('success', 'Booking rescheduled successfully!');
 }

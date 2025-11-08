@@ -238,7 +238,7 @@ Route::get('/{hash}', function ($hash) {
     if (preg_match('/^[a-f0-9]{16}$/i', $hash)) {
         // Extract the intended route from query parameter 'r'
         $intended = request()->query('r');
-        
+
         if ($intended) {
             // Map hashed route names to actual routes
             $routeMap = [
@@ -253,14 +253,14 @@ Route::get('/{hash}', function ($hash) {
                 'client.calendar' => '/client/calendar',
                 'client.messages' => '/client/messages',
             ];
-            
+
             // Redirect to the actual route
             if (isset($routeMap[$intended])) {
                 return redirect($routeMap[$intended]);
             }
         }
     }
-    
+
     // If not a valid hash or unmapped route, return 404
     abort(404);
 })->where('hash', '[a-f0-9]{16}');

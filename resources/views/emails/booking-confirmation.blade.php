@@ -151,13 +151,13 @@
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <h1>✨ Booking Confirmed!</h1>
+            <h1>✨ Booking Submitted!</h1>
             <p>Your appointment at Skin911 has been successfully booked</p>
             <p style="font-size: 18px; margin-top: 15px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; display: inline-block;">
                 Booking ID: #{{ $booking->id }}
             </p>
         </div>
-
+        
         <!-- Content -->
         <div class="content">
             <div class="greeting">
