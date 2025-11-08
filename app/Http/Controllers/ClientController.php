@@ -257,124 +257,146 @@ public function submitBooking(Request $request)
         }
     }
 
-    $booking = new \App\Models\Booking();
-    $booking->user_id = Auth::id();
-    $booking->branch_id = $request->branch_id;
-    // allow null service_id when booking a package
-    $booking->service_id = $request->service_id ?? null;
-    // persist chosen package on booking when provided
-    $booking->package_id = $request->package_id ?? null;
-    $booking->date = $request->date;
-    $booking->time_slot = $request->time_slot;
-    $booking->status = 'active';
-
-    // Save payment information
-    if ($request->filled('payment_method')) {
-        $booking->payment_method = $request->payment_method;
-
-        // Mark as pending if card or gcash payment (staff needs to confirm)
-        if (in_array($request->payment_method, ['card', 'gcash'])) {
-            $booking->payment_status = 'pending';
-        } else {
-            $booking->payment_status = 'unpaid'; // cash payment at branch
-        }
-
-        // Save payment data as JSON
-        if ($request->filled('payment_data')) {
-            $paymentData = json_decode($request->payment_data, true);
-            $booking->payment_data = $request->payment_data;
-
-            // If save_card is checked and payment method is card, save card data to user profile
-            if ($request->payment_method === 'card' && isset($paymentData['save_card']) && $paymentData['save_card']) {
-                $user = Auth::user();
-
-                $cardType = $paymentData['card_type'] ?? null;
-
-                // Get existing saved cards or initialize empty array
-                $existingCards = $user->saved_card_data ?? [];
-
-                // Encrypt card number for security
-                $cardNumber = $paymentData['card_number'] ?? null;
-                if ($cardNumber) {
-                    $cardNumber = str_replace(' ', '', $cardNumber); // Remove spaces
-
-                    // Check if this is a masked card number from saved data
-                    if (strpos($cardNumber, '*') !== false) {
-                        // This is a masked saved card, retrieve the existing encrypted value
-                        $cardType = $paymentData['card_type'] ?? null;
-                        $existingCards = $user->saved_card_data ?? [];
-
-                        if ($cardType && isset($existingCards[$cardType]['card_number'])) {
-                            // Use the existing encrypted card number
-                            $cardNumber = $existingCards[$cardType]['card_number'];
-                        } else {
-                            // Invalid masked card, set to null
-                            $cardNumber = null;
-                        }
-                    } else {
-                        // This is a new card number, encrypt it
-                        $cardNumber = encrypt($cardNumber);
-                    }
-                }
-
-                // Save card data (excluding CVV for security) indexed by card type
-                $cardData = [
-                    'card_number' => $cardNumber,
-                    'card_expiry' => $paymentData['card_expiry'] ?? null,
-                    'billing_first_name' => $paymentData['billing_first_name'] ?? null,
-                    'billing_last_name' => $paymentData['billing_last_name'] ?? null,
-                    'billing_address' => $paymentData['billing_address'] ?? null,
-                    'billing_city' => $paymentData['billing_city'] ?? null,
-                    'billing_zip' => $paymentData['billing_zip'] ?? null,
-                    'billing_country' => $paymentData['billing_country'] ?? null,
-                    'billing_phone' => $paymentData['billing_phone'] ?? null,
-                ];
-
-                // Store card data by type (visa or mastercard)
-                if ($cardType) {
-                    $existingCards[$cardType] = $cardData;
-                }
-
-                $user->saved_card_data = $existingCards;
-                $user->save();
+    // Use database transaction to prevent race conditions
+    $result = \DB::transaction(function () use ($request, $requiredSlots, $max) {
+        // Final capacity check within transaction to prevent race conditions
+        foreach ($requiredSlots as $slot) {
+            $existingCount = \App\Models\Booking::where('branch_id', $request->branch_id)
+                ->where('date', $request->date)
+                ->where('time_slot', $slot)
+                ->where('status', 'active')
+                ->lockForUpdate() // Lock rows for update to prevent concurrent modifications
+                ->count();
+            if ($existingCount >= $max) {
+                throw new \Exception('One or more required time slots are fully booked. Please select another start time.');
             }
         }
-    }
 
-    $booking->save();
-    $user = Auth::user();
-    // If a package is selected, create PurchasedService rows for each service in the package
-    if ($request->filled('package_id')) {
-        $pkg = \App\Models\Package::with('services')->find($request->package_id);
-        if (!$pkg) {
-            return redirect()->back()->withErrors(['package_id' => 'Invalid package selected.'])->withInput();
+        $booking = new \App\Models\Booking();
+        $booking->user_id = Auth::id();
+        $booking->branch_id = $request->branch_id;
+        // allow null service_id when booking a package
+        $booking->service_id = $request->service_id ?? null;
+        // persist chosen package on booking when provided
+        $booking->package_id = $request->package_id ?? null;
+        $booking->date = $request->date;
+        $booking->time_slot = $request->time_slot;
+        $booking->status = 'active';
+
+        // Save payment information
+        if ($request->filled('payment_method')) {
+            $booking->payment_method = $request->payment_method;
+
+            // Mark as pending if card or gcash payment (staff needs to confirm)
+            if (in_array($request->payment_method, ['card', 'gcash'])) {
+                $booking->payment_status = 'pending';
+            } else {
+                $booking->payment_status = 'unpaid'; // cash payment at branch
+            }
+
+            // Save payment data as JSON
+            if ($request->filled('payment_data')) {
+                $paymentData = json_decode($request->payment_data, true);
+                $booking->payment_data = $request->payment_data;
+
+                // If save_card is checked and payment method is card, save card data to user profile
+                if ($request->payment_method === 'card' && isset($paymentData['save_card']) && $paymentData['save_card']) {
+                    $user = Auth::user();
+
+                    $cardType = $paymentData['card_type'] ?? null;
+
+                    // Get existing saved cards or initialize empty array
+                    $existingCards = $user->saved_card_data ?? [];
+
+                    // Encrypt card number for security
+                    $cardNumber = $paymentData['card_number'] ?? null;
+                    if ($cardNumber) {
+                        $cardNumber = str_replace(' ', '', $cardNumber); // Remove spaces
+
+                        // Check if this is a masked card number from saved data
+                        if (strpos($cardNumber, '*') !== false) {
+                            // This is a masked saved card, retrieve the existing encrypted value
+                            $cardType = $paymentData['card_type'] ?? null;
+                            $existingCards = $user->saved_card_data ?? [];
+
+                            if ($cardType && isset($existingCards[$cardType]['card_number'])) {
+                                // Use the existing encrypted card number
+                                $cardNumber = $existingCards[$cardType]['card_number'];
+                            } else {
+                                // Invalid masked card, set to null
+                                $cardNumber = null;
+                            }
+                        } else {
+                            // This is a new card number, encrypt it
+                            $cardNumber = encrypt($cardNumber);
+                        }
+                    }
+
+                    // Save card data (excluding CVV for security) indexed by card type
+                    $cardData = [
+                        'card_number' => $cardNumber,
+                        'card_expiry' => $paymentData['card_expiry'] ?? null,
+                        'billing_first_name' => $paymentData['billing_first_name'] ?? null,
+                        'billing_last_name' => $paymentData['billing_last_name'] ?? null,
+                        'billing_address' => $paymentData['billing_address'] ?? null,
+                        'billing_city' => $paymentData['billing_city'] ?? null,
+                        'billing_zip' => $paymentData['billing_zip'] ?? null,
+                        'billing_country' => $paymentData['billing_country'] ?? null,
+                        'billing_phone' => $paymentData['billing_phone'] ?? null,
+                    ];
+
+                    // Store card data by type (visa or mastercard)
+                    if ($cardType) {
+                        $existingCards[$cardType] = $cardData;
+                    }
+
+                    $user->saved_card_data = $existingCards;
+                    $user->save();
+                }
+            }
         }
-        // Ensure package belongs to branch or is global
-        if ($pkg->branch_id && $pkg->branch_id != $request->branch_id) {
-            return redirect()->back()->withErrors(['package_id' => 'Selected package is not available for the chosen branch.'])->withInput();
+
+        $booking->save();
+        $user = Auth::user();
+
+        // If a package is selected, create PurchasedService rows for each service in the package
+        if ($request->filled('package_id')) {
+            $pkg = \App\Models\Package::with('services')->find($request->package_id);
+            if (!$pkg) {
+                throw new \Exception('Invalid package selected.');
+            }
+            // Ensure package belongs to branch or is global
+            if ($pkg->branch_id && $pkg->branch_id != $request->branch_id) {
+                throw new \Exception('Selected package is not available for the chosen branch.');
+            }
+            foreach ($pkg->services as $svc) {
+                \App\Models\PurchasedService::create([
+                    'user_id' => $user->id,
+                    'service_id' => $svc->id,
+                    'booking_id' => $booking->id,
+                    'price' => $svc->price ?? 0,
+                    'description' => $svc->description ?? '',
+                ]);
+            }
+        } else {
+            // Single service booking
+            $service = \App\Models\Service::find($request->service_id);
+            if ($service) {
+                \App\Models\PurchasedService::create([
+                    'user_id' => $user->id,
+                    'service_id' => $service->id,
+                    'booking_id' => $booking->id,
+                    'price' => $service->price ?? 0,
+                    'description' => $service->description ?? '',
+                ]);
+            }
         }
-        foreach ($pkg->services as $svc) {
-            \App\Models\PurchasedService::create([
-                'user_id' => $user->id,
-                'service_id' => $svc->id,
-                'booking_id' => $booking->id,
-                'price' => $svc->price ?? 0,
-                'description' => $svc->description ?? '',
-            ]);
-        }
-    } else {
-        // Single service booking
-        $service = \App\Models\Service::find($request->service_id);
-        if ($service) {
-            \App\Models\PurchasedService::create([
-                'user_id' => $user->id,
-                'service_id' => $service->id,
-                'booking_id' => $booking->id,
-                'price' => $service->price ?? 0,
-                'description' => $service->description ?? '',
-            ]);
-        }
-    }
+
+        return ['booking' => $booking, 'user' => $user];
+    });
+
+    $booking = $result['booking'];
+    $user = $result['user'];
 
     // Send booking confirmation email
     $emailSent = false;
@@ -535,6 +557,9 @@ public function rescheduleBooking(Request $request, $id)
     // Find the booking and ensure it belongs to the current user
     $booking = \App\Models\Booking::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
 
+    // Get the branch for capacity checks
+    $branch = $booking->branch;
+
     // Validate the request
     $request->validate([
         'new_date' => 'required|date',
@@ -550,26 +575,90 @@ public function rescheduleBooking(Request $request, $id)
         return redirect()->back()->withErrors(['new_date' => 'You can only reschedule to a date at least 3 days from your current booking date.']);
     }
 
-    // Check if the new slot is available
-    $branch = $booking->branch;
-    $slotCapacity = $branch->slot_capacity ?? 1;
+    // Calculate required slots based on service/package duration
+    $requiredSlots = [$request->new_time_slot];
 
-    // Count bookings for this branch, date, and time slot
-    $existingBookingsCount = \App\Models\Booking::where('branch_id', $branch->id)
-        ->where('date', $newDate->format('Y-m-d'))
-        ->where('time_slot', $request->new_time_slot)
-        ->where('status', 'active')
-        ->where('id', '!=', $booking->id) // Exclude current booking
-        ->count();
-
-    if ($existingBookingsCount >= $slotCapacity) {
-        return redirect()->back()->withErrors(['new_time_slot' => 'This time slot is already fully booked. Please select another time slot.']);
+    // Determine total duration in hours for service or package
+    $totalDuration = 1;
+    if ($booking->package_id) {
+        $pkg = \App\Models\Package::with('services')->find($booking->package_id);
+        if ($pkg) {
+            $totalDuration = 0;
+            foreach ($pkg->services as $svc) {
+                $totalDuration += ($svc->duration ?? 1);
+            }
+        }
+    } elseif ($booking->service_id) {
+        $svc = \App\Models\Service::find($booking->service_id);
+        if ($svc) $totalDuration = $svc->duration ?? 1;
     }
 
-    // Update the booking
-    $booking->date = $newDate->format('Y-m-d');
-    $booking->time_slot = $request->new_time_slot;
-    $booking->save();
+    // If duration > 1, compute subsequent hourly slots
+    if ($totalDuration > 1) {
+        try {
+            [$startStr, $endStr] = explode('-', $request->new_time_slot, 2);
+            $start = \Carbon\Carbon::createFromFormat('H:i', trim($startStr));
+            for ($i = 1; $i < $totalDuration; $i++) {
+                $s = $start->copy()->addHours($i);
+                $e = $s->copy()->addHour();
+                $requiredSlots[] = $s->format('H:i') . '-' . $e->format('H:i');
+            }
+        } catch (\Exception $e) {
+            // fallback: just use the provided slot
+        }
+    }
+
+    // Ensure required slots fit within branch operating slots (don't overflow branch end)
+    if ($branch) {
+        // derive branch slots similarly to getFullSlots
+        $branchSlots = ["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"];
+        if ($branch->time_slot && strpos($branch->time_slot, ' - ') !== false) {
+            try {
+                [$bs,$be] = explode(' - ', $branch->time_slot, 2);
+                $startRange = \Carbon\Carbon::createFromFormat('H:i', $bs);
+                $endRange = \Carbon\Carbon::createFromFormat('H:i', $be);
+                $branchSlots = [];
+                for ($t = $startRange->copy(); $t->lt($endRange); $t->addHour()) {
+                    $slotStart = $t->format('H:i');
+                    $slotEnd = $t->copy()->addHour()->format('H:i');
+                    if (\Carbon\Carbon::createFromFormat('H:i', $slotEnd)->lte($endRange)) {
+                        $branchSlots[] = $slotStart . '-' . $slotEnd;
+                    }
+                }
+            } catch (\Exception $e) { /* ignore and use defaults */ }
+        }
+        foreach ($requiredSlots as $rs) {
+            if (! in_array($rs, $branchSlots)) {
+                return redirect()->back()->withErrors(['new_time_slot' => 'Selected start time cannot fit the full service duration within branch operating hours.']);
+            }
+        }
+    }
+
+    // Use database transaction to prevent race conditions during rescheduling
+    $result = \DB::transaction(function () use ($booking, $request, $requiredSlots, $newDate, $branch) {
+        $slotCapacity = $branch->slot_capacity ?? 1;
+
+        // Final capacity check within transaction to prevent race conditions
+        foreach ($requiredSlots as $slot) {
+            $existingCount = \App\Models\Booking::where('branch_id', $branch->id)
+                ->where('date', $newDate->format('Y-m-d'))
+                ->where('time_slot', $slot)
+                ->where('status', 'active')
+                ->where('id', '!=', $booking->id) // Exclude current booking
+                ->lockForUpdate() // Lock rows for update to prevent concurrent modifications
+                ->count();
+            if ($existingCount >= $slotCapacity) {
+                throw new \Exception('One or more required time slots are fully booked. Please select another start time.');
+            }
+        }
+
+        // Update the booking within the transaction
+        $booking->date = $newDate->format('Y-m-d');
+        $booking->time_slot = $request->new_time_slot;
+        $booking->save();
+
+        return $booking;
+    });
 
     // Send reschedule confirmation email
     try {

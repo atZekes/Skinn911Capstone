@@ -256,7 +256,7 @@ class Admincontroller extends Controller{
         // If admin has a specific branch assigned, filter users by that branch
         if ($admin && $admin->role === 'admin' && $admin->branch_id) {
             // Show only staff from the admin's branch + all clients (clients aren't branch-specific)
-            $users = User::where(function($query) use ($admin) {
+            $users = User::with('branch')->where(function($query) use ($admin) {
                 $query->where('role', 'client') // All clients
                       ->orWhere(function($subQuery) use ($admin) {
                           $subQuery->where('role', 'staff')
@@ -265,7 +265,7 @@ class Admincontroller extends Controller{
             })->get();
         } else {
             // Super admin or admin without branch - show all users
-            $users = User::all();
+            $users = User::with('branch')->all();
         }
 
         return view('admin.Usermanage', compact('users'));
@@ -746,7 +746,7 @@ class Admincontroller extends Controller{
 
     // (Removed) toggleStaff: activate/deactivate handled removed from admin UI
 
-    // Reset staff password to a temporary random password and return it (admin action)
+    // Reset staff password to default "staff" + branch name (admin action)
     public function resetStaffPassword($staffId)
     {
         $staff = User::findOrFail($staffId);
@@ -760,16 +760,23 @@ class Admincontroller extends Controller{
         if ($admin->branch_id && $admin->branch_id !== $staff->branch_id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage staff in your branch.']);
         }
-    // generate a temporary random password, set it for the staff, and return it to admin to forward
-    $tempPassword = Str::random(10);
-    $staff->password = Hash::make($tempPassword);
-    $staff->save();
-        // return the temporary password to admin so they can forward it securely
+
+        // Get the staff's branch and create dynamic password
+        $branch = $staff->branch;
+        if (!$branch) {
+            return redirect()->back()->withErrors(['error' => 'Staff member is not assigned to a branch.']);
+        }
+
+        // Create password as "staff" + branch name (cleaned)
+        $branchName = preg_replace('/[^A-Za-z0-9]/', '', $branch->name); // Remove special chars and spaces
+        $defaultPassword = 'staff' . $branchName;
+
+        $staff->password = Hash::make($defaultPassword);
+        $staff->save();
+
+        // return success message with the specific password
         return redirect()->back()
-            ->with('success', 'Temporary password generated.')
-            ->with('temp_password', $tempPassword)
-            ->with('temp_password_for', $staff->id)
-            ->with('temp_password_for_name', $staff->name ?: $staff->email);
+            ->with('success', 'Staff password has been reset to "' . $defaultPassword . '".');
     }
 
     // Change staff password to admin-provided value

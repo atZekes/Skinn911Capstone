@@ -1923,6 +1923,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Check if selected time slot is disabled (full)
+            const selectedOption = timeSlot.options[timeSlot.selectedIndex];
+            if (selectedOption && selectedOption.disabled) {
+                showAnimatedAlert('The selected time slot is no longer available. Please choose another time slot.');
+                // Refresh the time slots to show current availability
+                updateTimeSlots();
+                return;
+            }
+
             // Update GCash info based on selected branch
             const branchSelect = document.getElementById('branch_id');
             if (branchSelect && branchSelect.value) {

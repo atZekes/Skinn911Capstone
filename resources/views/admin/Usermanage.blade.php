@@ -6,12 +6,6 @@
 
 @push('head')
     <!-- Session data for JavaScript -->
-    @if(session('temp_password_for'))
-        <meta name="temp-password-for" content="{{ session('temp_password_for') }}">
-    @endif
-    @if(session('temp_password'))
-        <meta name="temp-password" content="{{ session('temp_password') }}">
-    @endif
 @endpush
 
 <style>
@@ -75,12 +69,6 @@ div.user-mgmt-title {
                                     {{ isset($user->active) && $user->active ? 'Deactivate' : 'Activate' }}
                                 </button>
                             </form>
-                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#viewTempModal{{ $user->id }}" style="position:relative;">
-                                View Temp
-                                @if(session('temp_password_for') == $user->id)
-                                    <span class="temp-indicator" aria-hidden="true" style="position:absolute; top:-3px; right:-3px; width:14px; height:14px; background:#dc3545; border-radius:50%; box-shadow:0 0 0 3px rgba(220,53,69,0.15); display:inline-block;"></span>
-                                @endif
-                            </button>
                             <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#changePasswordModal{{ $user->id }}">Change</button>
                                 <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $user->id }}">Delete</button>
                         </div>
@@ -130,16 +118,7 @@ div.user-mgmt-title {
                 </div>
                 @endforeach
 
-                @if(session('reset_link'))
-                    <div class="container mt-3">
-                        <div class="alert alert-success">
-                            Password reset link: <a href="{{ session('reset_link') }}" target="_blank">Open reset link</a>
-                            <p class="small">Copy or send this link to the staff securely. It expires when used.</p>
-                        </div>
-                    </div>
-                @endif
 
-                {{-- Temporary password is shown only when admin clicks the "View Temp Password" button. --}}
 
                 @foreach($users->where('role', 'staff') as $user)
                 <!-- Confirm Reset Modal -->
@@ -153,10 +132,10 @@ div.user-mgmt-title {
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    Are you sure you want to generate a password reset link for <strong>{{ $user->name }}</strong>? This link should be shared securely with the staff.
+                                    Are you sure you want to reset the password for <strong>{{ $user->name }}</strong> to "staff{{ preg_replace('/[^A-Za-z0-9]/', '', $user->branch->name ?? '') }}"?
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="submit" class="btn btn-danger">Generate temporary password</button>
+                                    <button type="submit" class="btn btn-danger">Reset Password</button>
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 </div>
                             </div>
@@ -165,27 +144,7 @@ div.user-mgmt-title {
                 </div>
                 @endforeach
 
-                @foreach($users->where('role', 'staff') as $user)
-                <!-- View Temp Password Modal -->
-                <div class="modal fade" id="viewTempModal{{ $user->id }}" tabindex="-1" aria-labelledby="viewTempModalLabel{{ $user->id }}" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Temporary Password for {{ $user->name }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p id="tempPasswordDisplay{{ $user->id }}">No temporary password generated for this user.</p>
-                                {{-- access_level input removed per request --}}
-                                <button class="btn btn-sm btn-outline-secondary" id="copyTempBtn{{ $user->id }}" style="display:none;">Copy</button>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endforeach
+
 
                         @foreach($users->where('role', 'staff') as $user)
                         <!-- Confirm Delete Modal -->
