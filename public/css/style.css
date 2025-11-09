@@ -749,7 +749,7 @@ h3 {
 /* Responsive banner images */
 @media (min-width: 768px) and (max-width: 991.98px) {
     /* Tablet */
-    .slider_bg_1 { background-image: url(../img/banner/banner21.png); }
+    .slider_bg_1 { background-image: url(../img/banner/banner.png); } /* Changed from banner21.png */
     .slider_bg_2 { background-image: url(../img/banner/banner22.png); }
     .slider_bg_3 { background-image: url(../img/banner/banner10.png); }
     .slider_bg_4 { background-image: url(../img/banner/banner3.png); }
@@ -758,10 +758,10 @@ h3 {
 
 @media (max-width: 767.98px) {
     /* Mobile */
-    .slider_bg_1 { background-image: url(../img/banner/banner11111.png); }
+    .slider_bg_1 { background-image: url(../img/banner/banner1111.png); } /* Changed from banner11111.png */
     .slider_bg_2 { background-image: url(../img/banner/banner1111.png); }
-    .slider_bg_3 { background-image: url(../img/banner/banner11.png); }
-    .slider_bg_4 { background-image: url(../img/banner/banner2.png); }
+    .slider_bg_3 { background-image: url(../img/banner/banner10.png); } /* Changed from banner11.png */
+    .slider_bg_4 { background-image: url(../img/banner/banner3.png); } /* Changed from banner2.png */
     .single_slider { min-height: 70vh; background-position: center top; background-size: cover; }
 }
 .slider_area .single_slider {

@@ -32,7 +32,7 @@
 /* Slide 2 - Tablet */
 @media (max-width: 1199px) {
     .slider-bg-2 {
-        background-image: url('/img/bannert2.png');
+        background-image: url('/img/bannert.png'); /* Changed from bannert2.png to existing bannert.png */
     }
 }
 
