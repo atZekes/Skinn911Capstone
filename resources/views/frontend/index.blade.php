@@ -54,7 +54,7 @@
                 <div class="col-xl-5 col-lg-5">
                     <div class="about_info">
                         <div class="section_title mb-20px">
-                            <span>About Us</span>
+                            <span>About Usss</span>
                             <h3> A prominent facial and slimming center in the heart of the city </h3>
                         </div>
                         <p> The company's mission is to provide quality beauty and skincare services at affordable prices, making skincare accessible beyond just the affluent.
