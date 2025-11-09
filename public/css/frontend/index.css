@@ -1,17 +1,45 @@
 /* Per-view index CSS */
 
-.responsive-banner-bg {
+.slider-bg-1, .slider-bg-2 {
     min-height: 350px;
-    background: url('/img/banner1111.png') center center/cover no-repeat;
+    background: center center/cover no-repeat;
 }
+
+/* Slide 1 - Desktop */
+.slider-bg-1 {
+    background-image: url('/img/bannerd.png');
+}
+
+/* Slide 1 - Tablet */
 @media (max-width: 1199px) {
-    .responsive-banner-bg {
-        background-image: url('/img/banner3.png');
+    .slider-bg-1 {
+        background-image: url('/img/bannert.png');
     }
 }
+
+/* Slide 1 - Mobile */
 @media (max-width: 767px) {
-    .responsive-banner-bg {
-        background-image: url('/img/skin4.jpg');
+    .slider-bg-1 {
+        background-image: url('/img/bannerm2.png');
+    }
+}
+
+/* Slide 2 - Desktop */
+.slider-bg-2 {
+    background-image: url('/img/bannerd2.png');
+}
+
+/* Slide 2 - Tablet */
+@media (max-width: 1199px) {
+    .slider-bg-2 {
+        background-image: url('/img/bannert2.png');
+    }
+}
+
+/* Slide 2 - Mobile */
+@media (max-width: 767px) {
+    .slider-bg-2 {
+        background-image: url('/img/bannerm1.png');
     }
 }
 

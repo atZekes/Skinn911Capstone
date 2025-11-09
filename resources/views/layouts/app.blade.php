@@ -469,12 +469,16 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="{{ asset('js/jquery.slicknav.min.js') }}"></script>
     <script src="{{ asset('js/jquery.ajaxchimp.min.js') }}"></script>
     <script src="{{ asset('js/isotope.pkgd.min.js') }}"></script>
+    <script src="{{ asset('js/jquery.magnific-popup.min.js') }}"></script>
+    <script src="{{ asset('js/scrollIt.js') }}"></script>
+    <script src="{{ asset('js/jquery.scrollUp.min.js') }}"></script>
     <script src="{{ asset('js/main.js') }}"></script>
     @yield('scripts')
 
-    <!-- VITE LOADS YOUR CUSTOM app.js LAST -->
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-    <script src="{{ asset('js/app.js') }}" defer></script>
+    <!-- Global authentication status for JavaScript -->
+    <script>
+        window.isAuthenticated = {{ auth()->check() ? 'true' : 'false' }};
+    </script>
 
     <script>
     window.addEventListener('scroll', function() {
@@ -651,16 +655,18 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var hamburger = document.getElementById('mainHamburger');
-  var mainMenu = hamburger.closest('.main-menu');
-  hamburger.addEventListener('click', function() {
-    mainMenu.classList.toggle('open');
-  });
-  // Optional: close menu when clicking outside
-  document.addEventListener('click', function(e) {
-    if (!mainMenu.contains(e.target) && mainMenu.classList.contains('open')) {
-      mainMenu.classList.remove('open');
-    }
-  });
+  var mainMenu = hamburger ? hamburger.closest('.main-menu') : null;
+  if (hamburger && mainMenu) {
+    hamburger.addEventListener('click', function() {
+      mainMenu.classList.toggle('open');
+    });
+    // Optional: close menu when clicking outside
+    document.addEventListener('click', function(e) {
+      if (mainMenu && !mainMenu.contains(e.target) && mainMenu.classList.contains('open')) {
+        mainMenu.classList.remove('open');
+      }
+    });
+  }
 });
 </script>
 

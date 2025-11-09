@@ -1,10 +1,40 @@
 @extends('layouts.app')
 @section('content')
 @section('hide_layout_banner')@endsection
-    <div class="responsive-banner-bg"></div>
-    <!-- page-specific CSS (per-view folder) -->
-    <link rel="stylesheet" href="{{ asset('css/frontend/services.css') }}">
+    <!-- Responsive Banner -->
 
+    <!-- per-view index styles -->
+    <link rel="stylesheet" href="{{ asset('css/frontend/index.css') }}">
+
+    <!-- slider_area_start -->
+    <div class="slider_area">
+        <div class="slider_active owl-carousel">
+            <div class="single_slider d-flex align-items-center justify-content-center slider-bg-1">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="text-center slider_text">
+                                <!-- Add content for first slide if needed -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="single_slider d-flex align-items-center justify-content-center slider-bg-2">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="text-center slider_text">
+                                <!-- Add content for second slide if needed -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- slider_area_end -->
 
 <!-- services_area_start -->
 <div class="services_area padding_top">

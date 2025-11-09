@@ -866,6 +866,8 @@ h3 {
 }
 .about_area .about_thumb img {
     width: 100%;
+    pointer-events: none;
+    user-select: none;
 }
 .about_area .about_thumb .img_2 {
     margin-top: 40px;
@@ -1404,6 +1406,7 @@ h3 {
     -moz-transition: 0.3s;
     -o-transition: 0.3s;
     transition: 0.3s;
+    cursor: pointer;
 }
 .offers_area .single_offers h3 {
     font-size: 22px;
@@ -1564,6 +1567,7 @@ h3 {
     -moz-transition: 0.5s;
     -o-transition: 0.5s;
     transition: 0.5s;
+    cursor: pointer;
 }
 .features_room .rooms_here .single_rooms .room_thumb .room_heading {
     position: absolute;

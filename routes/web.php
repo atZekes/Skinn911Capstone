@@ -37,7 +37,7 @@ Route::post('/admin/register', [Admincontroller::class, 'register'])->name('admi
 
 
 // Client protected routes - all use the same 'web' guard middleware
-Route::middleware('web')->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/client/home', [App\Http\Controllers\ClientController::class, 'home'])->name('client.home');
     Route::get('/client/services', [ClientController::class, 'clientServices'])->name('client.services');
     Route::get('/client/booking', [App\Http\Controllers\ClientController::class, 'showBookingForm'])->name('client.booking');
