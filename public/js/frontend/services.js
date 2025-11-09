@@ -3,54 +3,38 @@
 // Services page specific JS consolidated
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Carousel functionality: native horizontal scroll with drag-to-scroll
-    const carousels = document.querySelectorAll('.services-carousel');
-
-    carousels.forEach(carousel => {
-        const container = carousel.querySelector('.carousel-container');
-        if (!container) return;
-
-        // Mouse drag / touch drag
-        let isDown = false;
-        let startX;
-        let scrollLeftStart;
-
-        container.addEventListener('mousedown', (e) => {
-            isDown = true;
-            container.classList.add('is-dragging');
-            startX = e.pageX - container.offsetLeft;
-            scrollLeftStart = container.scrollLeft;
-        });
-        container.addEventListener('mouseleave', () => {
-            isDown = false;
-            container.classList.remove('is-dragging');
-        });
-        container.addEventListener('mouseup', () => {
-            isDown = false;
-            container.classList.remove('is-dragging');
-            snapToNearestCard(container);
-        });
-        container.addEventListener('mousemove', (e) => {
-            if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - container.offsetLeft;
-            const walk = (x - startX) * 1; // scroll-fast factor
-            container.scrollLeft = scrollLeftStart - walk;
-        });
-
-        // Touch
-        container.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].pageX - container.offsetLeft;
-            scrollLeftStart = container.scrollLeft;
-        });
-        container.addEventListener('touchend', () => snapToNearestCard(container));
-        container.addEventListener('touchmove', (e) => {
-            const x = e.touches[0].pageX - container.offsetLeft;
-            const walk = (x - startX) * 1;
-            container.scrollLeft = scrollLeftStart - walk;
-        });
+    // Initialize Owl Carousel for services
+    $('.carousel-container').owlCarousel({
+        loop: false,
+        margin: 32, // Increased margin to match CSS gap
+        nav: true,
+        navText: ['‹', '›'],
+        dots: false,
+        responsive: {
+            0: {
+                items: 1,
+                nav: false // Hide nav on mobile
+            },
+            576: {
+                items: 2,
+                nav: false // Hide nav on tablet
+            },
+            768: {
+                items: 2,
+                nav: true // Show nav on desktop
+            },
+            992: {
+                items: 3,
+                nav: true
+            },
+            1200: {
+                items: 4,
+                nav: true
+            }
+        }
     });
 
+    // Function to snap to nearest card (kept for compatibility)
     function snapToNearestCard(container) {
         const card = container.querySelector('.service-card');
         if (!card) return;
@@ -113,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // HIDE CAROUSEL ARROWS WHEN HEADER IS STICKY
     const header = document.querySelector('.main-header-area');
-    const allCarouselArrows = document.querySelectorAll('.carousel-nav');
+    const allCarouselArrows = document.querySelectorAll('.owl-nav button');
 
     if (header && allCarouselArrows.length > 0) {
 
@@ -132,37 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleArrowVisibility();
     }
 
-    // Simple touch-to-scroll for mobile (left/right swipe)
-    var isMobile = window.matchMedia('(max-width: 767px)').matches;
-    if (isMobile) {
-        // hide carousel arrows on mobile for cleaner UX
-        document.querySelectorAll('.carousel-nav').forEach(function(arrow) {
-            arrow.style.display = 'none';
-        });
 
-        document.querySelectorAll('.carousel-container').forEach(function(container) {
-            var startX = 0;
-            var startScrollLeft = 0;
-
-            container.addEventListener('touchstart', function(e) {
-                // record start positions
-                startX = e.touches[0].pageX;
-                startScrollLeft = container.scrollLeft;
-            }, { passive: true });
-
-            container.addEventListener('touchmove', function(e) {
-                // move the scroll based on finger movement
-                var x = e.touches[0].pageX;
-                var walk = startX - x; // positive when swiping left
-                container.scrollLeft = startScrollLeft + walk;
-            }, { passive: true });
-
-            container.addEventListener('touchend', function(e) {
-                // snap to nearest card after touch ends
-                snapToNearestCard(container);
-            });
-        });
-    }
 });
 
 // Booking button functionality

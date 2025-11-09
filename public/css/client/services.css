@@ -84,9 +84,9 @@
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 24px;
-  /* Enable native horizontal scrolling on all screen sizes for better mobile experience */
-  overflow-x: auto;
+  gap: 32px; /* Increased spacing between cards */
+  /* Hide scrollbar since Owl Carousel handles navigation */
+  overflow-x: hidden;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch; /* smooth momentum on iOS */
   scroll-behavior: smooth;
@@ -105,38 +105,9 @@
   cursor: grabbing;
 }
 
-/* Hide scrollbar but keep functionality */
+/* Hide scrollbar since Owl Carousel handles navigation */
 .carousel-container::-webkit-scrollbar {
-  height: 12px; /* Make it bigger and more visible */
-  display: block;
-}
-
-.carousel-container::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 6px;
-  margin: 0 16px;
-}
-
-.carousel-container::-webkit-scrollbar-thumb {
-  background: rgba(245, 98, 137, 0.6);
-  border-radius: 6px;
-  border: 2px solid #f0f0f0;
-}
-
-.carousel-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 98, 137, 0.8);
-}
-
-/* For mobile, make scrollbar even more visible */
-@media (max-width: 767px) {
-  .carousel-container::-webkit-scrollbar {
-    height: 16px; /* Even bigger on mobile */
-  }
-
-  .carousel-container::-webkit-scrollbar-thumb {
-    background: #F56289;
-    border: 3px solid #f0f0f0;
-  }
+  display: none;
 }
 
 /* Mobile: hide arrow buttons (we rely on native scroll) */
@@ -148,10 +119,10 @@
   }
 
   .carousel-container {
-    /* Ensure smooth scrolling on mobile */
-    overflow-x: scroll !important;
+    /* Hide scrollbar on mobile too since Owl Carousel handles navigation */
+    overflow-x: hidden !important;
     overflow-y: hidden !important;
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: none; /* Disable snap since Owl Carousel handles positioning */
     padding: 0 12px;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-x !important;
@@ -378,26 +349,61 @@
   transform: translateY(-2px);
 }
 
-.carousel-nav {
-  width: 32px !important;
-  height: 32px !important;
-  font-size: 1.5rem !important;
+/* Owl Carousel Navigation Styles */
+.owl-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.owl-nav button {
+  width: 40px;
+  height: 40px;
   background: #F56289 !important;
   color: #fff !important;
   border: none !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.98;
-  transition: background 0.2s, color 0.2s;
-  z-index: 10;
+  border-radius: 50% !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(245, 98, 137, 0.3) !important;
+  pointer-events: auto !important;
+  z-index: 10 !important;
 }
 
-.carousel-nav:hover {
+.owl-nav button:hover {
   background: #d13c6a !important;
-  color: #fff !important;
-  opacity: 1;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(245, 98, 137, 0.4) !important;
+}
+
+.owl-nav button.owl-prev {
+  left: -20px;
+}
+
+.owl-nav button.owl-next {
+  right: -20px;
+}
+
+/* Hide navigation on mobile/tablet */
+@media (max-width: 767px) {
+  .owl-nav {
+    display: none !important;
+  }
+}
+
+/* Hide arrows when header is sticky */
+.is-hidden-by-header {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .category_filter .filter_btn {

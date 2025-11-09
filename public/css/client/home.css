@@ -1,4 +1,48 @@
-/* Styles extracted from resources/views/Client/home.blade.php */
+/* Per-view client home CSS */
+
+/* Banner slider styles - matching frontend */
+.slider-bg-1, .slider-bg-2 {
+    min-height: 350px;
+    background: center center/cover no-repeat;
+}
+
+/* Slide 1 - Desktop */
+.slider-bg-1 {
+    background-image: url('/img/bannerd.png');
+}
+
+/* Slide 1 - Tablet */
+@media (max-width: 1199px) {
+    .slider-bg-1 {
+        background-image: url('/img/bannert.png');
+    }
+}
+
+/* Slide 1 - Mobile */
+@media (max-width: 767px) {
+    .slider-bg-1 {
+        background-image: url('/img/bannerm2.png');
+    }
+}
+
+/* Slide 2 - Desktop */
+.slider-bg-2 {
+    background-image: url('/img/bannerd2.png');
+}
+
+/* Slide 2 - Tablet */
+@media (max-width: 1199px) {
+    .slider-bg-2 {
+        background-image: url('/img/bannert.png');
+    }
+}
+
+/* Slide 2 - Mobile */
+@media (max-width: 767px) {
+    .slider-bg-2 {
+        background-image: url('/img/bannerm1.png');
+    }
+}
 
 /* Remove any margin/padding from slider wrapper */
 .slider_area {
@@ -51,7 +95,7 @@
 
 /* Second image */
 .responsive-banner-bg::after {
-    background-image: url('/img/banner10.png');
+    background-image: url('/img/bannerd.png');
     animation-delay: 4s;
     z-index: 2;
 }
@@ -80,10 +124,10 @@
 
 @media (max-width: 767px) {
     .responsive-banner-bg::before {
-        background-image: url('/img/skin4.jpg');
+        background-image: url('/img/bannerm1.png');
     }
     .responsive-banner-bg::after {
-        background-image: url('/img/skin5.jpg');
+        background-image: url('/img/banner2.png');
     }
 }
 

@@ -22,10 +22,36 @@ function initSimpleServices() {
     })(filterButtons[i]);
   }
 
-  // 2) Carousels: DISABLED custom touch handlers - using native browser scrolling instead
-  // Native scrolling works better and is more reliable
-  var carousels = document.querySelectorAll('.services-carousel .carousel-container');
-  // No touch handlers - browser handles all scrolling natively
+  // 2) Initialize Owl Carousel for services
+  $('.carousel-container').owlCarousel({
+    loop: false,
+    margin: 32, // Increased margin to match CSS gap
+    nav: true,
+    navText: ['‹', '›'],
+    dots: false,
+    responsive: {
+      0: {
+        items: 1,
+        nav: false // Hide nav on mobile
+      },
+      576: {
+        items: 2,
+        nav: false // Hide nav on tablet
+      },
+      768: {
+        items: 2,
+        nav: true // Show nav on desktop
+      },
+      992: {
+        items: 3,
+        nav: true
+      },
+      1200: {
+        items: 4,
+        nav: true
+      }
+    }
+  });
 
   // 3) Expand / collapse details
   var expandButtons = document.querySelectorAll('.expand-btn');
@@ -71,3 +97,25 @@ if (!window.__simpleServicesLoaded) {
   document.addEventListener('DOMContentLoaded', initSimpleServices);
   window.__simpleServicesLoaded = true;
 }
+
+// Header sticky behavior to hide carousel arrows
+document.addEventListener('DOMContentLoaded', function() {
+  const header = document.querySelector('.main-header-area');
+  const allCarouselArrows = document.querySelectorAll('.owl-nav button');
+
+  if (header && allCarouselArrows.length > 0) {
+    function toggleArrowVisibility() {
+      const isSticky = header.classList.contains('sticky');
+      allCarouselArrows.forEach(arrow => {
+        if (isSticky) {
+          arrow.classList.add('is-hidden-by-header');
+        } else {
+          arrow.classList.remove('is-hidden-by-header');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', toggleArrowVisibility);
+    toggleArrowVisibility();
+  }
+});

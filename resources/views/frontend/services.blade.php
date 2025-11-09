@@ -83,7 +83,7 @@
                         <p>Browse our {{ strtolower($catLabel) }} treatments</p>
                     </div>
                     <div class="services-carousel">
-                        <div class="carousel-container">
+                        <div class="carousel-container owl-carousel owl-theme">
                             @foreach($filteredServices as $service)
                                 @php
                                     $serviceSlug = strtolower(str_replace(' ', '-', $service->name));
@@ -167,8 +167,6 @@
                                 </div>
                             @endforeach
                         </div>
-                        <button class="carousel-nav prev" data-category="{{ $catSlug }}">‹</button>
-                        <button class="carousel-nav next" data-category="{{ $catSlug }}">›</button>
                     </div>
                 </div>
             @endforeach

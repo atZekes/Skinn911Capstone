@@ -26,7 +26,7 @@
 				</p>
 			</div>
 			<div class="services-carousel">
-				<div class="flex-row gap-4 carousel-container d-flex flex-nowrap" id="carousel-{{ $catId }}">
+				<div class="flex-row gap-4 carousel-container owl-carousel owl-theme d-flex flex-nowrap" id="carousel-{{ $catId }}">
 					@foreach($services->where('category', $category)->whereNotNull('treatment_details')->whereNotNull('image')->unique('name') as $service)
 					@php
 						$serviceSlug = strtolower(str_replace(' ', '-', $service->name));

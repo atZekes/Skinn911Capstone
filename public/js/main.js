@@ -353,4 +353,19 @@ mailChimp();
             $("#search_input").focus();
         });
 
+        // Session Keep-Alive - Ping server every 15 minutes to prevent session timeout
+        setInterval(function() {
+            $.ajax({
+                url: '/session-keep-alive',
+                type: 'GET',
+                cache: false,
+                success: function(response) {
+                    console.log('Session kept alive');
+                },
+                error: function(xhr, status, error) {
+                    console.log('Session keep-alive failed');
+                }
+            });
+        }, 15 * 60 * 1000); // 15 minutes in milliseconds
+
 })(jQuery);

@@ -81,6 +81,11 @@ Route::middleware(['web', 'auth'])->group(function () {
     // 2FA verification (after login, before full access)
     Route::get('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'showVerify'])->name('two-factor.verify');
     Route::post('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'verify'])->name('two-factor.verify.post');
+
+    // Session keep-alive endpoint
+    Route::get('/session-keep-alive', function () {
+        return response()->json(['status' => 'ok']);
+    })->name('session.keep-alive');
 });
 
 // Promo validation (AJAX) - web route fallback
@@ -147,6 +152,10 @@ Route::middleware('staff')->group(function () {
     Route::get('/staff/customer-messages/{customerId}', [App\Http\Controllers\StaffController::class, 'getCustomerMessages'])->name('staff.customer.messages');
     Route::post('/staff/send-reply', [App\Http\Controllers\StaffController::class, 'sendReply'])->name('staff.send.reply');
 
+    // Session keep-alive endpoint for staff
+    Route::get('/session-keep-alive', function () {
+        return response()->json(['status' => 'ok']);
+    })->name('session.keep-alive');
 });
 
 // Admin routes
@@ -202,6 +211,11 @@ Route::middleware('admin')->group(function () {
     // Booking settings (Admin only)
     Route::get('/admin/booking-settings', [App\Http\Controllers\Admincontroller::class, 'bookingSettings'])->name('admin.booking-settings');
     Route::post('/admin/booking-settings', [App\Http\Controllers\Admincontroller::class, 'updateBookingSettings'])->name('admin.booking-settings.update');
+
+    // Session keep-alive endpoint for admin
+    Route::get('/session-keep-alive', function () {
+        return response()->json(['status' => 'ok']);
+    })->name('session.keep-alive');
 });
 
 // Staff-facing password reset form (token link)
@@ -230,6 +244,11 @@ Route::middleware('ceo')->group(function () {
     Route::post('/ceo/change-password', [App\Http\Controllers\CEOController::class, 'changePassword'])->name('ceo.changePassword');
     Route::post('/ceo/user-manage/{user}/change-password', [App\Http\Controllers\CEOController::class, 'adminChangePassword'])->name('ceo.adminChangePassword');
     Route::post('/ceo/user-manage/{user}/reset-password', [App\Http\Controllers\CEOController::class, 'resetAdminPassword'])->name('ceo.resetAdminPassword');
+
+    // Session keep-alive endpoint for CEO
+    Route::get('/session-keep-alive', function () {
+        return response()->json(['status' => 'ok']);
+    })->name('session.keep-alive');
 });
 
 // Catch-all for old hashed URLs - redirect to their intended pages
