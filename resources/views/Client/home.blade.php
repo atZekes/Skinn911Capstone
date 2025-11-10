@@ -48,7 +48,7 @@
                         <p> The company's mission is to provide quality beauty and skincare services at affordable prices, making skincare accessible beyond just the affluent.
                             This approach has been a key factor in their steady growth and customer loyalty.
                             Skin911's core principles are quality products and services, affordable prices, and professional and ethical staff.</p>
-                        <a href="{{route ('aboutus') }}" class="line-button">Learn More</a>
+
                     </div>
                 </div>
                 <div class="col-xl-7 col-lg-7">
@@ -78,49 +78,49 @@
             </div>
             <div class="row">
                 <div class="col-xl-4 col-md-4">
-                    <div class="single_offers">
-                        <div class="about_thumb">
-                            <img src="{{ asset('img/skin3.jpg') }}" alt="">
+                    <a href="{{ route('client.services') }}" class="offer_link">
+                        <div class="single_offers">
+                            <div class="about_thumb">
+                                <img src="{{ asset('img/skin3.jpg') }}" alt="">
+                            </div>
+                            <h3>Up to 35% savings on Facial</h3>
+                            <ul>
+                                <li>Warts removal</li>
+                                <li>Hydrafacial</li>
+                                <li>Microneedling</li>
+                            </ul>
                         </div>
-                        <h3>Up to 35% savings on Facial <br>
-                            </h3>
-                        <ul>
-                            <li>Warts removal</li>
-                            <li>Hydrafacial</li>
-                            <li>Microneedling</li>
-                        </ul>
-                        <a href="{{ route('client.booking') }}" class="book_now">book now</a>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-xl-4 col-md-4">
-                    <div class="single_offers">
-                        <div class="about_thumb">
-                            <img src="{{ asset('img/skin4.jpg') }}" alt="">
+                    <a href="{{ route('client.services') }}" class="offer_link">
+                        <div class="single_offers">
+                            <div class="about_thumb">
+                                <img src="{{ asset('img/skin4.jpg') }}" alt="">
+                            </div>
+                            <h3>Up to 35% savings on Whitening and Rejuvenation</h3>
+                            <ul>
+                                <li>Underarm whitening</li>
+                                <li>Pigmentation Whitening</li>
+                                <li>Skin Rejuvenation</li>
+                            </ul>
                         </div>
-                        <h3>Up to 35% savings on Whitening and Rejuvenation <br>
-                            </h3>
-                        <ul>
-                            <li>Underarm whitening</li>
-                            <li>Pigmentation Whitening</li>
-                            <li>Skin Rejuvenation</li>
-                        </ul>
-                        <a href="{{ route('client.booking') }}" class="book_now">book now</a>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-xl-4 col-md-4">
-                    <div class="single_offers">
-                        <div class="about_thumb">
-                            <img src="{{ asset('img/skin5.jpg') }}" alt="">
+                    <a href="{{ route('client.services') }}" class="offer_link">
+                        <div class="single_offers">
+                            <div class="about_thumb">
+                                <img src="{{ asset('img/skin5.jpg') }}" alt="">
+                            </div>
+                            <h3>Up to 35% savings on Slimming</h3>
+                            <ul>
+                                <li>Redio Frequency</li>
+                                <li>Lipo-Cavitation</li>
+                                <li>Trio Slim</li>
+                            </ul>
                         </div>
-                        <h3>Up to 35% savings on Slimming<br>
-                            </h3>
-                        <ul>
-                            <li>Redio Frequency</li>
-                            <li>Lipo-Cavitation</li>
-                            <li>Trio Slim</li>
-                        </ul>
-                        <a href="{{ route('client.booking') }}" class="book_now">book now</a>
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>
@@ -166,7 +166,6 @@
                         <p>We are committed to delivering exceptional and effective beauty treatments. Our team of skilled professionals utilizes advanced techniques and quality products to address your unique skincare needs.
                             From revitalizing facials to innovative slimming solutions, we are dedicated to helping you achieve your desired results.
                             Experience our wide range of services, all designed to be both high-quality and affordable, ensuring everyone can enjoy the confidence that comes with beautiful, healthy skin.</p>
-                        <a href="#" class="line-button">Learn More</a>
                     </div>
                 </div>
             </div>
@@ -187,52 +186,56 @@
         </div>
         <div class="rooms_here">
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/3.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>2,999.00 PHP for 8 Sessions</span>
-                            <h3>Radio Frequency</h3>
+                <a href="{{ route('client.services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/3.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>2,999.00 PHP for 8 Sessions</span>
+                                <h3>Radio Frequency</h3>
+                            </div>
                         </div>
-                        <a href="{{ route('client.booking') }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/4.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>1,499.00 PHP for 3+1 sessions</span>
-                            <h3>Complete facial treatment</h3>
+                <a href="{{ route('client.services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/4.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>1,499.00 PHP for 3+1 sessions</span>
+                                <h3>Complete facial treatment</h3>
+                            </div>
                         </div>
-                        <a href="{{ route('client.booking') }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/8.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>4,999.00 PHP for 10 Sessions</span>
-                            <h3>Immuno Gold</h3>
+                <a href="{{ route('client.services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/8.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>4,999.00 PHP for 10 Sessions</span>
+                                <h3>Immuno Gold</h3>
+                            </div>
                         </div>
-                        <a href="{{ route('client.booking') }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/9.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>7,499.00 PHP for 5 sessions</span>
-                            <h3>Celestial White Drip</h3>
+                <a href="{{ route('client.services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/9.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>7,499.00 PHP for 5 sessions</span>
+                                <h3>Celestial White Drip</h3>
+                            </div>
                         </div>
-                        <a href="{{ 'services' }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
     </div>
@@ -251,7 +254,11 @@
                             </div>
                             <div class="col-xl-6 col-md-6">
                                 <div class="phone_num">
-                                    <a href="{{route('client.booking')}}" class="mobile_no">Contact us</a>
+                                    @auth
+                                        <button onclick="openChat()" class="mobile_no" style="background: #F56289; color: #fff; padding: 12px 53px; border-radius: 30px; display: inline-block; font-size: 18px; border: 1px solid transparent; cursor: pointer; text-decoration: none;">Contact us</button>
+                                    @else
+                                        <a href="{{ route('contact') }}" class="mobile_no">Contact us</a>
+                                    @endauth
                                 </div>
                             </div>
                         </div>

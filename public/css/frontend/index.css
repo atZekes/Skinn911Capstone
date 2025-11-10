@@ -55,3 +55,33 @@
 /* small helpers */
 .video_area.overlay { padding: 0; }
 
+/* Featured Services - Make images clickable */
+.room_thumb_link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    z-index: 1;
+}
+
+.room_thumb_link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.room_thumb_link .room_thumb {
+    position: relative;
+    overflow: hidden;
+}
+
+.room_thumb_link .room_heading {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    /* Transparent background - no background color */
+    color: black; /* Changed from white to black */
+    padding: 15px;
+    z-index: 2;
+}
+

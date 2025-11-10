@@ -148,3 +148,104 @@
     object-position: center top;
     display: block;
 }
+
+/* Clickable Offers - Make images clickable */
+.offer_link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    z-index: 1;
+}
+
+.offer_link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.offer_link .single_offers {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.offer_link:hover .single_offers {
+    transform: translateY(-5px);
+}
+
+.offer_link .about_thumb {
+    position: relative;
+    overflow: hidden;
+}
+
+.offer_link .about_thumb img {
+    transition: transform 0.3s ease;
+}
+
+.offer_link:hover .about_thumb img {
+    transform: scale(1.05);
+}
+
+.offer_link h3 {
+    color: black !important;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.offer_link ul {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.offer_link ul li {
+    color: black !important;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+/* Remove any existing button styles */
+.offer_link .book_now {
+    display: none !important;
+}
+
+/* Featured Services - Make images clickable */
+.room_thumb_link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    z-index: 1;
+}
+
+.room_thumb_link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.room_thumb_link .room_thumb {
+    position: relative;
+    overflow: hidden;
+}
+
+.room_thumb_link .room_heading {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    /* Transparent background - no background color */
+    color: black; /* Changed from white to black */
+    padding: 15px;
+    z-index: 2;
+}
+
+.room_thumb_link .room_heading h3,
+.room_thumb_link .room_heading span {
+    color: black !important;
+}
+
+/* Contact button hover effect - matching frontend styling */
+.forQuery .Query_border .phone_num button:hover {
+    color: #F56289 !important;
+    border: 1px solid #F56289 !important;
+    background: #fff !important;
+}

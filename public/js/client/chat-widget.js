@@ -1,5 +1,19 @@
 // Simple Chat Widget JavaScript
 
+// Global function to open chat (accessible from HTML onclick)
+function openChat() {
+    // Find the chat elements
+    var chatButton = document.getElementById('chatIconButton');
+    var chatWindow = document.getElementById('chatWindow');
+
+    if (chatWindow && chatButton) {
+        // Add 'open' class to show the chat window
+        chatWindow.classList.add('open');
+        // Add 'hidden' class to hide the chat icon button
+        chatButton.classList.add('hidden');
+    }
+}
+
 // Wait for the page to fully load
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -37,8 +51,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Variable to store selected image
     var selectedImage = null;
 
-    // Function to open the chat window
-    function openChat() {
+    // Function to open the chat window (local version for internal use)
+    function openChatInternal() {
         // Add 'open' class to show the chat window
         chatWindow.classList.add('open');
 
@@ -631,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // When user clicks the chat icon button, open the chat
-    chatButton.addEventListener('click', openChat);
+    chatButton.addEventListener('click', openChatInternal);
 
     // When user clicks the close button, close the chat
     closeButton.addEventListener('click', closeChat);

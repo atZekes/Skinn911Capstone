@@ -183,7 +183,7 @@
                         <p>We are committed to delivering exceptional and effective beauty treatments. Our team of skilled professionals utilizes advanced techniques and quality products to address your unique skincare needs.
                             From revitalizing facials to innovative slimming solutions, we are dedicated to helping you achieve your desired results.
                             Experience our wide range of services, all designed to be both high-quality and affordable, ensuring everyone can enjoy the confidence that comes with beautiful, healthy skin.</p>
-                        <a href="#" class="line-button">Learn More</a>
+                        <a href="{{route('aboutus') }}" class="line-button">Learn More</a>
                     </div>
                 </div>
             </div>
@@ -205,53 +205,56 @@
         </div>
         <div class="rooms_here">
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/3.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>2,999.00 PHP for 8 Sessions</span>
-                            <h3>Radio Frequency</h3>
+                <a href="{{ route('services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/3.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>2,999.00 PHP for 8 Sessions</span>
+                                <h3>Radio Frequency</h3>
+                            </div>
                         </div>
-                        <a href="{{ 'services' }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/4.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>1,499.00 PHP for 3+1 sessions</span>
-                            <h3>Complete facial treatment</h3>
+                <a href="{{ route('services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/4.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>1,499.00 PHP for 3+1 sessions</span>
+                                <h3>Complete facial treatment</h3>
+                            </div>
                         </div>
-                        <a href="{{ 'services' }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/8.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>4,999.00 PHP for 10 Sessions</span>
-                            <h3>Immuno Gold</h3>
+                <a href="{{ route('services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/8.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>4,999.00 PHP for 10 Sessions</span>
+                                <h3>Immuno Gold</h3>
+                            </div>
                         </div>
-                        <a href="{{ 'services' }}" class="line-button">book now</a>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="single_rooms">
-                <div class="room_thumb">
-                    <img src="{{ asset('img/services/9.png') }}" alt="">
-                    <div class="room_heading d-flex justify-content-between align-items-center">
-                        <div class="room_heading_inner">
-                            <span>7,499.00 PHP for 5 sessions</span>
-                            <h3>Celestial White Drip</h3>
+                <a href="{{ route('services') }}" class="room_thumb_link">
+                    <div class="room_thumb">
+                        <img src="{{ asset('img/services/9.png') }}" alt="">
+                        <div class="room_heading">
+                            <div class="room_heading_inner">
+                                <span>7,499.00 PHP for 5 sessions</span>
+                                <h3>Celestial White Drip</h3>
+                            </div>
                         </div>
-                        <a href="{{ 'services' }}" class="line-button">book now</a>
                     </div>
-                </div>
-            </div>
+                </a>
         </div>
     </div>
     <!-- features_room_end -->
@@ -270,7 +273,7 @@
                             </div>
                             <div class="col-xl-6 col-md-6">
                                 <div class="phone_num">
-                                    <a href="{{route('login')}}" class="mobile_no">Contact us</a>
+                                    <a href="{{ route('contact') }}" class="mobile_no">Contact us</a>
                                 </div>
                             </div>
                         </div>
@@ -286,7 +289,7 @@
         <div class="single_instagram">
             <img src="{{ asset('img/instragram/1.png') }}" alt="">
             <div class="ovrelay">
-                <a href="#">
+                <a href="https://www.instagram.com/skin911/?hl=en">
                     <i class="fa fa-instagram"></i>
                 </a>
             </div>
