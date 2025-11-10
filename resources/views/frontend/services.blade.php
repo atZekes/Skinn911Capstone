@@ -135,23 +135,23 @@
                                         ? '/img/services/' . $imageMap[$serviceSlug]
                                         : $service->image;
                                 @endphp
-                                <div class="service-card" data-service="{{ $serviceSlug }}">
+                                <div class="service-card" data-service="{{ $serviceSlug }}" style="width:320px;min-width:320px;max-width:320px;border-radius:16px;position:relative;">
                                     <div class="service-image"
-                                         style="background-image:url('{{ asset($correctImage) }}');background-size:cover;background-position:center;">
+                                         style="border-radius:16px 16px 0 0;overflow:hidden;width:100%;height:180px;background-image:url('{{ asset($correctImage) }}');background-size:cover;background-position:center;">
                                     </div>
-                                    <div class="service-info">
-                                        <h4>{{ $service->name }}</h4>
+                                    <div class="p-3 service-info" style="border-radius:0 0 16px 16px;">
+                                        <h4 class="mb-1" style="color:#F56289;font-size:1.1rem;font-weight:600;">{{ $service->name }}</h4>
                                         @if($service->price)
-                                            <p class="price">₱{{ number_format($service->price, 2) }}</p>
+                                            <p class="mb-1 price" style="font-size:1rem;color:#222;"><strong>₱{{ number_format($service->price, 2) }}</strong></p>
                                         @endif
                                         @if($service->sessions)
-                                            <p class="sessions">{{ $service->sessions }}</p>
+                                            <p class="mb-1 sessions" style="font-size:0.95rem;color:#888;">{{ $service->sessions }}</p>
                                         @endif
-                                        <button class="expand-btn">Learn More</button>
+                                        <button class="mt-2 expand-btn btn btn-outline-pink btn-sm w-100" style="border-radius:6px;">Learn More</button>
                                     </div>
-                                    <div class="service-details">
-                                        <h5>Treatment Details</h5>
-                                        <p>{{ $service->treatment_details ?? 'No details available.' }}</p>
+                                    <div class="p-3 service-details" style="display:none;border-radius:0 0 16px 16px;background:#fff;box-shadow:0 2px 12px rgba(245,98,137,0.08);position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;">
+                                        <h5 class="mb-2">Treatment Details</h5>
+                                        <p style="font-size:0.95rem;line-height:1.4;word-break:break-word;margin-bottom:0.5rem;">{{ $service->treatment_details ?? 'No details available.' }}</p>
                                         @if($service->benefits)
                                             <ul>
                                                 @foreach(explode(',', $service->benefits) as $benefit)
@@ -159,9 +159,8 @@
                                                 @endforeach
                                             </ul>
                                         @endif
-                                        <div class="booking-actions">
-                                            <a href="#" class="book-now-btn" data-service-id="{{ $service->id }}">Book Now</a>
-                                            <a href="#" class="consultation-btn back-btn">Back</a>
+                                        <div class="gap-2 mt-3 booking-actions d-flex justify-content-center">
+                                            <a href="#" class="book-now-btn btn btn-pink btn-sm" data-service-id="{{ $service->id }}">Book Now</a>
                                         </div>
                                     </div>
                                 </div>

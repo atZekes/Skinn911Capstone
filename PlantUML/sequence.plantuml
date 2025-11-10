@@ -1,0 +1,71 @@
+@startuml
+title DFD Level 0 — Skin911 Booking System
+
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam backgroundColor #FEFEFE
+skinparam rectangle {
+    BackgroundColor #E1F5FE
+    BorderColor #01579B
+    BorderThickness 2
+}
+
+' External Entities (Terminators)
+actor "Client" as Client #LightBlue
+actor "Staff/Admin" as Staff #LightGreen
+actor "Payment Gateway\n(GCash/PayPal)" as Payment #LightYellow
+actor "Email Service\n(SMTP/Postmark)" as Email #Pink
+actor "Real-time Service\n(Pusher)" as Pusher #Orange
+actor "Chat Bot\n(Botman)" as ChatBot #Purple
+
+' Trust Boundary - Skin911 System
+rectangle "Skin911 Booking System" as SYS #LightCyan {
+    ' Main Process
+    rectangle "Laravel Application" as APP {
+        rectangle "Authentication\n& Authorization" as AUTH
+        rectangle "Booking\nManagement" as BOOKING
+        rectangle "Service\nManagement" as SERVICE
+        rectangle "Notification\nSystem" as NOTIFY
+        rectangle "Chat\nSystem" as CHAT
+        rectangle "Reporting\n& Analytics" as REPORT
+    }
+
+    ' Data Stores
+    database "MySQL Database" as DB {
+        rectangle "Users\n(Admin/Staff/Client)" as USERS
+        rectangle "Bookings\n& Transactions" as BOOKINGS
+        rectangle "Services\n& Packages" as SERVICES
+        rectangle "Branches\n& Staff" as BRANCHES
+    }
+
+    rectangle "File Storage" as FILES {
+        rectangle "Images\n& Uploads" as IMAGES
+    }
+}
+
+' Data Flows
+Client --> APP : Browse services, make bookings, manage profile
+APP --> Client : Service listings, booking confirmations, notifications
+
+Staff --> APP : Manage bookings, services, branches, reports
+APP --> Staff : Booking details, analytics, system status
+
+APP --> Payment : Payment processing requests
+Payment --> APP : Payment confirmations/refunds
+
+APP --> Email : Email notifications (confirmations, reminders, refunds)
+Email --> Client : Booking emails
+
+APP --> Pusher : Real-time notifications
+Pusher --> Client : Live updates (booking status, chat messages)
+
+Client --> ChatBot : Chat inquiries
+ChatBot --> Client : Automated responses
+
+APP --> DB : CRUD operations
+DB --> APP : Data retrieval
+
+APP --> FILES : File uploads/downloads
+FILES --> APP : Stored files
+
+@enduml

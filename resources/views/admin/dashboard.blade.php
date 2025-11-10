@@ -27,16 +27,28 @@
 }
 
 .dashboard-btn {
-    background: #e75480;
+    background: linear-gradient(135deg, #e75480 0%, #ff8ba7 100%);
     color: #fff;
-    border-radius: 8px;
+    border-radius: 12px;
     font-weight: 600;
     margin: 8px 0;
-    min-width: 180px;
+    padding: 8px 16px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(231, 84, 128, 0.3);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 0.9rem;
 }
 
 .dashboard-btn:hover {
-    background: #d13c6a;
+    background: linear-gradient(135deg, #ff8ba7 0%, #e75480 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(231, 84, 128, 0.4);
+    color: #fff;
+    text-decoration: none;
 }
 .modal-pink-header {
     background: #e75480;
@@ -63,15 +75,22 @@
 .btn-view-pink {
     background: #fff;
     color: #e75480;
-    border: 1px solid #e75480;
+    border: 2px solid #e75480;
     border-radius: 8px;
-    padding: 4px 8px;
+    padding: 6px 12px;
     font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
 }
 
 .btn-view-pink:hover {
-    background: #e75480;
+    background: linear-gradient(135deg, #e75480 0%, #ff8ba7 100%);
     color: #fff;
+    border-color: #e75480;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(231, 84, 128, 0.3);
     text-decoration: none;
 }
 
@@ -183,7 +202,7 @@
                                     @endphp
                                     {{ $displayTime }}
                                 </td>
-                                <td><a href="#" class="btn btn-sm btn-view-pink btn-view-booking" data-id="{{ $r->id }}">View</a></td>
+                                <td><a href="#" class="btn btn-sm dashboard-btn btn-view-booking" data-id="{{ $r->id }}"><i class="fas fa-eye me-1"></i>View</a></td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -198,7 +217,7 @@
                     <div style="margin-bottom:10px;"><strong>{{ data_get($b,'name') }}</strong><br><small class="text-muted">Capacity: {{ data_get($b,'slot_capacity', 5) }}</small></div>
                 @endforeach
                 <div class="mt-3 text-center">
-                    <a href="{{ route('admin.promo') }}" class="btn dashboard-btn">Manage Promos</a>
+                    <a href="{{ route('admin.promo') }}" class="btn dashboard-btn"><i class="fas fa-tags me-2"></i>Manage Promos</a>
                     <a href="{{ route('admin.booking-settings') }}" class="btn dashboard-btn">
                         <i class="fas fa-cog me-2"></i>Booking Settings
                     </a>

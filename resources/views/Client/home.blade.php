@@ -78,49 +78,55 @@
             </div>
             <div class="row">
                 <div class="col-xl-4 col-md-4">
-                    <a href="{{ route('client.services') }}" class="offer_link">
-                        <div class="single_offers">
-                            <div class="about_thumb">
-                                <img src="{{ asset('img/skin3.jpg') }}" alt="">
-                            </div>
-                            <h3>Up to 35% savings on Facial</h3>
-                            <ul>
-                                <li>Warts removal</li>
-                                <li>Hydrafacial</li>
-                                <li>Microneedling</li>
-                            </ul>
+                    <div class="single_offers">
+                        <div class="about_thumb">
+                            <img src="{{ asset('img/skin3.jpg') }}" alt="">
                         </div>
-                    </a>
+                        <h3>Up to 35% savings on Facial</h3>
+                        <ul>
+                            <li>Warts removal</li>
+                            <li>Hydrafacial</li>
+                            <li>Microneedling</li>
+                        </ul>
+                        <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
+                            <a href="{{ route('client.services') }}" class="btn btn-outline-pink btn-sm">Learn More</a>
+                            <a href="{{ route('client.booking') }}" class="btn btn-pink btn-sm">Book Now</a>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-xl-4 col-md-4">
-                    <a href="{{ route('client.services') }}" class="offer_link">
-                        <div class="single_offers">
-                            <div class="about_thumb">
-                                <img src="{{ asset('img/skin4.jpg') }}" alt="">
-                            </div>
-                            <h3>Up to 35% savings on Whitening and Rejuvenation</h3>
-                            <ul>
-                                <li>Underarm whitening</li>
-                                <li>Pigmentation Whitening</li>
-                                <li>Skin Rejuvenation</li>
-                            </ul>
+                    <div class="single_offers">
+                        <div class="about_thumb">
+                            <img src="{{ asset('img/skin4.jpg') }}" alt="">
                         </div>
-                    </a>
+                        <h3>Up to 35% savings on Whitening and Rejuvenation</h3>
+                        <ul>
+                            <li>Underarm whitening</li>
+                            <li>Pigmentation Whitening</li>
+                            <li>Skin Rejuvenation</li>
+                        </ul>
+                        <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
+                            <a href="{{ route('client.services') }}" class="btn btn-outline-pink btn-sm">Learn More</a>
+                            <a href="{{ route('client.booking') }}" class="btn btn-pink btn-sm">Book Now</a>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-xl-4 col-md-4">
-                    <a href="{{ route('client.services') }}" class="offer_link">
-                        <div class="single_offers">
-                            <div class="about_thumb">
-                                <img src="{{ asset('img/skin5.jpg') }}" alt="">
-                            </div>
-                            <h3>Up to 35% savings on Slimming</h3>
-                            <ul>
-                                <li>Redio Frequency</li>
-                                <li>Lipo-Cavitation</li>
-                                <li>Trio Slim</li>
-                            </ul>
+                    <div class="single_offers">
+                        <div class="about_thumb">
+                            <img src="{{ asset('img/skin5.jpg') }}" alt="">
                         </div>
-                    </a>
+                        <h3>Up to 35% savings on Slimming</h3>
+                        <ul>
+                            <li>Redio Frequency</li>
+                            <li>Lipo-Cavitation</li>
+                            <li>Trio Slim</li>
+                        </ul>
+                        <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
+                            <a href="{{ route('client.services') }}" class="btn btn-outline-pink btn-sm">Learn More</a>
+                            <a href="{{ route('client.booking') }}" class="btn btn-pink btn-sm">Book Now</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

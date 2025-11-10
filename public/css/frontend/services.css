@@ -1,184 +1,480 @@
-/* Per-view services CSS (copied from public/css/services.css) */
+/* Styles for frontend services page - Beautiful, Modern Design */
 
-.responsive-banner-bg {
-    min-height: 900px;
-    background: url('/img/banner4.png') center center/cover no-repeat;
-}
-@media (max-width: 1199px) {
-    .responsive-banner-bg {
-        background-image: url('/img/banner/banner1.jpg');
-    }
-}
-@media (max-width: 767px) {
-    .responsive-banner-bg {
-        background-image: url('/img/skin2.jpg');
-    }
+/* Page Header Styling */
+.container h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #F56289;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 2px 4px rgba(245, 98, 137, 0.1);
 }
 
-/* Center the booking actions and Book Now buttons */
-.services_area .booking-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 12px;
-}
-.services_area .book-now-btn {
-    display: inline-block;
-    text-align: center;
+/* Category Filter Buttons */
+.category_filter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 2rem;
 }
 
-/* Make treatment details font fit the card */
-.service-details p {
-    font-size: 1.55rem;
-    line-height: 1.4;
-    word-break: break-word;
-    margin-bottom: 0.5rem;
-}
-.service-details h5 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-.service-details ul {
-    font-size: 0.95rem;
-    margin-bottom: 0.5rem;
-}
-.service-card {
-    min-height: 340px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+.filter_btn {
+  padding: 10px 24px;
+  border: 2px solid #F56289;
+  background: #fff;
+  color: #F56289;
+  border-radius: 25px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-size: 0.95rem;
 }
 
-/* Navigation arrows styling */
-.carousel-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.filter_btn:hover {
+  background: #F56289;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 98, 137, 0.3);
 }
 
-.carousel-nav:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translateY(-50%) scale(1.1);
+.filter_btn.active {
+  background: #F56289;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(245, 98, 137, 0.4);
 }
 
-.carousel-nav.prev {
-    left: -20px;
+/* Category Section */
+.category-section {
+  margin-bottom: 3rem;
+  animation: fadeInUp 0.6s ease;
 }
 
-.carousel-nav.next {
-    right: -20px;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.carousel-nav.is-hidden-by-header {
-    display: none !important;
+.category-header h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #F56289;
+  margin-bottom: 0.5rem;
 }
 
-/* Hide arrows on mobile/tablet (handled by JavaScript) */
-@media (max-width: 1199px) {
-    .carousel-nav {
-        display: none !important;
-    }
+.category-header {
+  margin-bottom: 2rem; /* Add spacing below category headers */
 }
 
-/* Make carousel horizontally scrollable with snap points */
+.category-header p {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Carousel layout */
 .services-carousel {
-    position: relative;
-    margin: 20px 0;
-}
-.carousel-container {
-    display: flex;
-    gap: 32px; /* Increased spacing between cards */
-    overflow-x: hidden; /* Hide scrollbar since Owl Carousel handles navigation */
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0; /* Remove padding since no scrollbar */
-    scroll-behavior: smooth; /* smooth scrolling for navigation */
-}
-.carousel-container::-webkit-scrollbar { display: none; } /* Hide scrollbar since Owl Carousel handles navigation */
-.carousel-container .service-card {
-    flex: 0 0 320px; /* fixed card width for consistent snap */
-    scroll-snap-align: start;
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  min-height: 420px;
+  margin: 2rem 0; /* Add vertical spacing around carousels */
 }
 
-/* Owl Carousel overrides for services */
-.services-carousel .owl-carousel {
-    position: static;
+.carousel-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 80px; /* Increased spacing between cards for better visual separation */
+  /* Hide scrollbar since Owl Carousel handles navigation */
+  overflow-x: hidden;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; /* smooth momentum on iOS */
+  scroll-behavior: smooth;
+  /* Add padding to prevent cards from touching edges */
+  padding: 0 16px;
+  /* Enable touch scrolling */
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  /* Ensure it can receive pointer events */
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
-.services-carousel .owl-nav {
+
+.carousel-container:active {
+  cursor: grabbing;
+}
+
+/* Hide scrollbar since Owl Carousel handles navigation */
+.carousel-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile: hide arrow buttons (we rely on native scroll) */
+@media (max-width: 767px) {
+  .carousel-nav { display: none !important; }
+
+  .services-carousel {
+    overflow: visible !important;
+  }
+
+  .carousel-container {
+    /* Hide scrollbar on mobile too since Owl Carousel handles navigation */
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: none; /* Disable snap since Owl Carousel handles positioning */
+    padding: 0 12px;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+  }
+
+  .service-card {
+    scroll-snap-align: start;
+    touch-action: pan-x;
+  }
+}
+
+/* Tablet: ensure scrolling works */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .services-carousel {
+    overflow: visible !important;
+  }
+
+  .carousel-container {
+    overflow-x: scroll !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+  }
+}
+
+/* Remove arrow buttons on desktop too when requested - hide them everywhere */
+.carousel-nav { display: none !important; }
+
+.service-card-client.service-card,
+.service-card {
+  box-sizing: border-box;
+  margin: 0;
+  width: 320px !important;
+  min-width: 320px !important;
+  max-width: 320px !important;
+  height: 400px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(245,98,137,0.12), 0 2px 8px rgba(0,0,0,0.08);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(245,98,137,0.1);
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(245,98,137,0.25), 0 4px 12px rgba(0,0,0,0.12);
+  border-color: rgba(245,98,137,0.3);
+}
+
+.service-card .service-image {
+  position: relative;
+  overflow: hidden;
+  height: 180px;
+}
+
+.service-card-client .service-image img,
+.service-card .service-image img {
+  border-radius: 20px 20px 0 0;
+  transition: transform 0.4s ease;
+}
+
+.service-card:hover .service-image img {
+  transform: scale(1.08);
+}
+
+/* Treatment details container on hover - using the same expand card */
+.service-card .service-details {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: linear-gradient(135deg, #fff 0%, #fff5f8 100%);
+    border: 2px solid #F56289;
+    border-radius: 20px;
+    box-shadow: 0 12px 35px rgba(245,98,137,0.4);
+    padding: 2rem !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 1000;
+    margin-top: 15px;
+    width: 800px;
+    max-width: 95vw;
+    height: auto;
+    overflow: visible;
     pointer-events: none;
 }
-.services-carousel .owl-nav button {
-    pointer-events: all;
-    background: rgba(0, 0, 0, 0.7) !important;
-    color: white !important;
-    border: none !important;
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 50% !important;
-    font-size: 18px !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin: 0 !important;
-}
-.services-carousel .owl-nav button:hover {
-    background: rgba(0, 0, 0, 0.9) !important;
-    transform: scale(1.1) !important;
-}
-.services-carousel .owl-nav button.owl-prev {
-    left: -20px;
-}
-.services-carousel .owl-nav button.owl-next {
-    right: -20px;
-}
-.services-carousel .owl-nav button span {
-    font-size: 18px !important;
+
+.service-card:hover .service-details {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
 }
 
-/* Hide Owl Carousel dots */
-.services-carousel .owl-dots {
-    display: none;
+.service-card .service-info {
+  padding: 1.25rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 220px; /* Fixed height for consistent card sizing */
+  overflow: hidden; /* Prevent content overflow */
 }
 
-/* Responsive adjustments */
-@media (max-width: 1199px) {
-    .services-carousel .owl-nav {
-        display: none;
-    }
+.service-card .service-info h4 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #F56289;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  min-height: 2.6rem; /* Ensure consistent title height */
 }
 
-/* Improve pointer feedback on draggable area */
-.carousel-container.is-dragging { cursor: grabbing; cursor: -webkit-grabbing; }
+.service-card .service-info .price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
 
-/* ============================================
-   SERVICE IMAGE OVERRIDES
-   You can override specific service images here
-   by targeting the data-service attribute
-   ============================================ */
+.service-card .service-info .sessions {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-/* FACIAL SERVICES - Image Overrides */
+.service-card .expand-btn {
+  background: linear-gradient(135deg, #F56289 0%, #ff8ba7 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(245,98,137,0.3);
+  margin-top: auto; /* Push button to bottom */
+}
+
+.service-card .expand-btn:hover {
+  background: linear-gradient(135deg, #ff8ba7 0%, #F56289 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245,98,137,0.4);
+}
+
+.service-details {
+  background: linear-gradient(135deg, #fff 0%, #fff5f8 100%);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(245,98,137,0.15);
+  padding: 1.5rem !important;
+  animation: slideIn 0.3s ease;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.service-details h5 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #F56289;
+  border-bottom: 2px solid #F56289;
+  padding-bottom: 0.5rem;
+}
+
+.service-details p {
+  font-size: 0.95rem !important;
+  line-height: 1.7;
+  word-break: break-word;
+  margin-bottom: 1rem;
+  color: #555;
+}
+
+.service-details .booking-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 1.5rem;
+}
+
+.service-details ul {
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  color: #666;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.service-details ul li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.service-details ul li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #F56289;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.booking-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 1.25rem;
+}
+
+.book-now-btn {
+  display: inline-block;
+  text-align: center;
+  background: linear-gradient(135deg, #F56289 0%, #ff8ba7 100%);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(245,98,137,0.3);
+}
+
+.book-now-btn:hover {
+  background: linear-gradient(135deg, #ff8ba7 0%, #F56289 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245,98,137,0.4);
+  color: #fff;
+  text-decoration: none;
+}
+
+.consultation-btn.back-btn {
+  background: #fff;
+  color: #666;
+  border: 2px solid #ddd;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.consultation-btn.back-btn:hover {
+  background: #f8f8f8;
+  border-color: #F56289;
+  color: #F56289;
+  transform: translateY(-2px);
+}
+
+/* Owl Carousel Navigation Styles */
+.owl-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.owl-nav button {
+  width: 40px;
+  height: 40px;
+  background: #F56289 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(245, 98, 137, 0.3) !important;
+  pointer-events: auto !important;
+  z-index: 10 !important;
+}
+
+.owl-nav button:hover {
+  background: #d13c6a !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(245, 98, 137, 0.4) !important;
+}
+
+.owl-nav button.owl-prev {
+  left: -20px;
+}
+
+.owl-nav button.owl-next {
+  right: -20px;
+}
+
+/* Hide navigation on mobile/tablet */
+@media (max-width: 767px) {
+  .owl-nav {
+    display: none !important;
+  }
+}
+
+/* Hide arrows when header is sticky */
+.is-hidden-by-header {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.category_filter .filter_btn {
+  border: 1px solid #F56289;
+  color: #F56289;
+  background: #fff;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.category_filter .filter_btn.active,
+.category_filter .filter_btn:hover {
+  background: #F56289;
+  color: #fff;
+}
 
 

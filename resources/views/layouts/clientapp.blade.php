@@ -247,7 +247,7 @@
 						<div class="footer_widget">
 							<h3 class="footer_title">Address</h3>
 							<p class="footer_text"> Skin911 Premier - Banilad Town Center </p>
-							<a href="#" class="line-button">Get Direction</a>
+							<p class="footer_text"> Banilad, Mandaue City, Cebu </p>
 						</div>
 					</div>
 					<div class="col-xl-3 col-md-6 col-lg-3">

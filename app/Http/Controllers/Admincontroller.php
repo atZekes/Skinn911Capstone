@@ -351,6 +351,22 @@ class Admincontroller extends Controller{
             'gcash_qr' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
         $branch = Branch::findOrFail($branchId);
+
+        // Validate that new slot_capacity doesn't violate existing bookings
+        $newSlotCapacity = $request->slot_capacity;
+        $maxConcurrentBookings = \App\Models\Booking::where('branch_id', $branchId)
+            ->where('status', 'active')
+            ->selectRaw('date, time_slot, COUNT(*) as booking_count')
+            ->groupBy('date', 'time_slot')
+            ->orderBy('booking_count', 'desc')
+            ->first();
+
+        if ($maxConcurrentBookings && $maxConcurrentBookings->booking_count > $newSlotCapacity) {
+            return redirect()->back()->withErrors([
+                'slot_capacity' => "Cannot set slot capacity to {$newSlotCapacity}. There are already {$maxConcurrentBookings->booking_count} bookings for {$maxConcurrentBookings->date} at {$maxConcurrentBookings->time_slot}."
+            ])->withInput();
+        }
+
         $branch->name = $request->name;
         $branch->address = $request->address;
 

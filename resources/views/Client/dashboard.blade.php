@@ -703,8 +703,6 @@
                                                     data-booking-date="{{ $booking->date }}"
                                                     data-branch-id="{{ $booking->branch->id ?? '' }}"
                                                     data-service-name="{{ $pkgToShow ? $pkgToShow->name : ($booking->service ? $booking->service->name : '-') }}"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#rescheduleModal{{ $booking->id }}"
                                                     style="border-radius: 8px;">
                                                     <i class="fas fa-calendar-alt me-1"></i>Reschedule
                                                 </button>
@@ -752,6 +750,125 @@
             </div>
         </div>
     </div>
+
+    <!-- Reschedule Booking Modals for Initial Page Load -->
+    @foreach($activeBookings as $booking)
+        @if(strtolower($booking->status) === 'active')
+        <div class="modal fade" id="rescheduleModal{{ $booking->id }}" tabindex="-1" aria-labelledby="rescheduleModalLabel{{ $booking->id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 15px;">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); border-radius: 15px 15px 0 0;">
+                        <h5 class="modal-title text-white" id="rescheduleModalLabel{{ $booking->id }}">
+                            <i class="fas fa-calendar-alt me-2"></i>Reschedule Booking
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ route('client.booking.reschedule', $booking->id) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Service:</strong></label>
+                                <p class="text-muted">
+                                    @php
+                                        $pkgToShow = $booking->package ?? null;
+                                        if (!$pkgToShow) {
+                                            $purchasedIds = \App\Models\PurchasedService::where('booking_id', $booking->id)->pluck('service_id')->toArray();
+                                            if (count($purchasedIds) > 1) {
+                                                $candidates = \App\Models\Package::where(function($q) use ($booking) {
+                                                    $branchId = $booking->branch->id ?? null;
+                                                    if ($branchId) {
+                                                        $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                                                    }
+                                                })->get();
+                                                foreach ($candidates as $c) {
+                                                    $pkgServiceIds = $c->services->pluck('id')->toArray();
+                                                    if (!array_diff($purchasedIds, $pkgServiceIds)) {
+                                                        $pkgToShow = $c;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    @endphp
+                                    {{ $pkgToShow ? $pkgToShow->name : ($booking->service ? $booking->service->name : '-') }}
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Current Date:</strong></label>
+                                <p class="text-muted">{{ \Carbon\Carbon::parse($booking->date)->format('F d, Y') }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label for="new_date_{{ $booking->id }}" class="form-label"><strong>New Date:</strong></label>
+                                <input type="date"
+                                    class="form-control"
+                                    id="new_date_{{ $booking->id }}"
+                                    name="new_date"
+                                    min="{{ \Carbon\Carbon::parse($booking->date)->addDays(3)->format('Y-m-d') }}"
+                                    required>
+                                <small class="text-muted">You can only reschedule to a date at least 3 days from your current booking date.</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="new_time_{{ $booking->id }}" class="form-label"><strong>New Time Slot:</strong></label>
+                                <select class="form-select" id="new_time_{{ $booking->id }}" name="new_time_slot" required>
+                                    <option value="">Select a time slot</option>
+                                    @php
+                                        $branch = $booking->branch;
+
+                                        // Calculate service duration
+                                        $serviceDuration = 1; // default
+                                        if ($booking->package_id) {
+                                            $pkg = \App\Models\Package::find($booking->package_id);
+                                            if ($pkg) {
+                                                $serviceDuration = $pkg->duration ?? 1;
+                                            }
+                                        } elseif ($booking->service_id) {
+                                            $svc = \App\Models\Service::find($booking->service_id);
+                                            if ($svc) $serviceDuration = $svc->duration ?? 1;
+                                        }
+
+                                        if ($branch && $branch->time_slot) {
+                                            [$start, $end] = explode(' - ', $branch->time_slot);
+                                            $startTime = \Carbon\Carbon::createFromFormat('H:i', trim($start));
+                                            $endTime = \Carbon\Carbon::createFromFormat('H:i', trim($end));
+
+                                            // Generate slots that can accommodate the full service duration
+                                            $currentTime = $startTime->copy();
+                                            while ($currentTime->copy()->addHours($serviceDuration)->lte($endTime)) {
+                                                $slotStart = $currentTime->format('H:i');
+                                                $slotEnd = $currentTime->copy()->addHours($serviceDuration)->format('H:i');
+                                                $displaySlot = $currentTime->format('g:i A') . ' - ' . $currentTime->copy()->addHours($serviceDuration)->format('g:i A');
+
+                                                // Add duration info for multi-hour services
+                                                if ($serviceDuration > 1) {
+                                                    $displaySlot .= " ({$serviceDuration} hour" . ($serviceDuration > 1 ? 's' : '') . ")";
+                                                }
+
+                                                echo '<option value="' . $slotStart . ' - ' . $slotEnd . '">' . $displaySlot . '</option>';
+                                                $currentTime->addHours($serviceDuration);
+                                            }
+                                        }
+                                    @endphp
+                                </select>
+                                @error('new_time_slot')
+                                    <div class="text-danger mt-1">
+                                        <small>{{ $message }}</small>
+                                    </div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn" style="background:#F56289;color:#fff;">
+                                <i class="fas fa-check me-2"></i>Confirm Reschedule
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endif
+    @endforeach
 
     <!-- Quick Links Section -->
     <div class="row justify-content-center mb-4">
@@ -821,96 +938,7 @@
     </div>
 </div>
 
-<!-- Reschedule Booking Modals -->
-@foreach($activeBookings as $booking)
-<div class="modal fade" id="rescheduleModal{{ $booking->id }}" tabindex="-1" aria-labelledby="rescheduleModalLabel{{ $booking->id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 15px;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); border-radius: 15px 15px 0 0;">
-                <h5 class="modal-title text-white" id="rescheduleModalLabel{{ $booking->id }}">
-                    <i class="fas fa-calendar-alt me-2"></i>Reschedule Booking
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('client.booking.reschedule', $booking->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Service:</strong></label>
-                        <p class="text-muted">
-                            @php
-                                $pkgToShow = $booking->package ?? null;
-                                if (!$pkgToShow) {
-                                    $purchasedIds = \App\Models\PurchasedService::where('booking_id', $booking->id)->pluck('service_id')->toArray();
-                                    if (count($purchasedIds) > 1) {
-                                        $candidates = \App\Models\Package::where(function($q) use ($booking) {
-                                            $branchId = $booking->branch->id ?? null;
-                                            if ($branchId) {
-                                                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
-                                            }
-                                        })->get();
-                                        foreach ($candidates as $c) {
-                                            $pkgServiceIds = $c->services->pluck('id')->toArray();
-                                            if (!array_diff($purchasedIds, $pkgServiceIds)) {
-                                                $pkgToShow = $c;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            @endphp
-                            {{ $pkgToShow ? $pkgToShow->name : ($booking->service ? $booking->service->name : '-') }}
-                        </p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Current Date:</strong></label>
-                        <p class="text-muted">{{ \Carbon\Carbon::parse($booking->date)->format('F d, Y') }}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label for="new_date_{{ $booking->id }}" class="form-label"><strong>New Date:</strong></label>
-                        <input type="date"
-                            class="form-control"
-                            id="new_date_{{ $booking->id }}"
-                            name="new_date"
-                            min="{{ \Carbon\Carbon::parse($booking->date)->addDays(3)->format('Y-m-d') }}"
-                            required>
-                        <small class="text-muted">You can only reschedule to a date at least 3 days from your current booking date.</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="new_time_{{ $booking->id }}" class="form-label"><strong>New Time Slot:</strong></label>
-                        <select class="form-select" id="new_time_{{ $booking->id }}" name="new_time_slot" required>
-                            <option value="">Select a time slot</option>
-                            @php
-                                $branch = $booking->branch;
-                                if ($branch && $branch->time_slot) {
-                                    [$start, $end] = explode(' - ', $branch->time_slot);
-                                    $startTime = \Carbon\Carbon::createFromFormat('H:i', trim($start));
-                                    $endTime = \Carbon\Carbon::createFromFormat('H:i', trim($end));
 
-                                    while ($startTime->lt($endTime)) {
-                                        $slotStart = $startTime->format('H:i');
-                                        $slotEnd = $startTime->copy()->addHour()->format('H:i');
-                                        $displaySlot = $startTime->format('g:i A') . ' - ' . $startTime->copy()->addHour()->format('g:i A');
-                                        echo '<option value="' . $slotStart . ' - ' . $slotEnd . '">' . $displaySlot . '</option>';
-                                        $startTime->addHour();
-                                    }
-                                }
-                            @endphp
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn" style="background:#F56289;color:#fff;">
-                        <i class="fas fa-check me-2"></i>Confirm Reschedule
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endforeach
 
 <!-- Cancel All Bookings Modal -->
 <div class="modal fade" id="cancelAllModal" tabindex="-1" aria-labelledby="cancelAllModalLabel" aria-hidden="true">
@@ -1062,6 +1090,15 @@
                     .then(data => {
                         if (data.html) {
                             bookingTableBody.innerHTML = data.html;
+
+                            // Handle modals if present in response
+                            if (data.modals) {
+                                // Remove existing reschedule modals
+                                document.querySelectorAll('[id^="rescheduleModal"]').forEach(modal => modal.remove());
+                                // Add new modals directly to the body
+                                document.body.insertAdjacentHTML('beforeend', data.modals);
+                            }
+
                             // Reattach event listeners to new buttons
                             attachCancelButtonListeners();
                         } else {
@@ -1104,11 +1141,9 @@
                 document.querySelectorAll('.reschedule-booking-btn').forEach(btn => {
                     const bookingId = btn.getAttribute('data-booking-id');
                     if (bookingId) {
-                        // Add modal trigger attributes if not present
-                        if (!btn.hasAttribute('data-bs-toggle')) {
-                            btn.setAttribute('data-bs-toggle', 'modal');
-                            btn.setAttribute('data-bs-target', '#rescheduleModal' + bookingId);
-                        }
+                        // Always set modal trigger attributes to ensure they point to the correct dynamic modal
+                        btn.setAttribute('data-bs-toggle', 'modal');
+                        btn.setAttribute('data-bs-target', '#rescheduleModal' + bookingId);
                     }
                 });
 

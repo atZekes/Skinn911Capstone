@@ -659,3 +659,102 @@
     border-color: #6c757d;
     color: white;
 }
+
+/* Custom filter button styles for peak booking hours */
+.btn-filter {
+    border: 2px solid #e75480;
+    color: #e75480;
+    background-color: transparent;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-filter:hover {
+    background-color: #e75480;
+    border-color: #e75480;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 84, 128, 0.3);
+}
+
+.btn-filter.active {
+    background-color: #e75480;
+    border-color: #e75480;
+    color: white;
+    box-shadow: 0 2px 8px rgba(231, 84, 128, 0.4);
+}
+
+.btn-filter i {
+    margin-right: 6px;
+}
+
+/* Filter dropdown styling */
+.filter-dropdown .form-select {
+    border: 1px solid #e75480 !important;
+    color: #e75480 !important;
+    background-color: white !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    padding: 6px 10px !important;
+    height: auto !important;
+    min-width: 120px !important;
+    max-width: 140px !important;
+    transition: all 0.3s ease !important;
+}
+
+.filter-dropdown .form-select:focus {
+    border-color: #e75480 !important;
+    box-shadow: 0 0 0 0.15rem rgba(231, 84, 128, 0.15) !important;
+    color: #e75480 !important;
+}
+
+.filter-dropdown .form-select:hover {
+    border-color: #d13c6a !important;
+    color: #d13c6a !important;
+}
+
+/* Responsive filter dropdowns */
+@media (max-width: 768px) {
+    .filter-dropdown {
+        width: 100% !important;
+    }
+
+    .filter-dropdown .form-select {
+        width: 100% !important;
+        min-width: auto !important;
+    }
+
+    /* Adjust chart title and filter container layout */
+    .d-flex.justify-content-between.align-items-center {
+        flex-direction: column !important;
+        gap: 15px !important;
+        align-items: stretch !important;
+    }
+
+    .chart-title {
+        text-align: center !important;
+        margin-bottom: 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .filter-dropdown .form-select {
+        font-size: 0.8rem !important;
+        padding: 5px 8px !important;
+        min-width: 100px !important;
+        max-width: 120px !important;
+    }
+}
+
+/* Chart type dropdown styling */
+.d-flex.gap-2 {
+    gap: 0.5rem !important;
+}
+
+.d-flex.gap-2 .filter-dropdown {
+    margin: 0;
+}

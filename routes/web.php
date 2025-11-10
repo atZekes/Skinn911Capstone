@@ -230,6 +230,9 @@ Route::post('/ceo/login', [App\Http\Controllers\CEOController::class, 'login'])-
 // CEO protected routes - all use the same 'ceo' guard middleware
 Route::middleware('ceo')->group(function () {
     Route::get('/ceo/dashboard', [App\Http\Controllers\CEOController::class, 'dashboard'])->name('ceo.dashboard');
+    Route::get('/ceo/peak-hours-data', [App\Http\Controllers\CEOController::class, 'getPeakHoursData'])->name('ceo.peak.hours.data');
+    Route::get('/ceo/retention-data', [App\Http\Controllers\CEOController::class, 'getRetentionData'])->name('ceo.retention.data');
+    Route::get('/ceo/revenue-data', [App\Http\Controllers\CEOController::class, 'getRevenueData'])->name('ceo.revenue.data');
     Route::post('/ceo/compare-branches', [CEOController::class, 'compareBranches'])->name('ceo.compare.branches');
     Route::get('/ceo/adduseradmin', [App\Http\Controllers\CEOController::class, 'addUserAdmin'])->name('ceo.adduseradmin');
     Route::get('/ceo/user-manage', [App\Http\Controllers\CEOController::class, 'userManage'])->name('ceo.usermanage');

@@ -172,8 +172,8 @@ public function submitBooking(Request $request)
                 [$slotStartStr, $slotEndStr] = explode('-', $request->time_slot, 2);
                 $slotStart = \Carbon\Carbon::createFromFormat('H:i', $slotStartStr);
                 $slotEnd = \Carbon\Carbon::createFromFormat('H:i', $slotEndStr);
-                $breakStart = \Carbon\Carbon::createFromFormat('H:i', $branch->break_start);
-                $breakEnd = \Carbon\Carbon::createFromFormat('H:i', $branch->break_end);
+                $breakStart = \Carbon\Carbon::createFromFormat('H:i:s', $branch->break_start);
+                $breakEnd = \Carbon\Carbon::createFromFormat('H:i:s', $branch->break_end);
                 // overlap if slotStart < breakEnd and slotEnd > breakStart
                 if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
                     return redirect()->back()->withErrors(['time_slot' => 'Selected time falls within branch break time. Please choose another slot.'])->withInput();
@@ -578,87 +578,79 @@ public function rescheduleBooking(Request $request, $id)
     // Calculate required slots based on service/package duration
     $requiredSlots = [$request->new_time_slot];
 
-    // Determine total duration in hours for service or package
-    $totalDuration = 1;
-    if ($booking->package_id) {
-        $pkg = \App\Models\Package::with('services')->find($booking->package_id);
-        if ($pkg) {
-            $totalDuration = 0;
-            foreach ($pkg->services as $svc) {
-                $totalDuration += ($svc->duration ?? 1);
-            }
-        }
-    } elseif ($booking->service_id) {
-        $svc = \App\Models\Service::find($booking->service_id);
-        if ($svc) $totalDuration = $svc->duration ?? 1;
-    }
+    // For rescheduling, we only need to check the single selected time slot
+    // since the modal now shows slots that span the full service duration
+    // No need to calculate multiple slots like in new booking
 
-    // If duration > 1, compute subsequent hourly slots
-    if ($totalDuration > 1) {
+    // Check break time overlap for all required slots
+    if ($branch && $branch->break_start && $branch->break_end) {
         try {
-            [$startStr, $endStr] = explode('-', $request->new_time_slot, 2);
-            $start = \Carbon\Carbon::createFromFormat('H:i', trim($startStr));
-            for ($i = 1; $i < $totalDuration; $i++) {
-                $s = $start->copy()->addHours($i);
-                $e = $s->copy()->addHour();
-                $requiredSlots[] = $s->format('H:i') . '-' . $e->format('H:i');
+            $breakStart = \Carbon\Carbon::createFromFormat('H:i:s', $branch->break_start);
+            $breakEnd = \Carbon\Carbon::createFromFormat('H:i:s', $branch->break_end);
+
+            foreach ($requiredSlots as $slot) {
+                [$slotStartStr, $slotEndStr] = explode('-', $slot, 2);
+                $slotStart = \Carbon\Carbon::createFromFormat('H:i', trim($slotStartStr));
+                $slotEnd = \Carbon\Carbon::createFromFormat('H:i', trim($slotEndStr));
+
+                // Check for overlap: slot overlaps with break if slotStart < breakEnd and slotEnd > breakStart
+                if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
+                    return redirect()->back()->withErrors(['new_time_slot' => 'Selected time falls within branch break time. Please choose another slot.']);
+                }
             }
         } catch (\Exception $e) {
-            // fallback: just use the provided slot
-        }
-    }
-
-    // Ensure required slots fit within branch operating slots (don't overflow branch end)
-    if ($branch) {
-        // derive branch slots similarly to getFullSlots
-        $branchSlots = ["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"];
-        if ($branch->time_slot && strpos($branch->time_slot, ' - ') !== false) {
-            try {
-                [$bs,$be] = explode(' - ', $branch->time_slot, 2);
-                $startRange = \Carbon\Carbon::createFromFormat('H:i', $bs);
-                $endRange = \Carbon\Carbon::createFromFormat('H:i', $be);
-                $branchSlots = [];
-                for ($t = $startRange->copy(); $t->lt($endRange); $t->addHour()) {
-                    $slotStart = $t->format('H:i');
-                    $slotEnd = $t->copy()->addHour()->format('H:i');
-                    if (\Carbon\Carbon::createFromFormat('H:i', $slotEnd)->lte($endRange)) {
-                        $branchSlots[] = $slotStart . '-' . $slotEnd;
-                    }
-                }
-            } catch (\Exception $e) { /* ignore and use defaults */ }
-        }
-        foreach ($requiredSlots as $rs) {
-            if (! in_array($rs, $branchSlots)) {
-                return redirect()->back()->withErrors(['new_time_slot' => 'Selected start time cannot fit the full service duration within branch operating hours.']);
-            }
+            // ignore parsing errors and let other validations handle it
         }
     }
 
     // Use database transaction to prevent race conditions during rescheduling
-    $result = \DB::transaction(function () use ($booking, $request, $requiredSlots, $newDate, $branch) {
-        $slotCapacity = $branch->slot_capacity ?? 1;
+    try {
+        $result = \DB::transaction(function () use ($booking, $request, $requiredSlots, $newDate, $branch) {
+            $slotCapacity = $branch->slot_capacity ?? 1;
+            foreach ($requiredSlots as $slot) {
+                // Parse the requested slot
+                [$reqStartStr, $reqEndStr] = explode('-', $slot, 2);
+                $reqStart = \Carbon\Carbon::createFromFormat('H:i', trim($reqStartStr));
+                $reqEnd = \Carbon\Carbon::createFromFormat('H:i', trim($reqEndStr));
 
-        // Final capacity check within transaction to prevent race conditions
-        foreach ($requiredSlots as $slot) {
-            $existingCount = \App\Models\Booking::where('branch_id', $branch->id)
-                ->where('date', $newDate->format('Y-m-d'))
-                ->where('time_slot', $slot)
-                ->where('status', 'active')
-                ->where('id', '!=', $booking->id) // Exclude current booking
-                ->lockForUpdate() // Lock rows for update to prevent concurrent modifications
-                ->count();
-            if ($existingCount >= $slotCapacity) {
-                throw new \Exception('One or more required time slots are fully booked. Please select another start time.');
+                // Count existing bookings that overlap with this slot
+                $existingCount = 0;
+                $existingBookings = \App\Models\Booking::where('branch_id', $branch->id)
+                    ->where('date', $newDate->format('Y-m-d'))
+                    ->where('status', 'active')
+                    ->where('id', '!=', $booking->id) // Exclude current booking
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($existingBookings as $existingBooking) {
+                    // Parse existing booking time slot
+                    if (strpos($existingBooking->time_slot, '-') !== false) {
+                        [$existStartStr, $existEndStr] = explode('-', $existingBooking->time_slot, 2);
+                        $existStart = \Carbon\Carbon::createFromFormat('H:i', trim($existStartStr));
+                        $existEnd = \Carbon\Carbon::createFromFormat('H:i', trim($existEndStr));
+
+                        // Check for overlap: bookings overlap if start1 < end2 && end1 > start2
+                        if ($reqStart->lt($existEnd) && $reqEnd->gt($existStart)) {
+                            $existingCount++;
+                        }
+                    }
+                }
+
+                if ($existingCount >= $slotCapacity) {
+                    throw new \Exception('The time slots you chose are fully booked. Please select another start time.');
+                }
             }
-        }
 
-        // Update the booking within the transaction
-        $booking->date = $newDate->format('Y-m-d');
-        $booking->time_slot = $request->new_time_slot;
-        $booking->save();
+            // Update the booking within the transaction
+            $booking->date = $newDate->format('Y-m-d');
+            $booking->time_slot = $request->new_time_slot;
+            $booking->save();
 
-        return $booking;
-    });
+            return $booking;
+        });
+    } catch (\Exception $e) {
+        return redirect()->back()->withErrors(['new_time_slot' => $e->getMessage()]);
+    }
 
     // Send reschedule confirmation email
     try {
@@ -1134,6 +1126,134 @@ public function calendarViewer()
             $html .= '</div></td></tr>';
         }
 
-        return response()->json(['html' => $html]);
+        // Generate reschedule modals for active bookings
+        $modalsHtml = '';
+        foreach ($activeBookings as $booking) {
+            if (strtolower($booking->status) === 'active') {
+                $modalsHtml .= $this->generateRescheduleModal($booking);
+            }
+        }
+
+        return response()->json(['html' => $html, 'modals' => $modalsHtml]);
+    }
+
+    private function generateRescheduleModal($booking)
+    {
+        $modalHtml = '<div class="modal fade" id="rescheduleModal' . $booking->id . '" tabindex="-1" aria-labelledby="rescheduleModalLabel' . $booking->id . '" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title text-white" id="rescheduleModalLabel' . $booking->id . '">
+                    <i class="fas fa-calendar-alt me-2"></i>Reschedule Booking
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="' . route('client.booking.reschedule', $booking->id) . '" method="POST">
+                <input type="hidden" name="_token" value="' . csrf_token() . '">
+                <input type="hidden" name="_method" value="PUT">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Service:</strong></label>
+                        <p class="text-muted">';
+
+        // Get service/package name
+        $pkgToShow = $booking->package ?? null;
+        if (!$pkgToShow) {
+            $purchasedIds = \App\Models\PurchasedService::where('booking_id', $booking->id)->pluck('service_id')->toArray();
+            if (count($purchasedIds) > 1) {
+                $candidates = \App\Models\Package::where(function($q) use ($booking) {
+                    $branchId = $booking->branch->id ?? null;
+                    if ($branchId) {
+                        $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                    }
+                })->get();
+                foreach ($candidates as $c) {
+                    $pkgServiceIds = $c->services->pluck('id')->toArray();
+                    if (!array_diff($purchasedIds, $pkgServiceIds)) {
+                        $pkgToShow = $c;
+                        break;
+                    }
+                }
+            }
+        }
+        $modalHtml .= htmlspecialchars($pkgToShow ? $pkgToShow->name : ($booking->service ? $booking->service->name : '-'));
+
+        $modalHtml .= '</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Current Date:</strong></label>
+                        <p class="text-muted">' . \Carbon\Carbon::parse($booking->date)->format('F d, Y') . '</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_date_' . $booking->id . '" class="form-label"><strong>New Date:</strong></label>
+                        <input type="date"
+                            class="form-control"
+                            id="new_date_' . $booking->id . '"
+                            name="new_date"
+                            min="' . \Carbon\Carbon::parse($booking->date)->addDays(3)->format('Y-m-d') . '"
+                            required>
+                        <small class="text-muted">You can only reschedule to a date at least 3 days from your current booking date.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_time_' . $booking->id . '" class="form-label"><strong>New Time Slot:</strong></label>
+                        <select class="form-select" id="new_time_' . $booking->id . '" name="new_time_slot" required>
+                            <option value="">Select a time slot</option>';
+
+        // Calculate service duration
+        $serviceDuration = 1; // default
+        if ($booking->package_id) {
+            $pkg = \App\Models\Package::find($booking->package_id);
+            if ($pkg) {
+                $serviceDuration = $pkg->duration ?? 1;
+            }
+        } elseif ($booking->service_id) {
+            $svc = \App\Models\Service::find($booking->service_id);
+            if ($svc) $serviceDuration = $svc->duration ?? 1;
+        }
+
+        // Generate time slots
+        $branch = $booking->branch;
+        if ($branch && $branch->time_slot) {
+            [$start, $end] = explode(' - ', $branch->time_slot);
+            $startTime = \Carbon\Carbon::createFromFormat('H:i', trim($start));
+            $endTime = \Carbon\Carbon::createFromFormat('H:i', trim($end));
+
+            // Generate slots that can accommodate the full service duration
+            $currentTime = $startTime->copy();
+            while ($currentTime->copy()->addHours($serviceDuration)->lte($endTime)) {
+                $slotStart = $currentTime->format('H:i');
+                $slotEnd = $currentTime->copy()->addHours($serviceDuration)->format('H:i');
+                $displaySlot = $currentTime->format('g:i A') . ' - ' . $currentTime->copy()->addHours($serviceDuration)->format('g:i A');
+
+                // Add duration info for multi-hour services
+                if ($serviceDuration > 1) {
+                    $displaySlot .= " ({$serviceDuration} hour" . ($serviceDuration > 1 ? 's' : '') . ")";
+                }
+
+                $modalHtml .= '<option value="' . $slotStart . ' - ' . $slotEnd . '">' . $displaySlot . '</option>';
+                $currentTime->addHours($serviceDuration);
+            }
+        }
+
+        $modalHtml .= '</select>
+                    @error(\'new_time_slot\')
+                        <div class="text-danger mt-1">
+                            <small>{{ $message }}</small>
+                        </div>
+                    @enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn" style="background:#F56289;color:#fff;">
+                        <i class="fas fa-check me-2"></i>Confirm Reschedule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>';
+
+        return $modalHtml;
     }
 }

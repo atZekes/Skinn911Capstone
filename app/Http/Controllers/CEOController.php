@@ -93,8 +93,11 @@ class CEOController extends Controller
             // Top Performing Services
             $topServices = $this->getTopServices();
 
-            // Client Acquisition Trends
-            $clientAcquisition = $this->getClientAcquisition();
+            // Client Retention Analysis
+            $clientRetention = $this->getClientRetention();
+
+            // Peak Booking Hours Analysis
+            $peakBookingHours = $this->getPeakBookingHours();
 
             // Calculate growth percentages
             $bookingGrowth = $lastMonthBookings > 0 ?
@@ -132,9 +135,10 @@ class CEOController extends Controller
             'branchPerformance',
             'revenueGrowth',
             'topServices',
-            'clientAcquisition',
+            'clientRetention',
             'bookingGrowth',
             'revenueGrowthPercent',
+            'peakBookingHours',
             'branches'
         ));
     }
@@ -255,6 +259,62 @@ class CEOController extends Controller
             return [
                 'months' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                 'newClients' => [0, 0, 0, 0, 0, 0]
+            ];
+        }
+    }
+
+    private function getClientRetention($days = null)
+    {
+        try {
+            // If days is specified, filter by time period, otherwise get all-time data
+            $query = \App\Models\Booking::whereNotNull('user_id');
+
+            if ($days) {
+                $query->where('created_at', '>=', now()->subDays($days));
+            }
+
+            $bookings = $query->get();
+
+            if ($bookings->isEmpty()) {
+                return [
+                    'total_customers' => 0,
+                    'repeat_customers' => 0,
+                    'retention_rate' => 0,
+                    'average_bookings_per_customer' => 0,
+                    'period' => $days ? ($days === 7 ? 'Week' : ($days === 30 ? 'Month' : 'Quarter')) : 'All Time'
+                ];
+            }
+
+            // Count unique customers who made bookings
+            $totalCustomers = $bookings->pluck('user_id')->unique()->count();
+
+            // Count customers who made more than one booking (repeat customers)
+            $customerBookingCounts = $bookings->groupBy('user_id')->map->count();
+            $repeatCustomers = $customerBookingCounts->filter(function ($count) {
+                return $count > 1;
+            })->count();
+
+            // Calculate retention percentage
+            $retentionRate = $totalCustomers > 0 ? round(($repeatCustomers / $totalCustomers) * 100, 1) : 0;
+
+            // Calculate average bookings per customer
+            $totalBookings = $bookings->count();
+            $averageBookingsPerCustomer = $totalCustomers > 0 ? round($totalBookings / $totalCustomers, 1) : 0;
+
+            return [
+                'total_customers' => $totalCustomers,
+                'repeat_customers' => $repeatCustomers,
+                'retention_rate' => $retentionRate,
+                'average_bookings_per_customer' => $averageBookingsPerCustomer,
+                'period' => $days ? ($days === 7 ? 'Week' : ($days === 30 ? 'Month' : 'Quarter')) : 'All Time'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total_customers' => 0,
+                'repeat_customers' => 0,
+                'retention_rate' => 0,
+                'average_bookings_per_customer' => 0,
+                'period' => $days ? ($days === 7 ? 'Week' : ($days === 30 ? 'Month' : 'Quarter')) : 'All Time'
             ];
         }
     }
@@ -759,6 +819,218 @@ class CEOController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete branch. Please try again.'
             ], 500);
+        }
+    }
+
+    // Helper method to get peak booking hours data
+    private function getPeakBookingHours($days = 30)
+    {
+        try {
+            // Get bookings from the specified number of days
+            $bookings = \App\Models\Booking::where('created_at', '>=', now()->subDays($days))
+                                          ->whereNotNull('time_slot')
+                                          ->get();
+
+            // Initialize hourly data (9 AM to 8 PM)
+            $hourlyData = [];
+            for ($hour = 9; $hour <= 20; $hour++) {
+                $hourlyData[$hour] = [
+                    'hour' => $hour,
+                    'hour_12' => $hour > 12 ? $hour - 12 . ' PM' : ($hour == 12 ? '12 PM' : $hour . ' AM'),
+                    'bookings' => 0,
+                    'percentage' => 0
+                ];
+            }
+
+            $totalBookings = 0;
+
+            // Count bookings by hour
+            foreach ($bookings as $booking) {
+                // Parse time slot (assuming format like "10:00-11:00" or "10:00 AM")
+                $timeSlot = $booking->time_slot;
+
+                // Extract hour from time slot
+                if (strpos($timeSlot, '-') !== false) {
+                    // Format: "10:00-11:00"
+                    $startTime = explode('-', $timeSlot)[0];
+                } elseif (strpos($timeSlot, ' ') !== false) {
+                    // Format: "10:00 AM"
+                    $startTime = explode(' ', $timeSlot)[0];
+                } else {
+                    // Format: "10:00"
+                    $startTime = $timeSlot;
+                }
+
+                // Extract hour from start time
+                $hour = (int) explode(':', $startTime)[0];
+
+                // Convert 12-hour to 24-hour if needed
+                if (strpos($timeSlot, 'PM') !== false && $hour != 12) {
+                    $hour += 12;
+                } elseif (strpos($timeSlot, 'AM') !== false && $hour == 12) {
+                    $hour = 0;
+                }
+
+                // Only count hours between 9 AM and 8 PM
+                if ($hour >= 9 && $hour <= 20 && isset($hourlyData[$hour])) {
+                    $hourlyData[$hour]['bookings']++;
+                    $totalBookings++;
+                }
+            }
+
+            // Calculate percentages
+            if ($totalBookings > 0) {
+                foreach ($hourlyData as &$data) {
+                    $data['percentage'] = round(($data['bookings'] / $totalBookings) * 100, 1);
+                }
+            }
+
+            // Sort by bookings count (descending)
+            usort($hourlyData, function($a, $b) {
+                return $b['bookings'] <=> $a['bookings'];
+            });
+
+            // Format data for Chart.js
+            $hours = [];
+            $percentages = [];
+            foreach ($hourlyData as $data) {
+                $hours[] = $data['hour_12'];
+                $percentages[] = $data['percentage'];
+            }
+
+            return [
+                'hours' => $hours,
+                'percentages' => $percentages
+            ];
+
+        } catch (\Exception $e) {
+            // Return empty data if there's an error
+            return [];
+        }
+    }
+
+    public function getPeakHoursData(Request $request)
+    {
+        $period = $request->get('period', 'month'); // week, month, quarter
+
+        $days = match($period) {
+            'week' => 7,
+            'month' => 30,
+            'quarter' => 90,
+            default => 30
+        };
+
+        return response()->json($this->getPeakBookingHours($days));
+    }
+
+    public function getRetentionData(Request $request)
+    {
+        $period = $request->get('period', 'all'); // week, month, quarter, all
+
+        $days = match($period) {
+            'week' => 7,
+            'month' => 30,
+            'quarter' => 90,
+            'all' => null,
+            default => null
+        };
+
+        return response()->json($this->getClientRetention($days));
+    }
+
+    public function getRevenueData(Request $request)
+    {
+        $period = $request->get('period', 'month'); // week, month, quarter, year
+
+        return response()->json($this->getRevenueDataByPeriod($period));
+    }
+
+    // Helper method to get revenue data by period
+    private function getRevenueDataByPeriod($period)
+    {
+        try {
+            $labels = [];
+            $revenues = [];
+
+            switch ($period) {
+                case 'week':
+                    // Last 7 days
+                    for ($i = 6; $i >= 0; $i--) {
+                        $date = now()->subDays($i);
+                        $label = $date->format('D'); // Mon, Tue, etc.
+                        $revenue = \App\Models\Transaction::whereDate('created_at', $date->toDateString())
+                                                          ->sum('amount') ?? 0;
+
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+
+                case 'month':
+                    // Last 30 days
+                    for ($i = 29; $i >= 0; $i--) {
+                        $date = now()->subDays($i);
+                        $label = $date->format('M j'); // Jan 1, Jan 2, etc.
+                        $revenue = \App\Models\Transaction::whereDate('created_at', $date->toDateString())
+                                                          ->sum('amount') ?? 0;
+
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+
+                case 'quarter':
+                    // Last 3 months
+                    for ($i = 2; $i >= 0; $i--) {
+                        $date = now()->subMonths($i);
+                        $label = $date->format('M Y'); // Jan 2024, Feb 2024, etc.
+                        $revenue = \App\Models\Transaction::whereMonth('created_at', $date->month)
+                                                          ->whereYear('created_at', $date->year)
+                                                          ->sum('amount') ?? 0;
+
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+
+                case 'year':
+                    // Last 12 months
+                    for ($i = 11; $i >= 0; $i--) {
+                        $date = now()->subMonths($i);
+                        $label = $date->format('M Y'); // Jan 2024, Feb 2024, etc.
+                        $revenue = \App\Models\Transaction::whereMonth('created_at', $date->month)
+                                                          ->whereYear('created_at', $date->year)
+                                                          ->sum('amount') ?? 0;
+
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+
+                default:
+                    // Default to month view
+                    for ($i = 29; $i >= 0; $i--) {
+                        $date = now()->subDays($i);
+                        $label = $date->format('M j');
+                        $revenue = \App\Models\Transaction::whereDate('created_at', $date->toDateString())
+                                                          ->sum('amount') ?? 0;
+
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+            }
+
+            return [
+                'labels' => $labels,
+                'revenues' => $revenues
+            ];
+        } catch (\Exception $e) {
+            // Return empty data on error
+            return [
+                'labels' => [],
+                'revenues' => []
+            ];
         }
     }
 }

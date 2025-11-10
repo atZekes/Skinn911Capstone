@@ -3,6 +3,15 @@
 let branchRevenueChart = null;
 let branchBookingsChart = null;
 
+// Peak hours chart variable
+let peakHoursChart = null;
+
+// Client retention chart variable
+let clientRetentionChart = null;
+
+// Revenue chart variable
+let revenueChart = null;
+
 // Chart configuration for branch comparison
 const branchChartOptions = {
     responsive: true,
@@ -32,9 +41,15 @@ const branchChartOptions = {
 };
 
 // Initialize dashboard functionality
-function initializeDashboard(revenueData, clientData, compareUrl, csrfToken) {
+function initializeDashboard(revenueData, clientData, peakHoursData, compareUrl, csrfToken) {
     // Initialize existing charts (revenue and client acquisition)
-    initializeMainCharts(revenueData, clientData);
+    initializeMainCharts(revenueData, clientData, peakHoursData);
+
+    // Initialize filter functionality
+    initializePeakHoursFilters();
+    initializeRetentionFilters();
+    initializeRevenueFilters();
+    initializeChartTypeFilters();
 
     // Initialize branch comparison functionality
     initializeBranchComparison(compareUrl, csrfToken);
@@ -44,77 +59,42 @@ function initializeDashboard(revenueData, clientData, compareUrl, csrfToken) {
 }
 
 // Initialize main dashboard charts
-function initializeMainCharts(revenueData, clientData) {
+function initializeMainCharts(revenueData, clientData, peakHoursData) {
     // Revenue Growth Chart
     if (document.getElementById('revenueChart')) {
         const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-        new Chart(revenueCtx, {
-            type: 'line',
-            data: {
-                labels: revenueData.months || [],
-                datasets: [{
-                    label: 'Revenue',
-                    data: revenueData.revenues || [],
-                    backgroundColor: 'rgba(231, 84, 128, 0.1)',
-                    borderColor: '#e75480',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#e75480',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: '#f0f0f0'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return '₱' + value.toLocaleString();
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
+        createRevenueChart(revenueCtx, 'line');
+
+        // Set initial data
+        if (revenueChart && revenueData) {
+            revenueChart.data.labels = revenueData.months || [];
+            revenueChart.data.datasets[0].data = revenueData.revenues || [];
+            revenueChart.update();
+        }
     }
 
-    // Client Acquisition Chart
-    if (document.getElementById('clientChart')) {
+    // Client Retention Chart
+    if (document.getElementById('clientChart') && clientData) {
         const clientCtx = document.getElementById('clientChart').getContext('2d');
-        new Chart(clientCtx, {
+
+        // Create a gauge-like chart showing retention rate
+        const retentionRate = clientData.retention_rate || 0;
+
+        clientRetentionChart = new Chart(clientCtx, {
             type: 'doughnut',
             data: {
-                labels: clientData.months || [],
+                labels: ['Repeat Customers', 'One-time Customers'],
                 datasets: [{
-                    data: clientData.newClients || [],
+                    data: [clientData.repeat_customers || 0, (clientData.total_customers || 0) - (clientData.repeat_customers || 0)],
                     backgroundColor: [
-                        '#e75480',
-                        '#3498db',
-                        '#2ecc71',
-                        '#f39c12',
-                        '#9b59b6',
-                        '#e74c3c'
+                        'rgba(231, 84, 128, 0.8)', // Pink for repeat customers
+                        'rgba(149, 165, 166, 0.6)'  // Gray for one-time customers
                     ],
-                    borderWidth: 2,
-                    borderColor: '#fff'
+                    borderColor: [
+                        '#e75480',
+                        '#95a5a6'
+                    ],
+                    borderWidth: 2
                 }]
             },
             options: {
@@ -125,13 +105,338 @@ function initializeMainCharts(revenueData, clientData) {
                         position: 'bottom',
                         labels: {
                             usePointStyle: true,
-                            padding: 15
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = clientData.total_customers > 0 ?
+                                    ((value / clientData.total_customers) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            },
+                            afterLabel: function(context) {
+                                if (context.dataIndex === 0) { // Repeat customers
+                                    return `Retention Rate: ${clientData.retention_rate}%`;
+                                }
+                                return `Avg bookings per customer: ${clientData.average_bookings_per_customer}`;
+                            }
+                        }
+                    },
+                    // Add center text showing retention rate
+                    beforeDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+                        const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+                        ctx.save();
+                        ctx.font = 'bold 24px Arial';
+                        ctx.fillStyle = '#e75480';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${retentionRate}%`, centerX, centerY - 10);
+
+                        ctx.font = '14px Arial';
+                        ctx.fillStyle = '#6c757d';
+                        ctx.fillText('Retention Rate', centerX, centerY + 15);
+                        ctx.restore();
+                    }
+                },
+                cutout: '70%' // Creates the gauge/donut effect
+            }
+        });
+    }
+
+    // Peak Booking Hours Chart
+    if (document.getElementById('peakHoursChart') && peakHoursData) {
+        const peakHoursCtx = document.getElementById('peakHoursChart').getContext('2d');
+        peakHoursChart = new Chart(peakHoursCtx, {
+            type: 'bar',
+            data: {
+                labels: peakHoursData.hours || [],
+                datasets: [{
+                    label: 'Booking Percentage',
+                    data: peakHoursData.percentages || [],
+                    backgroundColor: 'rgba(231, 84, 128, 0.7)',
+                    borderColor: '#e75480',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toFixed(1) + '% of total bookings';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f0f0f0'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
                         }
                     }
                 }
             }
         });
     }
+
+    // Initialize peak hours filter functionality
+    initializePeakHoursFilters();
+}
+
+// Initialize peak hours filter functionality
+function initializePeakHoursFilters() {
+    const peakHoursFilter = document.getElementById('peakHoursFilter');
+
+    if (peakHoursFilter) {
+        peakHoursFilter.addEventListener('change', function() {
+            const period = this.value;
+            loadPeakHoursData(period);
+        });
+    }
+}
+
+// Load peak hours data for the specified period
+function loadPeakHoursData(period) {
+    const url = `/ceo/peak-hours-data?period=${period}`;
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (peakHoursChart && data.hours && data.percentages) {
+            peakHoursChart.data.labels = data.hours;
+            peakHoursChart.data.datasets[0].data = data.percentages;
+            peakHoursChart.update();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading peak hours data:', error);
+    });
+}
+
+// Initialize retention filter functionality
+function initializeRetentionFilters() {
+    const retentionFilter = document.getElementById('retentionFilter');
+
+    if (retentionFilter) {
+        retentionFilter.addEventListener('change', function() {
+            const period = this.value;
+            loadRetentionData(period);
+        });
+    }
+}
+
+// Load retention data for the specified period
+function loadRetentionData(period) {
+    const url = `/ceo/retention-data?period=${period}`;
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (clientRetentionChart && data) {
+            // Update chart data
+            clientRetentionChart.data.datasets[0].data = [
+                data.repeat_customers || 0,
+                (data.total_customers || 0) - (data.repeat_customers || 0)
+            ];
+
+            // Update tooltips data reference
+            clientRetentionChart.options.plugins.tooltip.callbacks.afterLabel = function(context) {
+                if (context.dataIndex === 0) { // Repeat customers
+                    return `Retention Rate: ${data.retention_rate}%`;
+                }
+                return `Avg bookings per customer: ${data.average_bookings_per_customer}`;
+            };
+
+            // Update center text
+            clientRetentionChart.options.plugins.beforeDraw = function(chart) {
+                const ctx = chart.ctx;
+                const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+                const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+                ctx.save();
+                ctx.font = 'bold 24px Arial';
+                ctx.fillStyle = '#e75480';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${data.retention_rate || 0}%`, centerX, centerY - 10);
+
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#6c757d';
+                ctx.fillText('Retention Rate', centerX, centerY + 15);
+                ctx.restore();
+            };
+
+            clientRetentionChart.update();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading retention data:', error);
+    });
+}
+
+// Initialize revenue filter functionality
+function initializeRevenueFilters() {
+    const revenueFilter = document.getElementById('revenueFilter');
+
+    if (revenueFilter) {
+        revenueFilter.addEventListener('change', function() {
+            const period = this.value;
+            loadRevenueData(period);
+        });
+    }
+}
+
+// Load revenue data for the specified period
+function loadRevenueData(period) {
+    const url = `/ceo/revenue-data?period=${period}`;
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (revenueChart && data.labels && data.revenues) {
+            revenueChart.data.labels = data.labels;
+            revenueChart.data.datasets[0].data = data.revenues;
+            revenueChart.update();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading revenue data:', error);
+    });
+}
+
+// Initialize chart type filter functionality
+function initializeChartTypeFilters() {
+    const chartTypeFilter = document.getElementById('chartTypeFilter');
+
+    if (chartTypeFilter) {
+        chartTypeFilter.addEventListener('change', function() {
+            const chartType = this.value;
+            changeChartType(chartType);
+        });
+    }
+}
+
+// Change chart type and recreate chart
+function changeChartType(chartType) {
+    if (revenueChart) {
+        revenueChart.destroy();
+    }
+
+    const canvas = document.getElementById('revenueChart');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        createRevenueChart(ctx, chartType);
+
+        // Reload current period data
+        const revenueFilter = document.getElementById('revenueFilter');
+        if (revenueFilter) {
+            const currentPeriod = revenueFilter.value;
+            loadRevenueData(currentPeriod);
+        }
+    }
+}
+
+// Create revenue chart with specified type
+function createRevenueChart(ctx, chartType = 'line') {
+    const currentData = revenueChart ? revenueChart.data : { labels: [], datasets: [{ data: [] }] };
+
+    const chartConfig = {
+        type: chartType,
+        data: {
+            labels: currentData.labels || [],
+            datasets: [{
+                label: 'Revenue',
+                data: currentData.datasets[0]?.data || [],
+                backgroundColor: chartType === 'bar' ? '#e75480' : 'rgba(231, 84, 128, 0.1)',
+                borderColor: '#e75480',
+                borderWidth: 3,
+                fill: chartType === 'line' ? true : false,
+                tension: chartType === 'line' ? 0.4 : 0,
+                pointBackgroundColor: chartType === 'line' ? '#e75480' : 'transparent',
+                pointBorderColor: chartType === 'line' ? '#fff' : 'transparent',
+                pointBorderWidth: chartType === 'line' ? 2 : 0,
+                pointRadius: chartType === 'line' ? 5 : 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#f0f0f0'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '₱' + value.toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    };
+
+    revenueChart = new Chart(ctx, chartConfig);
 }
 
 // Initialize branch comparison functionality

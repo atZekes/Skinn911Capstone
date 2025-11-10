@@ -1,0 +1,64 @@
+@startuml
+title SkinSync DFDs (Level 0 + Level 1) - simple
+
+' --- Level 0 ---
+
+rectangle Client
+rectangle Staff
+rectangle Admin
+rectangle CEO
+rectangle EmailService
+
+rectangle SkinSyncSystem
+rectangle Database
+rectangle FileStorage
+
+Client -> SkinSyncSystem : Booking Request / Profile Update / Inquiries
+SkinSyncSystem -> Client : Booking Confirmation / Reminders
+
+Staff -> SkinSyncSystem : Manage Bookings / Availability
+SkinSyncSystem -> Staff : Assigned Bookings / Reports
+
+Admin -> SkinSyncSystem : Service/Staff Management
+SkinSyncSystem -> Admin : Config / Reports
+
+CEO -> SkinSyncSystem : Request Reports
+SkinSyncSystem -> CEO : Performance / Analytics
+
+SkinSyncSystem -> EmailService : Send emails
+EmailService -> Client : Email notifications
+
+SkinSyncSystem -> Database : Read/Write (Users, Bookings, Services)
+Database -> SkinSyncSystem : Data
+
+SkinSyncSystem -> FileStorage : Upload/Download images
+FileStorage -> SkinSyncSystem : Stored files
+
+' --- Level 1 (Booking) ---
+
+rectangle Client_B
+rectangle Staff_B
+rectangle P1_Receive
+rectangle P2_Validate
+rectangle P3_Reserve
+rectangle P4_Store
+rectangle P5_Confirm
+rectangle Database_B
+rectangle FileStorage_B
+
+Client_B -> P1_Receive : Booking Request (service, branch, datetime)
+P1_Receive -> P2_Validate : details
+P2_Validate -> Database_B : check availability
+Database_B -> P2_Validate : availability result
+P2_Validate -> P3_Reserve : approved
+P3_Reserve -> Database_B : reserve slot
+P3_Reserve -> P4_Store : reservation details
+P4_Store -> Database_B : save booking (status)
+P4_Store -> FileStorage_B : save attachments
+P4_Store -> P5_Confirm : trigger confirmation
+P5_Confirm -> Client_B : confirmation (in-app/email)
+
+Staff_B -> P2_Validate : manual override / availability updates
+P2_Validate -> Staff_B : conflicts / alternatives
+
+@enduml

@@ -54,7 +54,7 @@
                 <div class="col-xl-5 col-lg-5">
                     <div class="about_info">
                         <div class="section_title mb-20px">
-                            <span>About Uss</span>
+                            <span>About Us</span>
                             <h3> A prominent facial and slimming center in the heart of the city </h3>
                         </div>
                         <p> The company's mission is to provide quality beauty and skincare services at affordable prices, making skincare accessible beyond just the affluent.
@@ -102,7 +102,10 @@
                             <li>Hydrafacial</li>
                             <li>Microneedling</li>
                         </ul>
-                        <a href="{{ 'services' }}" class="book_now">book now</a>
+                        <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
+                            <a href="{{ route('services') }}" class="btn btn-outline-pink btn-sm">Learn More</a>
+                            <a href="#" onclick="document.getElementById('openLoginModalBtn').click(); return false;" class="btn btn-pink btn-sm">Book Now</a>
+                        </div>
                     </div>
                 </div>
                 <div class="col-xl-4 col-md-4">
@@ -117,7 +120,10 @@
                             <li>Pigmentation Whitening</li>
                             <li>Skin Rejuvenation</li>
                         </ul>
-                        <a href="{{ 'services' }}" class="book_now">book now</a>
+                        <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
+                            <a href="{{ route('services') }}" class="btn btn-outline-pink btn-sm">Learn More</a>
+                            <a href="#" onclick="document.getElementById('openLoginModalBtn').click(); return false;" class="btn btn-pink btn-sm">Book Now</a>
+                        </div>
                     </div>
                 </div>
                 <div class="col-xl-4 col-md-4">
@@ -132,7 +138,10 @@
                             <li>Lipo-Cavitation</li>
                             <li>Trio Slim</li>
                         </ul>
-                        <a href="{{ 'services' }}" class="book_now">book now</a>
+                        <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
+                            <a href="{{ route('services') }}" class="btn btn-outline-pink btn-sm">Learn More</a>
+                            <a href="#" onclick="document.getElementById('openLoginModalBtn').click(); return false;" class="btn btn-pink btn-sm">Book Now</a>
+                        </div>
                     </div>
                 </div>
             </div>

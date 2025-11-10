@@ -1,4 +1,4 @@
-// Simple, beginner-friendly script for client services page
+// Simple, beginner-friendly script for frontend services page
 // Features: category filter, mobile swipe carousel, expand/collapse details
 
 function initSimpleServices() {
@@ -25,7 +25,7 @@ function initSimpleServices() {
   // 2) Initialize Owl Carousel for services
   $('.carousel-container').owlCarousel({
     loop: false,
-    margin: 32, // Increased margin to match CSS gap
+    margin: 80, // Increased margin to match CSS gap
     nav: true,
     navText: ['‹', '›'],
     dots: false,
@@ -53,11 +53,12 @@ function initSimpleServices() {
     }
   });
 
-  // 3) Expand / collapse details
+  // 3) Expand / collapse details - Click to expand
   var expandButtons = document.querySelectorAll('.expand-btn');
   for (var e = 0; e < expandButtons.length; e++) {
     (function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
         var card = btn.closest('.service-card');
         var details = card.querySelector('.service-details');
         var info = card.querySelector('.service-info');
@@ -70,26 +71,37 @@ function initSimpleServices() {
           info.style.display = 'none';
           btn.textContent = 'Show Less';
         }
-      });
+      }, { passive: false });
     })(expandButtons[e]);
   }
 
-  // Back buttons inside details
-  var backButtons = document.querySelectorAll('.back-btn');
-  for (var b = 0; b < backButtons.length; b++) {
-    (function (btn) {
-      btn.addEventListener('click', function (ev) {
-        ev.preventDefault();
-        var card = btn.closest('.service-card');
+  // 4) Book Now button - Allow navigation to booking tab
+  // No click handler needed - button will navigate via href
+
+  // 5) Close service details when clicking outside the card
+  document.addEventListener('click', function(e) {
+    // Check if click is on a service card or its children
+    var clickedCard = e.target.closest('.service-card');
+
+    // If click is outside any service card
+    if (!clickedCard) {
+      var allServiceCards = document.querySelectorAll('.service-card');
+      allServiceCards.forEach(function(card) {
         var details = card.querySelector('.service-details');
         var info = card.querySelector('.service-info');
-        details.style.display = 'none';
-        info.style.display = 'block';
-        var expand = card.querySelector('.expand-btn');
-        if (expand) expand.textContent = 'Learn More';
+        var expandBtn = card.querySelector('.expand-btn');
+
+        // Only close if details are currently open
+        if (details && details.style.display === 'block') {
+          details.style.display = 'none';
+          info.style.display = 'block';
+          if (expandBtn) {
+            expandBtn.textContent = 'Learn More';
+          }
+        }
       });
-    })(backButtons[b]);
-  }
+    }
+  });
 }
 
 // Init once

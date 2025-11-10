@@ -123,25 +123,76 @@
     <!-- Charts Row -->
     <div class="mb-4 row">
         <!-- Revenue Growth Chart -->
-        <div class="mb-4 col-xl-8">
+        <div class="mb-4 col-xl-12">
             <div class="chart-container">
-                <h4 class="chart-title">
-                    <i class="fas fa-chart-line me-2"></i>Revenue Growth Trends (Last 6 Months)
-                </h4>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="chart-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Revenue Growth Trends
+                    </h4>
+                    <div class="d-flex gap-2">
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm" id="chartTypeFilter" style="min-width: 140px; max-width: 150px;">
+                                <option value="line" selected>Line Chart</option>
+                                <option value="bar">Bar Chart</option>
+                            </select>
+                        </div>
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm" id="revenueFilter" style="min-width: 120px; max-width: 130px;">
+                                <option value="week">Last Week</option>
+                                <option value="month" selected>Last Month</option>
+                                <option value="quarter">Last Quarter</option>
+                                <option value="year">Last Year</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 <div class="chart-wrapper" style="position: relative; height: 320px; max-height: 320px;">
                     <canvas id="revenueChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Client Acquisition -->
-        <div class="mb-4 col-xl-4">
+        <!-- Client Retention -->
+        <div class="col-12">
             <div class="chart-container">
-                <h4 class="chart-title">
-                    <i class="fas fa-users me-2"></i>Client Acquisition
-                </h4>
-                <div class="chart-wrapper" style="position: relative; height: 450px; max-height: 320px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="chart-title mb-0">
+                        <i class="fas fa-users-cog me-2"></i>Client Retention
+                    </h4>
+                    <div class="filter-dropdown">
+                        <select class="form-select form-select-sm" id="retentionFilter" style="min-width: 120px; max-width: 130px;">
+                            <option value="week">Last Week</option>
+                            <option value="month" selected>Last Month</option>
+                            <option value="quarter">Last Quarter</option>
+                            <option value="all">All Time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-wrapper" style="position: relative; height: 100px; max-height: 500px;">
                     <canvas id="clientChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Peak Booking Hours Chart -->
+    <div class="mb-4 row">
+        <div class="col-12">
+            <div class="chart-container">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="chart-title mb-0">
+                            <i class="fas fa-clock me-2"></i>Peak Booking Hours
+                        </h4>
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm" id="peakHoursFilter" style="min-width: 120px; max-width: 130px;">
+                                <option value="week">Last Week</option>
+                                <option value="month" selected>Last Month</option>
+                                <option value="quarter">Last Quarter</option>
+                            </select>
+                        </div>
+                    </div>
+                <div class="chart-wrapper" style="position: relative; height: 400px; max-height: 400px;">
+                    <canvas id="peakHoursChart"></canvas>
                 </div>
             </div>
         </div>
@@ -264,12 +315,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Pass data from Laravel to JavaScript
     const revenueData = @json($revenueGrowth ?? ['months' => [], 'revenues' => []]);
-    const clientData = @json($clientAcquisition ?? ['months' => [], 'newClients' => []]);
+    const clientData = @json($clientRetention ?? []);
+    const peakHoursData = @json($peakBookingHours ?? ['hours' => [], 'percentages' => []]);
     const compareUrl = '{{ route("ceo.compare.branches") }}';
     const csrfToken = '{{ csrf_token() }}';
 
     // Initialize dashboard functionality
-    initializeDashboard(revenueData, clientData, compareUrl, csrfToken);
+    initializeDashboard(revenueData, clientData, peakHoursData, compareUrl, csrfToken);
 });
 </script>
 @endsection

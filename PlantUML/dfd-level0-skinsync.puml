@@ -1,0 +1,51 @@
+@startuml DFD_Level_0_SkinSync
+title DFD Level 0 — SkinSync Booking System
+' System boundary
+note left
+  Level 0 - single high-level process (SkinSync System)
+  External entities: rectangles
+  Data stores: cylinder (database)
+  Data flows: labeled arrows
+end note
+rectangle "SkinSync System" as SkinSync
+
+' External entities
+rectangle "Client" as Client
+rectangle "Staff" as Staff
+rectangle "Admin" as Admin
+rectangle "CEO" as CEO
+rectangle "Email Service" as Email
+
+' System boundary
+
+rectangle "Database (MySQL)" as DB
+rectangle "File Storage" as FILES
+
+' Data flows (high-level, consistent labels)
+Client --> SkinSync : Booking Request / Profile Update / Inquiries
+SkinSync --> Client : Booking Confirmation / Reminders / Account Updates
+
+Staff --> SkinSync : Staff Availability / Check-in / Manage Walk-ins
+SkinSync --> Staff : Assigned Bookings / Schedules / Reports
+
+Admin --> SkinSync : Service & Staff Management / Pricing Updates
+SkinSync --> Admin : System Config / Activity Logs / Reports
+
+CEO --> SkinSync : Request Performance Reports
+SkinSync --> CEO : Branch Performance / Revenue Summaries / Analytics
+
+SkinSync --> Email : Send Booking & Reminder Emails
+Email --> Client : Email Notifications
+
+' Data stores
+SkinSync --> DB : Read / Write (Users, Bookings, Services, Branches)
+DB --> SkinSync : Return Data
+
+SkinSync --> FILES : Upload / Retrieve images (receipts, client uploads)
+FILES --> SkinSync : Stored files
+
+note right
+  Payment: not implemented yet - transactions saved locally as 'payment_pending'
+end note
+
+@enduml

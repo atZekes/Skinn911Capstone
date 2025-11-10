@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>CEO Login - Skin911</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#e75480">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="{{ asset('css/CEO/ceologin.css') }}">
 </head>
 <body>
@@ -18,8 +19,8 @@
 
             <label for="password">Password</label>
             <div style="position:relative;">
-                <input type="password" id="ceo-password" name="password" required style="padding-right:40px;">
-                <i class="fa fa-eye" id="toggleCeoPassword" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:#e75480;"></i>
+                <input type="password" id="ceo-password" name="password" required style="padding-right:45px;">
+                <i class="fas fa-eye" id="toggleCeoPassword" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:#e75480; font-size:18px;"></i>
             </div>
 
             <div style="text-align:left;margin-bottom:16px;">
