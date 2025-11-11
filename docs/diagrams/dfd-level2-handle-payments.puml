@@ -1,0 +1,44 @@
+@startuml DFD_Level_2_Handle_Payments
+title DFD Level 2 — Handle Payments
+
+' External entities
+actor Client
+actor Staff
+actor GCash
+
+' Sub-processes
+rectangle "3.1 Tokenize & Save Card" as T
+rectangle "3.2 Charge Card (use token)" as C
+rectangle "3.3 Provide GCash QR" as Q
+rectangle "3.4 Receive Webhook / Notification" as W
+rectangle "3.5 Staff Confirmation / Reconcile" as S
+
+' Data stores
+database "Payments DB" as DB
+
+' Data flows
+Client --> T : Card details (via PCI-compliant flow)
+T --> DB : Save token (card vault)
+DB --> T : Token ID
+
+Client --> C : Pay using token
+C --> DB : Store payment attempt / result
+DB --> C : Payment record
+C --> Client : Payment status
+
+Client --> Q : Request/scan GCash QR
+Q --> GCash : Present QR (external)
+GCash --> W : Webhook / notify system or staff
+W --> DB : Store webhook event / payment received
+
+W --> S : Notify staff or create pending confirmation
+S --> DB : Confirm payment (staff action)
+S --> Client : Confirmation (optional)
+
+' Notes
+note right
+  - Never store raw PAN/CVV in DB. Use tokenization.
+  - Webhooks must be idempotent and logged.
+end note
+
+@enduml

@@ -50,6 +50,7 @@ function initializeDashboard(revenueData, clientData, peakHoursData, compareUrl,
     initializeRetentionFilters();
     initializeRevenueFilters();
     initializeChartTypeFilters();
+    initializeBranchFilters();
 
     // Initialize branch comparison functionality
     initializeBranchComparison(compareUrl, csrfToken);
@@ -228,7 +229,8 @@ function initializePeakHoursFilters() {
 
 // Load peak hours data for the specified period
 function loadPeakHoursData(period) {
-    const url = `/ceo/peak-hours-data?period=${period}`;
+    const branchId = document.querySelector('.branch-filter[data-target="peak"]').value;
+    const url = `/ceo/peak-hours-data?period=${period}&branch_id=${branchId}&t=${Date.now()}`;
 
     fetch(url, {
         method: 'GET',
@@ -264,7 +266,8 @@ function initializeRetentionFilters() {
 
 // Load retention data for the specified period
 function loadRetentionData(period) {
-    const url = `/ceo/retention-data?period=${period}`;
+    const branchId = document.querySelector('.branch-filter[data-target="retention"]').value;
+    const url = `/ceo/retention-data?period=${period}&branch_id=${branchId}&t=${Date.now()}`;
 
     fetch(url, {
         method: 'GET',
@@ -331,7 +334,8 @@ function initializeRevenueFilters() {
 
 // Load revenue data for the specified period
 function loadRevenueData(period) {
-    const url = `/ceo/revenue-data?period=${period}`;
+    const branchId = document.querySelector('.branch-filter[data-target="revenue"]').value;
+    const url = `/ceo/revenue-data?period=${period}&branch_id=${branchId}&t=${Date.now()}`;
 
     fetch(url, {
         method: 'GET',
@@ -353,9 +357,115 @@ function loadRevenueData(period) {
     });
 }
 
+// Load revenue data with branch filter
+function loadRevenueDataWithBranch() {
+    const period = document.getElementById('revenueFilter').value;
+    const branchId = document.querySelector('.branch-filter[data-target="revenue"]').value;
+    const url = `/ceo/revenue-data?period=${period}&branch_id=${branchId}&t=${Date.now()}`;
+    console.log('Loading revenue data for branch:', branchId, 'period:', period);
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Revenue data received:', data);
+        if (revenueChart && data.labels && data.revenues) {
+            revenueChart.data.labels = data.labels;
+            revenueChart.data.datasets[0].data = data.revenues;
+            revenueChart.update();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading revenue data:', error);
+    });
+}
+
+// Load retention data with branch filter
+function loadRetentionDataWithBranch() {
+    const period = document.getElementById('retentionFilter').value;
+    const branchId = document.querySelector('.branch-filter[data-target="retention"]').value;
+    const url = `/ceo/retention-data?period=${period}&branch_id=${branchId}&t=${Date.now()}`;
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (clientRetentionChart && data) {
+            // Update chart data
+            clientRetentionChart.data.datasets[0].data = [
+                data.repeat_customers || 0,
+                (data.total_customers || 0) - (data.repeat_customers || 0)
+            ];
+            clientRetentionChart.update();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading retention data:', error);
+    });
+}
+
+// Load peak hours data with branch filter
+function loadPeakHoursDataWithBranch() {
+    const period = document.getElementById('peakHoursFilter').value;
+    const branchId = document.querySelector('.branch-filter[data-target="peak"]').value;
+    const url = `/ceo/peak-hours-data?period=${period}&branch_id=${branchId}&t=${Date.now()}`;
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (peakHoursChart && data.hours && data.percentages) {
+            peakHoursChart.data.labels = data.hours;
+            peakHoursChart.data.datasets[0].data = data.percentages;
+            peakHoursChart.update();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading peak hours data:', error);
+    });
+}
+
+// Initialize branch filter functionality
+function initializeBranchFilters() {
+    const branchFilters = document.querySelectorAll('.branch-filter');
+
+    branchFilters.forEach(filter => {
+        filter.addEventListener('change', function() {
+            const branchId = this.value;
+            const target = this.getAttribute('data-target');
+
+            switch(target) {
+                case 'revenue':
+                    loadRevenueDataWithBranch();
+                    break;
+                case 'retention':
+                    loadRetentionDataWithBranch();
+                    break;
+                case 'peak':
+                    loadPeakHoursDataWithBranch();
+                    break;
+            }
+        });
+    });
+}
+
 // Initialize chart type filter functionality
 function initializeChartTypeFilters() {
-    const chartTypeFilter = document.getElementById('chartTypeFilter');
 
     if (chartTypeFilter) {
         chartTypeFilter.addEventListener('change', function() {

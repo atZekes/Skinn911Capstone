@@ -263,7 +263,7 @@ class CEOController extends Controller
         }
     }
 
-    private function getClientRetention($days = null)
+    private function getClientRetention($days = null, $branchId = null)
     {
         try {
             // If days is specified, filter by time period, otherwise get all-time data
@@ -271,6 +271,10 @@ class CEOController extends Controller
 
             if ($days) {
                 $query->where('created_at', '>=', now()->subDays($days));
+            }
+
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
             }
 
             $bookings = $query->get();
@@ -823,13 +827,18 @@ class CEOController extends Controller
     }
 
     // Helper method to get peak booking hours data
-    private function getPeakBookingHours($days = 30)
+    private function getPeakBookingHours($days = 30, $branchId = null)
     {
         try {
             // Get bookings from the specified number of days
-            $bookings = \App\Models\Booking::where('created_at', '>=', now()->subDays($days))
-                                          ->whereNotNull('time_slot')
-                                          ->get();
+            $query = \App\Models\Booking::where('created_at', '>=', now()->subDays($days))
+                                          ->whereNotNull('time_slot');
+
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+
+            $bookings = $query->get();
 
             // Initialize hourly data (9 AM to 8 PM)
             $hourlyData = [];
@@ -912,6 +921,7 @@ class CEOController extends Controller
     public function getPeakHoursData(Request $request)
     {
         $period = $request->get('period', 'month'); // week, month, quarter
+        $branchId = $request->get('branch_id');
 
         $days = match($period) {
             'week' => 7,
@@ -920,12 +930,13 @@ class CEOController extends Controller
             default => 30
         };
 
-        return response()->json($this->getPeakBookingHours($days));
+        return response()->json($this->getPeakBookingHours($days, $branchId));
     }
 
     public function getRetentionData(Request $request)
     {
         $period = $request->get('period', 'all'); // week, month, quarter, all
+        $branchId = $request->get('branch_id');
 
         $days = match($period) {
             'week' => 7,
@@ -935,22 +946,28 @@ class CEOController extends Controller
             default => null
         };
 
-        return response()->json($this->getClientRetention($days));
+        return response()->json($this->getClientRetention($days, $branchId));
     }
 
     public function getRevenueData(Request $request)
     {
         $period = $request->get('period', 'month'); // week, month, quarter, year
+        $branchId = $request->get('branch_id');
 
-        return response()->json($this->getRevenueDataByPeriod($period));
+        return response()->json($this->getRevenueDataByPeriod($period, $branchId));
     }
 
     // Helper method to get revenue data by period
-    private function getRevenueDataByPeriod($period)
+    private function getRevenueDataByPeriod($period, $branchId = null)
     {
         try {
             $labels = [];
             $revenues = [];
+
+            $query = \App\Models\Transaction::query();
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
 
             switch ($period) {
                 case 'week':
@@ -958,7 +975,7 @@ class CEOController extends Controller
                     for ($i = 6; $i >= 0; $i--) {
                         $date = now()->subDays($i);
                         $label = $date->format('D'); // Mon, Tue, etc.
-                        $revenue = \App\Models\Transaction::whereDate('created_at', $date->toDateString())
+                        $revenue = (clone $query)->whereDate('created_at', $date->toDateString())
                                                           ->sum('amount') ?? 0;
 
                         $labels[] = $label;
@@ -971,7 +988,7 @@ class CEOController extends Controller
                     for ($i = 29; $i >= 0; $i--) {
                         $date = now()->subDays($i);
                         $label = $date->format('M j'); // Jan 1, Jan 2, etc.
-                        $revenue = \App\Models\Transaction::whereDate('created_at', $date->toDateString())
+                        $revenue = (clone $query)->whereDate('created_at', $date->toDateString())
                                                           ->sum('amount') ?? 0;
 
                         $labels[] = $label;
@@ -984,7 +1001,7 @@ class CEOController extends Controller
                     for ($i = 2; $i >= 0; $i--) {
                         $date = now()->subMonths($i);
                         $label = $date->format('M Y'); // Jan 2024, Feb 2024, etc.
-                        $revenue = \App\Models\Transaction::whereMonth('created_at', $date->month)
+                        $revenue = (clone $query)->whereMonth('created_at', $date->month)
                                                           ->whereYear('created_at', $date->year)
                                                           ->sum('amount') ?? 0;
 
@@ -998,7 +1015,7 @@ class CEOController extends Controller
                     for ($i = 11; $i >= 0; $i--) {
                         $date = now()->subMonths($i);
                         $label = $date->format('M Y'); // Jan 2024, Feb 2024, etc.
-                        $revenue = \App\Models\Transaction::whereMonth('created_at', $date->month)
+                        $revenue = (clone $query)->whereMonth('created_at', $date->month)
                                                           ->whereYear('created_at', $date->year)
                                                           ->sum('amount') ?? 0;
 
@@ -1012,7 +1029,7 @@ class CEOController extends Controller
                     for ($i = 29; $i >= 0; $i--) {
                         $date = now()->subDays($i);
                         $label = $date->format('M j');
-                        $revenue = \App\Models\Transaction::whereDate('created_at', $date->toDateString())
+                        $revenue = (clone $query)->whereDate('created_at', $date->toDateString())
                                                           ->sum('amount') ?? 0;
 
                         $labels[] = $label;

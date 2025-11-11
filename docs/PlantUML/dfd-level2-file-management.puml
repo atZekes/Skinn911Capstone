@@ -1,0 +1,33 @@
+@startuml DFD_Level_2_File_Management
+title DFD Level 2 — File Management / Storage
+
+' External entities
+actor Client
+actor Staff
+
+' Sub-processes
+rectangle "6.1 Upload & Scan" as U
+rectangle "6.2 Store (object storage)" as S
+rectangle "6.3 Generate URL / Access Control" as A
+rectangle "6.4 Delete / Lifecycle" as D
+
+' Data stores
+database "File Storage (public/storage)" as FS
+
+' Data flows
+Client/Staff --> U : Upload file (receipt, image)
+U --> S : Store file (object store / disk)
+S --> FS : Persist file
+S --> A : Generate signed URL or reference
+A --> Client/Staff : Provide access link
+
+Client/Staff --> D : Delete or expire request
+D --> FS : Remove or mark expired
+
+' Notes
+note right
+  - Consider virus scanning and file size limits.
+  - Use signed URLs for private files.
+end note
+
+@enduml

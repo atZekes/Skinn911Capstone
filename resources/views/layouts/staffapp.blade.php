@@ -250,14 +250,6 @@
                         </li>
                     </ul>
                     <ul class="nav flex-column" style="margin-top:auto;">
-                        <li class="mb-2 nav-item logout-nav">
-                            <form method="POST" action="{{ route('staff.logout') }}" style="display:inline;">
-                                @csrf
-                                <button type="submit" class="nav-link btn btn-link" style="color:#e75480;padding:0;text-align:left;width:100%;">
-                                    <i class="mr-2 fa fa-sign-out"></i> Logout
-                                </button>
-                            </form>
-                        </li>
                     </ul>
                 </div>
             </nav>
@@ -445,5 +437,11 @@ $(function() {
     @endif
 });
 </script>
+<form id="logout-form" action="{{ route('staff.logout') }}" method="POST" style="position:fixed;bottom:24px;left:32px;z-index:999;">
+    @csrf
+    <button type="submit" class="btn btn-admin" style="background-color: #e75480; color: white; box-shadow:0 2px 8px rgba(231,84,128,0.12);font-size:1.1rem;padding:10px 28px;border: none;">
+        <i class="mr-2 fa fa-sign-out"></i> Log Out
+    </button>
+</form>
 </body>
 </html>

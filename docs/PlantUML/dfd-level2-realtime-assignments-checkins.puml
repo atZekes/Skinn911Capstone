@@ -1,0 +1,38 @@
+@startuml DFD_Level_2_Realtime_Assignments_Checkins
+title DFD Level 2 — Realtime / Assignments & Check-ins
+
+' External entities
+actor Staff
+actor Client
+
+' Sub-processes
+rectangle "7.1 Create Assignment" as A
+rectangle "7.2 Notify Staff (realtime)" as N
+rectangle "7.3 Staff Accept / Reject" as R
+rectangle "7.4 Client Check-in" as C
+rectangle "7.5 Update Status" as U
+
+' Data stores
+database "Assignments DB" as DB
+
+' Data flows
+PB --> A : New booking needing assignment
+A --> DB : Create assignment record
+A --> N : Notify assigned staff (push / pusher)
+N --> Staff : Realtime notification
+Staff --> R : Accept or Reject
+R --> DB : Update assignment status
+R --> A : Reassign if rejected
+
+Client --> C : Check-in at branch
+C --> DB : Record attendance
+DB --> U : Update booking / assignment status
+U --> Staff : Notify updated status
+
+' Notes
+note right
+  - Use idempotent messages for realtime to avoid duplicates.
+  - Support offline acknowledgement and later sync.
+end note
+
+@enduml

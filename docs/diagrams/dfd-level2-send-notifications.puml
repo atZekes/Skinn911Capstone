@@ -1,0 +1,39 @@
+@startuml DFD_Level_2_Send_Notifications
+title DFD Level 2 — Send Notifications
+
+' External entities
+actor Client
+actor Staff
+
+' Sub-processes
+rectangle "4.1 Create Notification (trigger)" as T
+rectangle "4.2 Template & Personalize" as P
+rectangle "4.3 Queue / Scheduler" as Q
+rectangle "4.4 Send via Provider" as S
+rectangle "4.5 Retry / Failure Handling" as F
+
+' Data stores
+database "Notifications DB / Queue" as DB
+
+' Data flows
+PB -> T : Trigger (booking confirmed / payment success)
+T --> P : Notification data
+P --> Q : Enqueue message
+Q --> S : Deliver to provider (Email / SMS)
+S --> Provider : Outbound message
+Provider --> S : Delivery status
+S --> DB : Log result
+
+S --> F : On failure
+F --> Q : Requeue / Backoff
+F --> DB : Log error
+
+DB --> Admin : Notification logs / audit
+
+' Notes
+note right
+  - Use async queue (e.g., Laravel queue + Redis) for reliability.
+  - Provider rate limits and templating language should be handled here.
+end note
+
+@enduml

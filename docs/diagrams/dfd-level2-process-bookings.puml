@@ -1,0 +1,42 @@
+@startuml DFD_Level_2_Process_Bookings
+title DFD Level 2 — Process Bookings
+
+' External entities
+actor Client
+actor Staff
+
+' Sub-subprocesses
+rectangle "1.1 Validate Request" as V
+rectangle "1.2 Check Availability" as A
+rectangle "1.3 Assign Staff" as S
+rectangle "1.4 Confirm Booking" as C
+rectangle "1.5 Reschedule / Cancel" as R
+
+' Data stores
+database "Bookings DB" as DB
+
+' Data flows
+Client --> V : Booking request (service, time, client details)
+V --> A : Validated request
+A --> DB : Query availability (service, resource)
+DB --> A : Availability data
+A --> S : Available slot
+S --> DB : Reserve slot / Create tentative assignment
+DB --> S : Assignment data
+S --> C : Assigned booking
+C --> DB : Persist confirmed booking
+DB --> C : Booking record
+C --> Client : Confirmation (email / SMS)
+
+Client --> R : Cancel / Reschedule request
+R --> DB : Update booking status
+DB --> S : Release or update assignment
+S --> Staff : Notify reassignment (if needed)
+
+' Notes
+note right
+  - Concurrency: check-and-reserve must be atomic to avoid double-booking.
+  - Consider optimistic locking or DB transactions.
+end note
+
+@enduml

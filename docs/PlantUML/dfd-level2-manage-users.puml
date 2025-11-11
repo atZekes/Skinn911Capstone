@@ -1,0 +1,47 @@
+@startuml DFD_Level_2_Manage_Users
+title DFD Level 2 — Manage Users
+
+' External entities
+actor Client
+actor Staff
+actor Admin
+
+' Sub-processes
+rectangle "2.1 Register / Signup" as R
+rectangle "2.2 Authenticate / Login" as L
+rectangle "2.3 Update Profile" as U
+rectangle "2.4 Manage Roles / Admin Actions" as M
+rectangle "2.5 Deactivate / Delete" as D
+
+' Data stores
+database "Users DB" as DB
+
+' Data flows
+Client --> R : Signup info
+R --> DB : Store user (hashed password)
+DB --> R : User ID
+
+Client --> L : Credentials
+L --> DB : Verify credentials
+DB --> L : Auth result / token
+L --> Client : Auth token / session
+
+Client/Staff --> U : Profile changes
+U --> DB : Update user record
+DB --> U : Confirmation
+
+Admin --> M : Role changes / staff provisioning
+M --> DB : Update roles / permissions
+DB --> M : Ack
+
+Client/Staff --> D : Deactivate or delete request
+D --> DB : Update status / soft-delete
+DB --> D : Ack
+
+' Notes
+note right
+  - Store passwords hashed (bcrypt/argon2).
+  - Consider multi-factor auth, rate limiting on login.
+end note
+
+@enduml

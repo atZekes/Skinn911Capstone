@@ -1,0 +1,44 @@
+@startuml Simple_DFD_Level_0_SkinSync
+title Simple DFD Level 0 — SkinSync Booking System
+
+' External entities
+rectangle "Client" as Client
+rectangle "Staff" as Staff
+rectangle "Admin" as Admin
+rectangle "Email/SMS Service" as Email
+rectangle "GCash (external QR)" as GCash
+rectangle "File Storage" as Files
+
+' System boundary
+rectangle "SkinSync System" as SkinSync
+
+' Data stores
+rectangle "Database (MySQL)" as DB
+
+' Notes (explain terms used at Level 0)
+note top
+	"Assignments" = system assigns available staff to bookings.
+	"Check-ins" = staff marks client arrival / attendance.
+end note
+
+' Data flows (high-level / consolidated)
+Client --> SkinSync : Booking requests / Account updates / Inquiries
+SkinSync --> Client : Confirmations / Notifications
+
+Staff --> SkinSync : Availability / Check-ins / Assigned bookings
+SkinSync --> Staff : Schedules / Assignments
+
+Admin --> SkinSync : Management & Configuration
+SkinSync --> Admin : Reports / Logs
+
+' Payments: no external gateway used for card vault; GCash is external QR flow
+SkinSync --> DB : Store saved card details (card vault - PCI scope note)
+Client --> GCash : Scan QR to pay (external)
+GCash --> Staff : Notify payment for confirmation
+
+SkinSync --> Email : Send notifications (email / SMS)
+SkinSync --> Files : Upload / Retrieve files (receipts, uploads)
+
+SkinSync <--> DB : Read / Write (Users, Bookings, Services, Branches)
+
+@enduml

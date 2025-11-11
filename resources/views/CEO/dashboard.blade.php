@@ -131,6 +131,14 @@
                     </h4>
                     <div class="d-flex gap-2">
                         <div class="filter-dropdown">
+                            <select class="form-select form-select-sm branch-filter" data-target="revenue" style="min-width: 140px; max-width: 150px;">
+                                <option value="">All Branches</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-dropdown">
                             <select class="form-select form-select-sm" id="chartTypeFilter" style="min-width: 140px; max-width: 150px;">
                                 <option value="line" selected>Line Chart</option>
                                 <option value="bar">Bar Chart</option>
@@ -159,13 +167,23 @@
                     <h4 class="chart-title mb-0">
                         <i class="fas fa-users-cog me-2"></i>Client Retention
                     </h4>
-                    <div class="filter-dropdown">
-                        <select class="form-select form-select-sm" id="retentionFilter" style="min-width: 120px; max-width: 130px;">
-                            <option value="week">Last Week</option>
-                            <option value="month" selected>Last Month</option>
-                            <option value="quarter">Last Quarter</option>
-                            <option value="all">All Time</option>
-                        </select>
+                    <div class="d-flex gap-2">
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm branch-filter" data-target="retention" style="min-width: 140px; max-width: 150px;">
+                                <option value="">All Branches</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm" id="retentionFilter" style="min-width: 120px; max-width: 130px;">
+                                <option value="week">Last Week</option>
+                                <option value="month" selected>Last Month</option>
+                                <option value="quarter">Last Quarter</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="chart-wrapper" style="position: relative; height: 100px; max-height: 500px;">
@@ -183,12 +201,22 @@
                         <h4 class="chart-title mb-0">
                             <i class="fas fa-clock me-2"></i>Peak Booking Hours
                         </h4>
-                        <div class="filter-dropdown">
-                            <select class="form-select form-select-sm" id="peakHoursFilter" style="min-width: 120px; max-width: 130px;">
-                                <option value="week">Last Week</option>
-                                <option value="month" selected>Last Month</option>
-                                <option value="quarter">Last Quarter</option>
-                            </select>
+                        <div class="d-flex gap-2">
+                            <div class="filter-dropdown">
+                                <select class="form-select form-select-sm branch-filter" data-target="peak" style="min-width: 140px; max-width: 150px;">
+                                    <option value="">All Branches</option>
+                                    @foreach($branches as $branch)
+                                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="filter-dropdown">
+                                <select class="form-select form-select-sm" id="peakHoursFilter" style="min-width: 120px; max-width: 130px;">
+                                    <option value="week">Last Week</option>
+                                    <option value="month" selected>Last Month</option>
+                                    <option value="quarter">Last Quarter</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 <div class="chart-wrapper" style="position: relative; height: 400px; max-height: 400px;">

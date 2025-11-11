@@ -8,6 +8,7 @@ use App\Events\MessageSent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Pusher\Pusher;
 
 class ChatMessageController extends Controller
 {
@@ -118,6 +119,22 @@ class ChatMessageController extends Controller
 
         // Broadcast event for real-time updates
         broadcast(new MessageSent($chatMessage))->toOthers();
+
+        // Send push notification if staff sent message to client
+        if ($request->sender_type === 'staff' && $chatMessage->user_id) {
+            $this->sendPushNotification($chatMessage->user_id, 'New Message', 'You have received a new message from staff.', 'info');
+        }
+
+        // Send push notification to staff if client sent message
+        if ($request->sender_type === 'client') {
+            $staffMembers = \App\Models\User::where('branch_id', $request->branch_id)
+                ->where('role', 'staff')
+                ->get();
+
+            foreach ($staffMembers as $staff) {
+                $this->sendPushNotification($staff->id, 'New Client Message', 'A client has sent you a new message.', 'info');
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -235,5 +252,29 @@ class ChatMessageController extends Controller
             'success' => true,
             'data' => $chats
         ]);
+    }
+
+    /**
+     * Send push notification to user
+     */
+    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    {
+        try {
+            $pusher = new Pusher(
+                env('PUSHER_APP_KEY'),
+                env('PUSHER_APP_SECRET'),
+                env('PUSHER_APP_ID'),
+                ['cluster' => env('PUSHER_APP_CLUSTER')]
+            );
+
+            $pusher->trigger('user-' . $userId, 'notification', [
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'icon' => asset('img/skinlogo.png')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Push notification failed: ' . $e->getMessage());
+        }
     }
 }

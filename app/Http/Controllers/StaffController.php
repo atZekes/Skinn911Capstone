@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Mail\BookingReminder;
 use App\Mail\BookingRefundConfirmed;
 use App\Mail\BookingReschedule;
+use Pusher\Pusher;
 
 class StaffController extends Controller
 {
@@ -805,6 +806,12 @@ class StaffController extends Controller
         $appointment = \App\Models\Booking::findOrFail($id);
         $appointment->status = 'cancelled';
         $appointment->save();
+
+        // Send push notification to client
+        if ($appointment->user_id) {
+            $this->sendPushNotification($appointment->user_id, 'Booking Cancelled', 'Your booking has been cancelled by staff.', 'warning');
+        }
+
         return redirect()->route('staff.appointments')->with('success', 'Appointment cancelled successfully.');
     }
 
@@ -831,6 +838,11 @@ class StaffController extends Controller
         $appointment->status = 'completed';
         $appointment->save();
 
+        // Send push notification to client
+        if ($appointment->user_id) {
+            $this->sendPushNotification($appointment->user_id, 'Booking Completed', 'Your booking has been completed successfully.', 'success');
+        }
+
         return redirect()->route('staff.appointments')->with('success', '✅ Appointment marked as completed successfully!');
     }
 
@@ -847,6 +859,11 @@ class StaffController extends Controller
 
             // Send the reminder email
             Mail::to($booking->user->email)->send(new BookingReminder($booking));
+
+            // Send push notification to client
+            if ($booking->user_id) {
+                $this->sendPushNotification($booking->user_id, 'Appointment Reminder', 'You have an upcoming appointment. Please check your email for details.', 'info');
+            }
 
             return redirect()->route('staff.appointments')->with('success', 'Reminder email sent successfully to ' . $booking->user->email);
         } catch (\Exception $e) {
@@ -871,6 +888,11 @@ class StaffController extends Controller
             $booking->payment_status = 'refunded';
             $booking->save();
 
+            // Send push notification to client
+            if ($booking->user_id) {
+                $this->sendPushNotification($booking->user_id, 'Refund Processed', 'Your refund has been processed successfully.', 'info');
+            }
+
             // Also mark the related purchased services as refunded
             $purchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->get();
             foreach ($purchasedServices as $ps) {
@@ -893,6 +915,30 @@ class StaffController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to process refund: ' . $e->getMessage());
             return redirect()->route('staff.appointments')->with('error', 'Failed to process refund. Please try again.');
+        }
+    }
+
+    /**
+     * Send push notification to user
+     */
+    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    {
+        try {
+            $pusher = new Pusher(
+                env('PUSHER_APP_KEY'),
+                env('PUSHER_APP_SECRET'),
+                env('PUSHER_APP_ID'),
+                ['cluster' => env('PUSHER_APP_CLUSTER')]
+            );
+
+            $pusher->trigger('user-' . $userId, 'notification', [
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'icon' => asset('img/skinlogo.png')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Push notification failed: ' . $e->getMessage());
         }
     }
 

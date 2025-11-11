@@ -367,12 +367,67 @@
 			email: '{{ auth()->user()->email }}'
 		};
 		console.log('Authenticated user:', window.authUser);
+
+		// Listen for push notifications
+		const channel = window.pusher.subscribe('user-' + window.authUser.id);
+		channel.bind('notification', function(data) {
+			// Show browser notification if permission granted
+			if (Notification.permission === 'granted') {
+				new Notification(data.title || 'Notification', {
+					body: data.message || 'You have a new notification',
+					icon: data.icon || '{{ asset('img/skinlogo.png') }}'
+				});
+			}
+
+			// Also show in-app notification using SweetAlert
+			Swal.fire({
+				title: data.title || 'Notification',
+				text: data.message || 'You have a new notification',
+				icon: data.type || 'info',
+				toast: true,
+				position: 'top-end',
+				showConfirmButton: false,
+				timer: 5000,
+				timerProgressBar: true
+			});
+		});
 	</script>
 
 	<script src="{{ asset('js/client/chat-widget.js') }}"></script>
 	@endauth
 	<script src="{{ asset('js/client/simple-header.js') }}"></script>
 	<script src="{{ asset('js/main.js') }}"></script>
+
+	<!-- Push Notification Registration -->
+	@auth
+	<script>
+		// Register service worker for push notifications
+		if ('serviceWorker' in navigator && 'PushManager' in window) {
+			navigator.serviceWorker.register('/sw.js')
+				.then(function(registration) {
+					console.log('Service Worker registered successfully:', registration);
+
+					// Request permission for notifications
+					return Notification.requestPermission();
+				})
+				.then(function(permission) {
+					if (permission === 'granted') {
+						console.log('Notification permission granted');
+						// Here you can subscribe to push notifications
+						// For now, we'll handle subscription when sending notifications from server
+					} else {
+						console.log('Notification permission denied');
+					}
+				})
+				.catch(function(error) {
+					console.log('Service Worker registration failed:', error);
+				});
+		} else {
+			console.log('Push notifications not supported');
+		}
+	</script>
+	@endauth
+
 	@yield('scripts')
 	{{-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> --}}
 	{{-- <script src="{{ asset('js/app.js') }}" defer></script> --}}

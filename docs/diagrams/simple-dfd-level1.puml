@@ -1,0 +1,68 @@
+@startuml Simple_DFD_Level_1_SkinSync
+title Simple DFD Level 1 — SkinSync Booking System
+
+' External entities
+rectangle "Client" as Client
+rectangle "Staff" as Staff
+rectangle "Admin" as Admin
+rectangle "CEO" as CEO
+rectangle "GCash (external QR)" as GCash
+
+' Subprocesses
+rectangle "Process Bookings" as PB
+rectangle "Manage Users" as MU
+rectangle "Handle Payments" as HP
+rectangle "Send Notifications" as SN
+
+' Data stores
+rectangle "Database" as DB
+
+' Notes: payment handling
+note right of HP
+	- Saved card flow: card tokenization -> store token in DB (card vault).
+	- GCash flow: client scans QR (external); GCash notifies staff to confirm payment.
+	- Do not store raw card PAN; use tokenization or third-party vault where possible.
+end note
+
+' Data flows
+Client --> PB : Booking Request
+PB --> Client : Confirmation
+
+Staff --> PB : Availability Update
+PB --> Staff : Schedule
+
+Admin --> MU : User Management
+MU --> Admin : User Data
+
+' Payment flows (detailed)
+Client --> HP : Save card (tokenize) / Pay by card
+HP --> DB : Store card token (card vault)
+HP --> Client : Card payment status
+
+Client --> GCash : Scan QR to pay (external)
+GCash --> Staff : Notify payment (for staff confirmation)
+GCash --> HP : (optional) send payment confirmation/status
+HP --> Staff : Notify payment confirmed (after verification)
+
+Admin --> HP : Payment configurations
+HP --> Admin : Payment status / logs
+
+PB --> SN : Notification Trigger
+SN --> Client : Email/SMS
+
+PB --> DB : Store Booking
+DB --> PB : Retrieve Data
+
+MU --> DB : Store User
+DB --> MU : Retrieve User
+
+HP --> DB : Store Payment / Tokens / Payment Logs
+DB --> HP : Retrieve Payment / Token Data
+
+SN --> DB : Log Notification
+DB --> SN : Retrieve Logs
+
+CEO --> Admin : Request Reports
+Admin --> CEO : Performance Reports (high-level)
+
+@enduml

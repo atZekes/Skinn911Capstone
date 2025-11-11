@@ -9,11 +9,16 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         \App\Console\Commands\LinkPurchasedServicesToBookings::class,
+        \App\Console\Commands\SendBookingReminders::class,
     ];
 
     protected function schedule(Schedule $schedule)
     {
-        //
+        // Send booking reminders daily at 9 AM for bookings happening tomorrow
+        $schedule->command('bookings:send-reminders')
+                ->dailyAt('09:00')
+                ->withoutOverlapping()
+                ->runInBackground();
     }
 
     protected function commands()

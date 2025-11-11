@@ -407,32 +407,36 @@ public function submitBooking(Request $request)
 
             \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BookingConfirmation($booking));
 
-            \Log::info('Booking confirmation email sent', [
+            Log::info('Booking confirmation email sent', [
                 'booking_id' => $booking->id,
                 'user_email' => $user->email
             ]);
 
             $emailSent = true;
         } catch (\Exception $e) {
-            \Log::error('Failed to send booking confirmation email', [
+            Log::error('Failed to send booking confirmation email', [
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage()
             ]);
             // Don't fail the booking if email fails
         }
     } else {
-        \Log::warning('Booking created but email not sent - invalid or missing email', [
+        Log::warning('Booking created but email not sent - invalid or missing email', [
             'booking_id' => $booking->id,
             'user_id' => $user->id,
             'email' => $user->email
         ]);
     }
 
-    if ($emailSent) {
-        return redirect()->route('client.dashboard')->with('success', 'Successfully booked! A confirmation email has been sent to ' . $user->email);
-    } else {
-        return redirect()->route('client.dashboard')->with('success', 'Successfully booked! Note: Please update your email address in your profile to receive booking confirmations.');
-    }
+    // Always send push notification to client (email status doesn't affect push notification)
+    $notificationMessage = $emailSent
+        ? 'Your appointment has been successfully booked! A confirmation email has been sent.'
+        : 'Your appointment has been successfully booked!';
+
+    $this->sendPushNotification($user->id, 'Booking Confirmed', $notificationMessage, 'success');
+
+    // Redirect without additional success message since push notification handles it
+    return redirect()->route('client.dashboard');
 }
 
 public function cancelBooking($id)
@@ -1255,5 +1259,29 @@ public function calendarViewer()
 </div>';
 
         return $modalHtml;
+    }
+
+    /**
+     * Send push notification to user
+     */
+    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    {
+        try {
+            $pusher = new \Pusher\Pusher(
+                env('PUSHER_APP_KEY'),
+                env('PUSHER_APP_SECRET'),
+                env('PUSHER_APP_ID'),
+                ['cluster' => env('PUSHER_APP_CLUSTER')]
+            );
+
+            $pusher->trigger('user-' . $userId, 'notification', [
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'icon' => asset('img/skinlogo.png')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Push notification failed: ' . $e->getMessage());
+        }
     }
 }

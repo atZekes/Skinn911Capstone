@@ -1,0 +1,34 @@
+@startuml DFD_Level_2_Reporting_Management
+title DFD Level 2 — Reporting & Management
+
+' External entities
+actor Admin
+actor CEO
+
+' Sub-processes
+rectangle "5.1 Data Aggregation" as A
+rectangle "5.2 Generate Reports" as G
+rectangle "5.3 Schedule / Export" as S
+rectangle "5.4 Dashboard" as D
+
+' Data stores
+database "Analytics DB / Cache" as DB
+
+' Data flows
+DB <-- PB : Booking / payment / staff activity events
+A --> DB : Aggregate / rollups
+G --> DB : Query aggregated data
+G --> Admin : Generate report (CSV / PDF)
+S --> Admin : Scheduled exports
+D --> Admin : Dashboard view (live)
+
+Admin --> G : Request custom report
+CEO --> D : View high-level dashboard
+
+' Notes
+note right
+  - Consider offline ETL for heavy aggregations.
+  - Use cache (Redis) for dashboard performance.
+end note
+
+@enduml
