@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             Address
                         </h3>
                         <p class="footer_text"> Skin911 Premier - Banilad Town Center (Main Office)</p>
-                        <a href="#" class="line-button">Get Direction</a>
+                        <p class="footer_text"> Banilad, Mandaue City, Cebu </p>
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 col-lg-3">
