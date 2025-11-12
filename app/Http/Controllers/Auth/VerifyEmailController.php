@@ -32,7 +32,7 @@ class VerifyEmailController extends Controller
                 Auth::login($user);
                 return redirect()->route('client.home')->with('info', 'Verification link expired. We\'ve sent you a new verification email! 📧');
             }
-            
+
             // If already verified, just log them in
             Auth::login($user);
             return redirect()->route('client.home')->with('success', 'Your email is already verified!');
