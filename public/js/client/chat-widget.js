@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (messageText.trim().toLowerCase() === 'menu') {
             // Clear the input field first
             messageInput.value = '';
-            
+
             // Show menu command locally
             var userMenuDiv = document.createElement('div');
             userMenuDiv.className = 'chat-message user-message';
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
             userMenuDiv.textContent = messageText;
             messagesContainer.appendChild(userMenuDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
+
             // Show main menu after short delay
             setTimeout(function() {
                 showMainMenu();
@@ -162,10 +162,10 @@ document.addEventListener('DOMContentLoaded', function() {
             button.className = 'preset-button';
             button.textContent = option.text;
             button.setAttribute('data-message', option.message);
-            
+
             // Add click event
             button.addEventListener('click', handlePresetButtonClick);
-            
+
             menuButtonsDiv.appendChild(button);
         });
 

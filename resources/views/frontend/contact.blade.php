@@ -294,7 +294,7 @@
             background-position: right 0.6rem center;
             min-height: 40px;
         }
-        
+
         .form-group label {
             font-size: 0.9rem;
         }
@@ -396,7 +396,7 @@
             cityFilter.addEventListener('change', function() {
                 const selectedCity = this.value;
                 const branchOptions = branchSelect.querySelectorAll('option');
-                
+
                 // Show/hide branches based on city
                 branchOptions.forEach(option => {
                     if (option.value === '') {
@@ -413,7 +413,7 @@
 
                 // Reset branch selection
                 branchSelect.value = '';
-                
+
                 // Hide map and reset info
                 if (mapIframe) {
                     mapIframe.style.display = 'none';
@@ -432,7 +432,7 @@
         if (branchSelect) {
             branchSelect.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
-                
+
                 if (!selectedOption || selectedOption.value === '') {
                     // No branch selected - show placeholder
                     if (mapIframe) {
@@ -453,7 +453,7 @@
                 const address = selectedOption.getAttribute('data-address') || '';
                 const hours = selectedOption.getAttribute('data-hours') || '';
                 const city = selectedOption.getAttribute('data-city') || '';
-                
+
                 console.log('Selected branch:', selectedOption.text);
                 console.log('Map src:', mapSrc);
                 console.log('Address:', address);

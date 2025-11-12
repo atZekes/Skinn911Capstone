@@ -127,7 +127,7 @@
 								<button id="markAllRead" class="btn btn-sm btn-outline-primary mr-2">
 									<i class="fas fa-check-double"></i> Mark All as Read
 								</button>
-								
+
 							</div>
 						</div>
 					</div>
