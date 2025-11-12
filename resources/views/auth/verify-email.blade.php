@@ -285,5 +285,38 @@
             Need help? Contact us at <strong>skin911.mainofc@gmail.com</strong>
         </p>
     </div>
+
+    <script>
+        // Auto-check verification status every 5 seconds
+        setInterval(function() {
+            fetch('{{ route('verification.check') }}', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.verified) {
+                    // Show success animation
+                    document.querySelector('.verification-container').innerHTML = `
+                        <div class="icon-wrapper" style="background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%);">
+                            <i class="fas fa-check-circle" style="color: #28A745;"></i>
+                        </div>
+                        <h1 style="color: #28A745;">Email Verified! 🎉</h1>
+                        <p class="message">Your account is now active. Redirecting you to your dashboard...</p>
+                    `;
+                    
+                    // Redirect after 2 seconds
+                    setTimeout(function() {
+                        window.location.href = '{{ route('client.home') }}?verified=1';
+                    }, 2000);
+                }
+            })
+            .catch(error => console.log('Checking verification status...'));
+        }, 5000); // Check every 5 seconds
+    </script>
 </body>
 </html>
