@@ -30,11 +30,11 @@ class VerifyEmail extends BaseVerifyEmail
             ->line('✅ Manage your bookings and profile')
             ->line('✅ Receive special offers and updates')
             ->line('If you did not create an account with Skin911, no further action is required. Please disregard this email.')
-            ->salutation('Best regards,  
-**The Skin911 Team**  
+            ->salutation('Best regards,
+**The Skin911 Team**
 _Your Skin, Our Priority_
 
-📧 skin911.mainofc@gmail.com  
+📧 skin911.mainofc@gmail.com
 📱 Follow us: [Facebook](https://www.facebook.com/Skin911Official/) | [Instagram](https://www.instagram.com/skin911/)');
     }
 }

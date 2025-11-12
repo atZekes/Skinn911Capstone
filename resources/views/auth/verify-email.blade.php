@@ -11,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%);
@@ -241,7 +241,7 @@
 
         <!-- Main Content -->
         <h1>Verify Your Email Address</h1>
-        
+
         <p class="message">
             Welcome to <strong>Skin911</strong>! 🎉<br>
             We've sent a verification link to:
