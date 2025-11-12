@@ -5,6 +5,15 @@
         <span class="modal-close-btn" style="position:absolute;top:18px;right:24px;font-size:2rem;color:#F56289;cursor:pointer;">&times;</span>
         <div class="login-container" style="display:flex;flex-direction:column;align-items:center;">
             <img src="{{ asset('img/skinlogo.png') }}" class="logo" width="120px" style="margin-bottom:18px;">
+            <!-- Google Sign In Button -->
+            <a href="{{ route('auth.google') }}" class="google-signin-btn" style="width:100%;display:flex;align-items:center;justify-content:center;padding:12px;border:1.5px solid #ddd;border-radius:8px;background:#fff;margin-bottom:20px;text-decoration:none;color:#333;font-weight:500;font-size:1rem;transition:background 0.2s, border-color 0.2s;">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style="width:18px;height:18px;margin-right:12px;">
+                Continue with Google
+            </a>
+            <div style="width:100%;text-align:center;margin:20px 0;position:relative;">
+                <span style="background:#fff;padding:0 10px;color:#666;font-size:0.9rem;">or</span>
+                <hr style="border:none;border-top:1px solid #ddd;margin:0;">
+            </div>
             <!-- LOGIN FORM -->
             @if($errors->any())
                 <div class="mb-3 alert alert-danger" style="border-radius:8px;background:#ffe6f0;color:#F56289;padding:10px 16px;">

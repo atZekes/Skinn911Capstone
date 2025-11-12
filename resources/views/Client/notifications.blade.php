@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Mark all as read button
     document.getElementById('markAllReadBtn').addEventListener('click', markAllAsRead);
-    
+
     // Attach filter button handlers (use data-filter attributes)
     const filterButtons = document.querySelectorAll('#notificationTabs button[data-filter]');
     filterButtons.forEach(btn => {

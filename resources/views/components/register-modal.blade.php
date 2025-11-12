@@ -6,6 +6,15 @@
         <div class="login-container" style="display:flex;flex-direction:column;align-items:center;">
             <img src="{{ asset('img/skinlogo.png') }}" class="logo" width="120px" style="margin-bottom:18px;">
             <h3 class="modal-title" style="color: #F56289; font-family: Montserrat, sans-serif; margin-top: 0; margin-bottom: 20px;">Create an Account</h3>
+            <!-- Google Sign In Button -->
+            <a href="{{ route('auth.google') }}" class="google-signin-btn" style="width:100%;display:flex;align-items:center;justify-content:center;padding:12px;border:1.5px solid #ddd;border-radius:8px;background:#fff;margin-bottom:20px;text-decoration:none;color:#333;font-weight:500;font-size:1rem;transition:background 0.2s, border-color 0.2s;">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style="width:18px;height:18px;margin-right:12px;">
+                Continue with Google
+            </a>
+            <div style="width:100%;text-align:center;margin:20px 0;position:relative;">
+                <span style="background:#fff;padding:0 10px;color:#666;font-size:0.9rem;">or</span>
+                <hr style="border:none;border-top:1px solid #ddd;margin:0;">
+            </div>
             @if($errors->any())
                 <div class="alert alert-danger mb-3" style="border-radius:8px;background:#ffe6f0;color:#F56289;padding:10px 16px;">
                     @foreach($errors->all() as $error)

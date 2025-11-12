@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -21,6 +22,35 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // Google OAuth routes
+    Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle'])->name('auth.google');
+    Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+
+    // Alternative: Route-based Google OAuth (less recommended)
+    // Route::get('auth/google', function () {
+    //     return Socialite::driver('google')->redirect();
+    // })->name('auth.google');
+    //
+    // Route::get('auth/google/callback', function () {
+    //     try {
+    //         $googleUser = Socialite::driver('google')->user();
+    //
+    //         $user = User::updateOrCreate([
+    //             'email' => $googleUser->getEmail(),
+    //         ], [
+    //             'name' => $googleUser->getName(),
+    //             'email' => $googleUser->getEmail(),
+    //             'password' => Hash::make(uniqid()),
+    //             'email_verified_at' => now(),
+    //         ]);
+    //
+    //         Auth::login($user);
+    //         return redirect()->intended(route('client.home'));
+    //     } catch (\Exception $e) {
+    //         return redirect()->route('login')->with('error', 'Google authentication failed. Please try again.');
+    //     }
+    // });
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
