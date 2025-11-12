@@ -26,7 +26,16 @@ class VerifyEmailController extends Controller
 
         // Check if link has expired (60 minutes)
         if (! $request->hasValidSignature()) {
-            return redirect()->route('login')->with('error', 'Verification link has expired. Please request a new one.');
+            // If email is not verified yet, send a new verification email
+            if (! $user->hasVerifiedEmail()) {
+                $user->sendEmailVerificationNotification();
+                Auth::login($user);
+                return redirect()->route('client.home')->with('info', 'Verification link expired. We\'ve sent you a new verification email! 📧');
+            }
+            
+            // If already verified, just log them in
+            Auth::login($user);
+            return redirect()->route('client.home')->with('success', 'Your email is already verified!');
         }
 
         // If already verified, just redirect

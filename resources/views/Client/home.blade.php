@@ -1,6 +1,92 @@
 @extends('layouts.clientapp')
 
 @section('content')
+    <!-- Email Verification Info Message (Auto-Resend) -->
+    @if(session('info'))
+        <div style="position: fixed; top: 80px; right: 20px; z-index: 9999; animation: slideInRight 0.5s ease-out;">
+            <div style="background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%); border: 2px solid #17A2B8; border-radius: 12px; padding: 20px 25px; box-shadow: 0 8px 25px rgba(23, 162, 184, 0.3); max-width: 400px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-envelope" style="font-size: 32px; color: #17A2B8;"></i>
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; color: #0C5460; font-weight: 700;">New Verification Email Sent</h4>
+                        <p style="margin: 0; color: #0C5460; font-size: 14px;">
+                            {{ session('info') }}
+                        </p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.style.display='none'" style="background: transparent; border: none; color: #17A2B8; font-size: 24px; cursor: pointer; margin-left: auto;">&times;</button>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        </style>
+        <script>
+            // Auto-hide the info message after 10 seconds
+            setTimeout(function() {
+                var infoMsg = document.querySelectorAll('[style*="slideInRight"]')[0];
+                if (infoMsg) {
+                    infoMsg.style.opacity = '0';
+                    infoMsg.style.transition = 'opacity 0.5s';
+                    setTimeout(function() {
+                        infoMsg.style.display = 'none';
+                    }, 500);
+                }
+            }, 10000);
+        </script>
+    @endif
+
+    <!-- Email Verification Error Message -->
+    @if(session('error'))
+        <div style="position: fixed; top: 80px; right: 20px; z-index: 9999; animation: slideInRight 0.5s ease-out;">
+            <div style="background: linear-gradient(135deg, #FFE6E6 0%, #FFF0F0 100%); border: 2px solid #F56289; border-radius: 12px; padding: 20px 25px; box-shadow: 0 8px 25px rgba(245, 98, 137, 0.3); max-width: 400px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 32px; color: #F56289;"></i>
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; color: #D8345F; font-weight: 700;">Verification Link Expired</h4>
+                        <p style="margin: 0; color: #D8345F; font-size: 14px;">
+                            {{ session('error') }}
+                        </p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.style.display='none'" style="background: transparent; border: none; color: #F56289; font-size: 24px; cursor: pointer; margin-left: auto;">&times;</button>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        </style>
+        <script>
+            // Auto-hide the error message after 10 seconds
+            setTimeout(function() {
+                var errorMsg = document.querySelectorAll('[style*="slideInRight"]')[1];
+                if (errorMsg) {
+                    errorMsg.style.opacity = '0';
+                    errorMsg.style.transition = 'opacity 0.5s';
+                    setTimeout(function() {
+                        errorMsg.style.display = 'none';
+                    }, 500);
+                }
+            }, 10000);
+        </script>
+    @endif
+
     <!-- Email Verification Success Message -->
     @if(session('verified') == 1 || request('verified') == 1 || session('success'))
         <div style="position: fixed; top: 80px; right: 20px; z-index: 9999; animation: slideInRight 0.5s ease-out;">
@@ -32,7 +118,7 @@
         <script>
             // Auto-hide the success message after 8 seconds
             setTimeout(function() {
-                var successMsg = document.querySelector('[style*="slideInRight"]');
+                var successMsg = document.querySelectorAll('[style*="slideInRight"]')[2];
                 if (successMsg) {
                     successMsg.style.opacity = '0';
                     successMsg.style.transition = 'opacity 0.5s';
