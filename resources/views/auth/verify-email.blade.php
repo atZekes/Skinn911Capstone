@@ -308,7 +308,7 @@
                         <h1 style="color: #28A745;">Email Verified! 🎉</h1>
                         <p class="message">Your account is now active. Redirecting you to your dashboard...</p>
                     `;
-                    
+
                     // Redirect after 2 seconds
                     setTimeout(function() {
                         window.location.href = '{{ route('client.home') }}?verified=1';
