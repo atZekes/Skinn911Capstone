@@ -38,7 +38,12 @@ public function store(LoginRequest $request): RedirectResponse
             return redirect()->route('two-factor.verify');
         }
 
-        // No 2FA, redirect to appropriate home based on role
+        // Check if email verification is required
+        if ($user && !$user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
+
+        // No 2FA and email verified, redirect to appropriate home based on role
         return redirect()->route('client.home');
     } catch (\Illuminate\Validation\ValidationException $e) {
         // Redirect back with error message
