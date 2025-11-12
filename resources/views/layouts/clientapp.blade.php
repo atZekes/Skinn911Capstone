@@ -81,18 +81,57 @@
 								<span>Calendar</span>
 							</a>
 						</li>
-						<li class="nav-item">
-							<a href="{{ route('client.messages') }}" class="nav-link {{ Request::routeIs('client.messages') ? 'active' : '' }}">
-								<i class="fas fa-comments"></i>
-								<span>Messages</span>
-							</a>
-						</li>
-					</ul>
-				</nav>
-
-				<!-- Right Section: User Info & Actions -->
+					<li class="nav-item">
+						<a href="{{ route('client.messages') }}" class="nav-link {{ Request::routeIs('client.messages') ? 'active' : '' }}">
+							<i class="fas fa-comments"></i>
+							<span>Messages</span>
+							<span class="message-notification-badge" id="messageNotificationBadge" style="display: none;">0</span>
+						</a>
+					</li>
+				</ul>
+			</nav>				<!-- Right Section: User Info & Actions -->
 				<div class="header-actions">
 					@auth
+					<!-- Notification Dropdown -->
+					<div class="dropdown">
+						<button class="notification-btn dropdown-toggle" id="notificationBtn" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Notifications">
+							<i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+						</button>
+						<div class="dropdown-menu notification-dropdown" aria-labelledby="notificationBtn" style="width: 350px; max-height: 500px; overflow-y: auto;">
+							<div class="notification-header dropdown-header" style="position: sticky; top: 0; background: white; z-index: 1;">
+								<h6 class="mb-0"><i class="fas fa-bell"></i> Notifications</h6>
+							</div>
+							<div class="notification-content" id="notificationContent" style="max-height: 350px; overflow-y: auto;">
+								<div class="notification-empty dropdown-item text-center">
+									<i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+									<p class="mb-1">No notifications yet</p>
+									<small class="text-muted">You'll see your booking updates and messages here</small>
+								</div>
+								<!-- Dynamic notifications will be populated here -->
+								{{-- @foreach($notifications ?? [] as $notification)
+									<div class="notification-item dropdown-item {{ $notification->read ? '' : 'unread' }}">
+										<div class="notification-icon">
+											<i class="fas fa-{{ $notification->icon ?? 'bell' }}"></i>
+										</div>
+										<div class="notification-content">
+											<div class="notification-title">{{ $notification->title }}</div>
+											<div class="notification-message">{{ $notification->message }}</div>
+											<div class="notification-time">{{ $notification->created_at->diffForHumans() }}</div>
+										</div>
+									</div>
+								@endforeach --}}
+							</div>
+							<div class="dropdown-divider"></div>
+							<div class="dropdown-item text-center">
+								<button id="markAllRead" class="btn btn-sm btn-outline-primary mr-2">
+									<i class="fas fa-check-double"></i> Mark All as Read
+								</button>
+								
+							</div>
+						</div>
+					</div>
+
 					<!-- Profile Button (Clickable to Edit Profile) -->
 					<a href="{{ route('client.profile.edit') }}" class="profile-btn" title="Edit Profile">
 						<div class="user-avatar">
@@ -368,29 +407,8 @@
 		};
 		console.log('Authenticated user:', window.authUser);
 
-		// Listen for push notifications
+		// Listen for push notifications (subscribe to Pusher channel)
 		const channel = window.pusher.subscribe('user-' + window.authUser.id);
-		channel.bind('notification', function(data) {
-			// Show browser notification if permission granted
-			if (Notification.permission === 'granted') {
-				new Notification(data.title || 'Notification', {
-					body: data.message || 'You have a new notification',
-					icon: data.icon || '{{ asset('img/skinlogo.png') }}'
-				});
-			}
-
-			// Also show in-app notification using SweetAlert
-			Swal.fire({
-				title: data.title || 'Notification',
-				text: data.message || 'You have a new notification',
-				icon: data.type || 'info',
-				toast: true,
-				position: 'top-end',
-				showConfirmButton: false,
-				timer: 5000,
-				timerProgressBar: true
-			});
-		});
 
 		// Register service worker for push notifications
 		if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -414,6 +432,401 @@
 		} else {
 			console.warn('Service Worker or Push Manager not supported');
 		}
+
+		// Notification Sidebar Functionality
+		window.notifications = [];
+
+		// Load notifications from database on page load
+		window.loadNotifications = function() {
+			console.log('Loading notifications from database...');
+			console.log('Auth user:', window.authUser);
+
+			if (!window.authUser || !window.authUser.id) {
+				console.log('No authenticated user, skipping notification load');
+				return;
+			}
+
+			// Add timeout to prevent indefinite loading
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+			fetch('/api/notifications', {
+				// Use 'include' to send cookies even if slightly different origin (localhost vs 127.0.0.1)
+				credentials: 'include',
+				headers: {
+					'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				},
+				signal: controller.signal
+			})
+			.then(response => {
+				clearTimeout(timeoutId); // Clear timeout on success
+				console.log('API response status:', response.status);
+				if (response.status === 401) {
+					// Helpful debug info for 401: log cookies and auth user to help identify why session isn't sent/recognized
+					try {
+						console.error('API returned 401. document.cookie:', document.cookie);
+						console.error('window.authUser:', window.authUser);
+					} catch (e) {
+						console.error('Error while logging debug cookies/authUser:', e);
+					}
+				}
+				if (!response.ok) {
+					throw new Error('HTTP error! status: ' + response.status);
+				}
+				return response.json();
+			})
+			.then(data => {
+				console.log('API response data:', data);
+				if (data.success) {
+					window.notifications = data.notifications.map(notification => ({
+						id: notification.id,
+						title: notification.title,
+						message: notification.message,
+						type: notification.type,
+						read: notification.read,
+						booking_id: notification.booking_id,
+						timestamp: new Date(notification.created_at)
+					}));
+					console.log('Loaded notifications:', window.notifications);
+					console.log('Number of notifications:', window.notifications.length);
+					window.updateNotificationUI();
+					window.updateNotificationBadge();
+				} else {
+					console.error('API returned success=false:', data);
+					// Still update UI even if no notifications
+					window.updateNotificationUI();
+					window.updateNotificationBadge();
+				}
+			})
+			.catch(error => {
+				clearTimeout(timeoutId); // Clear timeout on error
+				console.error('Failed to load notifications:', error);
+				if (error.name === 'AbortError') {
+					console.error('Notification request timed out after 5 seconds');
+				}
+				// Show empty state even on error
+				window.updateNotificationUI();
+				window.updateNotificationBadge();
+			});
+		};
+
+		// Save notification to database
+		window.saveNotification = function(title, message, type = 'info', bookingId = null) {
+			return fetch('/api/notifications', {
+				credentials: 'include',
+				method: 'POST',
+				headers: {
+					'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					title: title,
+					message: message,
+					type: type,
+					booking_id: bookingId
+				})
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.success) {
+					// Add to local notifications array
+					const notification = {
+						id: data.notification.id,
+						title: title,
+						message: message,
+						type: type,
+						read: false,
+						booking_id: bookingId,
+						timestamp: new Date(data.notification.created_at)
+					};
+					window.notifications.unshift(notification);
+					window.updateNotificationUI();
+					window.updateNotificationBadge();
+					return notification;
+				}
+			})
+			.catch(error => {
+				console.error('Failed to save notification:', error);
+			});
+		};
+
+		// Add notification to the sidebar (now saves to database)
+		window.addNotification = function(title, message, type = 'info', bookingId = null) {
+			// Save to database first
+			return window.saveNotification(title, message, type, bookingId);
+		};
+
+		// Update notification badge
+	window.updateNotificationBadge = function() {
+		const unreadCount = window.notifications.filter(n => !n.read).length;
+		const badge = document.getElementById('notificationBadge');
+		const navBadge = document.getElementById('navNotificationBadge');
+
+		if (unreadCount > 0) {
+			const displayCount = unreadCount > 99 ? '99+' : unreadCount;
+			badge.textContent = displayCount;
+			badge.style.display = 'inline';
+
+			// Update navigation menu badge
+			if (navBadge) {
+				navBadge.textContent = displayCount;
+				navBadge.style.display = 'inline';
+			}
+		} else {
+			badge.style.display = 'none';
+			if (navBadge) {
+				navBadge.style.display = 'none';
+			}
+		}
+	};		// Update notification UI
+		window.updateNotificationUI = function() {
+			console.log('Updating notification UI with', window.notifications.length, 'notifications');
+			const container = document.getElementById('notificationContent');
+
+			if (!container) {
+				console.error('Notification content container not found');
+				return;
+			}
+
+			if (window.notifications.length === 0) {
+				container.innerHTML = `
+					<div class="notification-empty dropdown-item text-center" style="padding: 20px;">
+						<i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+						<p class="mb-1">No notifications yet</p>
+						<small class="text-muted">You'll see your booking updates and messages here</small>
+					</div>
+				`;
+				return;
+			}
+
+			const notificationsHtml = window.notifications.map(notification => {
+				const timeAgo = window.getTimeAgo(notification.timestamp);
+				const formattedDate = window.getFormattedDate(notification.timestamp);
+				const iconClass = window.getNotificationIcon(notification.type);
+				const unreadClass = notification.read ? '' : 'unread';
+
+				return `
+					<div class="notification-item dropdown-item ${unreadClass}" data-id="${notification.id}" onclick="window.handleNotificationClick(${notification.id})" style="cursor: pointer; white-space: normal; padding: 15px;">
+						<div class="d-flex">
+							<div class="notification-icon mr-3">
+								<i class="${iconClass}"></i>
+							</div>
+							<div class="notification-content flex-grow-1">
+								<div class="notification-title font-weight-bold">${notification.title}</div>
+								<div class="notification-message text-muted small">${notification.message}</div>
+								<div class="notification-date text-muted small mt-1">${formattedDate} • ${timeAgo}</div>
+							</div>
+						</div>
+					</div>
+				`;
+			}).join('');
+
+			container.innerHTML = notificationsHtml;
+			console.log('Notification UI updated with HTML');
+		};
+
+		// Get notification icon based on type
+		window.getNotificationIcon = function(type) {
+			const icons = {
+				'success': 'fas fa-check-circle text-success',
+				'error': 'fas fa-exclamation-circle text-danger',
+				'warning': 'fas fa-exclamation-triangle text-warning',
+				'info': 'fas fa-info-circle text-info'
+			};
+			return icons[type] || 'fas fa-bell text-primary';
+		};
+
+		// Get time ago string
+		window.getTimeAgo = function(date) {
+			const now = new Date();
+			const diff = now - new Date(date);
+			const minutes = Math.floor(diff / 60000);
+			const hours = Math.floor(diff / 3600000);
+			const days = Math.floor(diff / 86400000);
+
+			if (minutes < 1) return 'Just now';
+			if (minutes < 60) return `${minutes}m ago`;
+			if (hours < 24) return `${hours}h ago`;
+			return `${days}d ago`;
+		};
+
+		// Get formatted date string
+		window.getFormattedDate = function(date) {
+			const notificationDate = new Date(date);
+			const today = new Date();
+			const yesterday = new Date(today);
+			yesterday.setDate(today.getDate() - 1);
+
+			// Check if it's today
+			if (notificationDate.toDateString() === today.toDateString()) {
+				return 'Today';
+			}
+			// Check if it's yesterday
+			else if (notificationDate.toDateString() === yesterday.toDateString()) {
+				return 'Yesterday';
+			}
+			// Return formatted date
+			else {
+				return notificationDate.toLocaleDateString('en-US', {
+					month: 'short',
+					day: 'numeric',
+					year: notificationDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+				});
+			}
+		};
+
+		// Handle notification click - mark as read and redirect to specific booking in dashboard
+		window.handleNotificationClick = function(id) {
+			// Find the notification
+			const notification = window.notifications.find(n => n.id === id);
+			if (!notification) return;
+
+			// Mark as read in database if not already read
+			if (!notification.read) {
+					fetch(`/api/notifications/${id}/read`, {
+						credentials: 'include',
+						method: 'PATCH',
+						headers: {
+							'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+							'Accept': 'application/json',
+							'Content-Type': 'application/json'
+						}
+					})
+				.then(response => response.json())
+				.then(data => {
+					if (data.success) {
+						notification.read = true;
+						window.updateNotificationUI();
+						window.updateNotificationBadge();
+					}
+				})
+				.catch(error => {
+					console.error('Failed to mark notification as read:', error);
+				});
+			}
+
+			// Redirect to dashboard with booking highlight parameter
+			const bookingId = notification.booking_id;
+			if (bookingId) {
+				window.location.href = '{{ route("client.dashboard") }}?highlight=' + bookingId;
+			} else {
+				window.location.href = '{{ route("client.dashboard") }}';
+			}
+		};
+
+		// Mark notification as read (for other uses)
+		window.markAsRead = function(id) {
+			const notification = window.notifications.find(n => n.id === id);
+			if (notification && !notification.read) {
+					fetch(`/api/notifications/${id}/read`, {
+						credentials: 'include',
+						method: 'PATCH',
+						headers: {
+							'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+							'Accept': 'application/json',
+							'Content-Type': 'application/json'
+						}
+					})
+				.then(response => response.json())
+				.then(data => {
+					if (data.success) {
+						notification.read = true;
+						window.updateNotificationUI();
+						window.updateNotificationBadge();
+					}
+				})
+				.catch(error => {
+					console.error('Failed to mark notification as read:', error);
+				});
+			}
+		};
+
+		// Mark all notifications as read
+		window.markAllAsRead = function() {
+			fetch('/api/notifications/mark-all-read', {
+				credentials: 'include',
+				method: 'POST',
+				headers: {
+					'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				}
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.success) {
+					// Mark all local notifications as read
+					window.notifications.forEach(n => n.read = true);
+					window.updateNotificationUI();
+					window.updateNotificationBadge();
+				}
+			})
+			.catch(error => {
+				console.error('Failed to mark all notifications as read:', error);
+			});
+		};
+
+		// Enhanced notification listener with sidebar integration
+		channel.bind('notification', function(data) {
+			// Server already saved to database, just reload notifications to get the latest
+			window.loadNotifications();
+
+			// Show browser notification if permission granted
+			if (Notification.permission === 'granted') {
+				new Notification(data.title || 'Notification', {
+					body: data.message || 'You have a new notification',
+					icon: data.icon || '{{ asset('img/skinlogo.png') }}'
+				});
+			}
+
+			// Also show in-app notification using SweetAlert
+			Swal.fire({
+				title: data.title || 'Notification',
+				text: data.message || 'You have a new notification',
+				icon: data.type || 'info',
+				toast: true,
+				position: 'top-end',
+				showConfirmButton: false,
+				timer: 5000,
+				timerProgressBar: true
+			});
+		});
+	</script>
+
+	<script>
+		// Notification Dropdown Event Handlers
+		document.addEventListener('DOMContentLoaded', function() {
+			console.log('DOM loaded, initializing notification handlers...');
+			const markAllRead = document.getElementById('markAllRead');
+
+			// Mark all as read
+			if (markAllRead) {
+				markAllRead.addEventListener('click', function() {
+					window.markAllAsRead();
+				});
+			}
+
+			// Load notifications from database
+			if (window.authUser && window.authUser.id) {
+				console.log('User is authenticated, loading notifications...');
+				window.loadNotifications();
+			} else {
+				console.log('User not authenticated, skipping notification load');
+			}
+
+			// Also reload notifications when the bell button is clicked (refresh before showing dropdown)
+			const notifBtn = document.getElementById('notificationBtn');
+			if (notifBtn) {
+				notifBtn.addEventListener('click', function() {
+					console.log('Notification bell clicked - refreshing notifications');
+					// Small delay to allow dropdown to open visually, but refresh immediately
+					window.loadNotifications();
+				});
+			}
+		});
 	</script>
 
 	<script src="{{ asset('js/client/chat-widget.js') }}"></script>

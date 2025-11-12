@@ -40,8 +40,8 @@
 
         <!-- Telephone -->
         <div class="mb-3">
-            <label for="telephone">Telephone</label>
-            <input id="telephone" name="telephone" class="form-control" value="{{ old('telephone', $user->telephone ?? '') }}" placeholder="e.g. (02)81234567 or (032)1234567"  pattern="^(0\d{1,3})\d{7}$"   inputmode="tel"  maxlength="10"  required >
+            <label for="telephone">Telephone <span class="text-muted">(Optional)</span></label>
+            <input id="telephone" name="telephone" class="form-control" value="{{ old('telephone', $user->telephone ?? '') }}" placeholder="e.g. (02)81234567 or (032)1234567"  pattern="^(0\d{1,3})\d{7}$"   inputmode="tel"  maxlength="10">
             @error('telephone') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 

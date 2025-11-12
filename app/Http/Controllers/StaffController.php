@@ -657,6 +657,17 @@ class StaffController extends Controller
             // Don't fail the reschedule if email fails
         }
 
+        // Send notification to client if registered user
+        if ($booking->user_id) {
+            $this->sendPushNotification(
+                $booking->user_id,
+                'Booking Rescheduled by Staff',
+                'Your booking has been rescheduled by staff to ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' at ' . $booking->time_slot,
+                'info',
+                $booking->id
+            );
+        }
+
     if ($request->ajax()) {
             $userName = $booking->user ? $booking->user->name : ($booking->walkin_name ?? 'Walk-in');
             $serviceName = null;
@@ -706,6 +717,17 @@ class StaffController extends Controller
             'payment_method' => $booking->payment_method,
             'customer_id' => $booking->customer_id,
         ]);
+
+        // Send notification to client if registered user
+        if ($booking->user_id) {
+            $this->sendPushNotification(
+                $booking->user_id,
+                'Payment Confirmed',
+                'Your payment for booking on ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' has been confirmed by staff.',
+                'success',
+                $booking->id
+            );
+        }
 
         return redirect()->route('staff.appointments')->with('success', 'Payment confirmed successfully!');
     }
@@ -807,9 +829,15 @@ class StaffController extends Controller
         $appointment->status = 'cancelled';
         $appointment->save();
 
-        // Send push notification to client
+        // Send push notification to client with booking ID
         if ($appointment->user_id) {
-            $this->sendPushNotification($appointment->user_id, 'Booking Cancelled', 'Your booking has been cancelled by staff.', 'warning');
+            $this->sendPushNotification(
+                $appointment->user_id,
+                'Booking Cancelled',
+                'Your booking has been cancelled by staff.',
+                'warning',
+                $appointment->id
+            );
         }
 
         return redirect()->route('staff.appointments')->with('success', 'Appointment cancelled successfully.');
@@ -838,9 +866,15 @@ class StaffController extends Controller
         $appointment->status = 'completed';
         $appointment->save();
 
-        // Send push notification to client
+        // Send push notification to client with booking ID
         if ($appointment->user_id) {
-            $this->sendPushNotification($appointment->user_id, 'Booking Completed', 'Your booking has been completed successfully.', 'success');
+            $this->sendPushNotification(
+                $appointment->user_id,
+                'Booking Completed',
+                'Your booking has been completed successfully.',
+                'success',
+                $appointment->id
+            );
         }
 
         return redirect()->route('staff.appointments')->with('success', '✅ Appointment marked as completed successfully!');
@@ -860,9 +894,15 @@ class StaffController extends Controller
             // Send the reminder email
             Mail::to($booking->user->email)->send(new BookingReminder($booking));
 
-            // Send push notification to client
+            // Send push notification to client with booking ID
             if ($booking->user_id) {
-                $this->sendPushNotification($booking->user_id, 'Appointment Reminder', 'You have an upcoming appointment. Please check your email for details.', 'info');
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Appointment Reminder',
+                    'You have an upcoming appointment. Please check your email for details.',
+                    'info',
+                    $booking->id
+                );
             }
 
             return redirect()->route('staff.appointments')->with('success', 'Reminder email sent successfully to ' . $booking->user->email);
@@ -888,9 +928,15 @@ class StaffController extends Controller
             $booking->payment_status = 'refunded';
             $booking->save();
 
-            // Send push notification to client
+            // Send push notification to client with booking ID
             if ($booking->user_id) {
-                $this->sendPushNotification($booking->user_id, 'Refund Processed', 'Your refund has been processed successfully.', 'info');
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Refund Processed',
+                    'Your refund has been processed successfully.',
+                    'info',
+                    $booking->id
+                );
             }
 
             // Also mark the related purchased services as refunded
@@ -919,11 +965,22 @@ class StaffController extends Controller
     }
 
     /**
-     * Send push notification to user
+     * Send push notification to user and save to database
      */
-    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    private function sendPushNotification($userId, $title, $message, $type = 'info', $bookingId = null)
     {
         try {
+            // Save notification to database for persistence using custom Notification model
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'booking_id' => $bookingId,
+                'read' => false,
+            ]);
+
+            // Send real-time push notification via Pusher
             $pusher = new Pusher(
                 env('PUSHER_APP_KEY'),
                 env('PUSHER_APP_SECRET'),
@@ -935,6 +992,7 @@ class StaffController extends Controller
                 'title' => $title,
                 'message' => $message,
                 'type' => $type,
+                'booking_id' => $bookingId,
                 'icon' => asset('img/skinlogo.png')
             ]);
         } catch (\Exception $e) {

@@ -255,11 +255,22 @@ class ChatMessageController extends Controller
     }
 
     /**
-     * Send push notification to user
+     * Send push notification to user and save to database
      */
-    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    private function sendPushNotification($userId, $title, $message, $type = 'info', $bookingId = null)
     {
         try {
+            // Save notification to database for persistence using custom Notification model
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'booking_id' => $bookingId,
+                'read' => false,
+            ]);
+
+            // Send real-time push notification via Pusher
             $pusher = new Pusher(
                 env('PUSHER_APP_KEY'),
                 env('PUSHER_APP_SECRET'),
@@ -271,6 +282,7 @@ class ChatMessageController extends Controller
                 'title' => $title,
                 'message' => $message,
                 'type' => $type,
+                'booking_id' => $bookingId,
                 'icon' => asset('img/skinlogo.png')
             ]);
         } catch (\Exception $e) {

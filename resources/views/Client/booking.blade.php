@@ -4,23 +4,19 @@
     <div class="background-container">
         <div class="contact-card" style="max-width:1100px;margin:48px auto 0 auto;padding:32px 24px 40px 24px;background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,0.08);">
             <div class="map-container" style="margin-bottom:40px;">
-                @php
-                    $firstMap = '';
-                    if (isset($branches)) {
-                        if ($branches instanceof \Illuminate\Support\Collection) {
-                            $first = $branches->first();
-                            $firstMap = $first->map_src ?? '';
-                        } elseif (is_array($branches) && count($branches) > 0) {
-                            $first = $branches[0];
-                            if (is_array($first)) {
-                                $firstMap = $first['map_src'] ?? '';
-                            } else {
-                                $firstMap = $first->map_src ?? '';
-                            }
-                        }
-                    }
-                @endphp
-                <iframe id="branch-map" src="{{ $firstMap }}" width="100%" height="500" style="border:0;border-radius:14px;min-height:400px;max-width:1000px;display:block;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,0.10);" allowfullscreen loading="lazy"></iframe>
+                <!-- Map Container with Placeholder (Always show placeholder initially) -->
+                <div id="map-wrapper" style="position: relative; min-height: 500px;">
+                    <!-- Placeholder when no branch selected -->
+                    <div id="map-placeholder" style="display: flex; align-items: center; justify-content: center; min-height: 500px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 14px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.10);">
+                        <div style="padding: 40px;">
+                            <i class="fas fa-map-marked-alt" style="font-size: 64px; color: #F56289; margin-bottom: 20px;"></i>
+                            <h3 style="color: #333; margin-bottom: 10px;">No Branch Selected</h3>
+                            <p style="color: #666; font-size: 16px;">Please select a branch below to view its location on the map</p>
+                        </div>
+                    </div>
+                    <!-- Actual Map -->
+                    <iframe id="branch-map" src="" width="100%" height="500" style="display: none; border:0;border-radius:14px;min-height:400px;max-width:1000px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,0.10);" allowfullscreen loading="lazy"></iframe>
+                </div>
             </div>
             <div class="details-container">
                 <div class="header">
@@ -31,12 +27,16 @@
                     <span id="branch-location-detail" class="location-detail"></span>
                 </div>
                 <div class="mb-4 info-grid" style="display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:stretch;">
-                    <div class="info-item" style="flex:1 1 220px;min-width:220px;max-width:320px;display:flex;align-items:center;gap:16px;background:#f9f9f9;border-radius:10px;padding:18px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-                        <i class="fas fa-map-marker-alt icon" style="font-size:1.5rem;color:#F56289;"></i>
-                        <div>
-                            <span id="branch-address"></span><br>
-                            <a href="#" class="get-directions">Get directions</a>
+                    <div class="info-item" style="flex:1 1 220px;min-width:220px;max-width:320px;display:flex;flex-direction:column;gap:12px;background:#f9f9f9;border-radius:10px;padding:18px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                        <div style="display:flex;align-items:center;gap:16px;">
+                            <i class="fas fa-map-marker-alt icon" style="font-size:1.5rem;color:#F56289;"></i>
+                            <div>
+                                <span id="branch-address"></span>
+                            </div>
                         </div>
+                        <a href="#" id="get-directions-btn" class="btn btn-primary btn-sm" style="display:none;width:100%;background:#F56289;border:none;padding:8px 16px;border-radius:8px;font-weight:600;" target="_blank">
+                            <i class="fas fa-directions me-2"></i>Get Directions
+                        </a>
                     </div>
                     <div class="info-item" style="flex:1 1 220px;min-width:220px;max-width:320px;display:flex;align-items:center;gap:16px;background:#f9f9f9;border-radius:10px;padding:18px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
                         <i class="fas fa-clock icon" style="font-size:1.5rem;color:#F56289;"></i>
@@ -77,26 +77,46 @@
 
                     <form method="POST" action="{{ route('client.booking.submit') }}">
                         @csrf
-                        <div class="mb-3 form-group">
-                            <label for="branch_id">Branch</label>
-                            <select id="branch_id" name="branch_id" class="form-select" required>
-                                <option value="">Select Branch</option>
-                                @foreach($branches as $branch)
-                                    @php if (is_array($branch)) $branch = (object) $branch; @endphp
-                                    <option value="{{ $branch->id }}"
-                                            data-address="{{ $branch->address }}"
-                                            data-hours="{{ $branch->hours ?? 'Monday - Sunday: 10:00am - 9:00pm' }}"
-                                            data-map="{{ $branch->map_src }}"
-                                            data-time_slot="{{ $branch->time_slot }}"
-                                            data-slot_capacity="{{ $branch->slot_capacity ?? 5 }}"
-                                            data-gcash-number="{{ $branch->gcash_number ?? '0917 123 4567' }}"
-                                            data-gcash-qr="{{ $branch->gcash_qr ? asset($branch->gcash_qr) : asset('img/gcash-qr.png') }}"
-                                            @if(request('branch_id') == $branch->id) selected @endif>{{ $branch->name }}</option>
-                                @endforeach
-                            </select>
-                            @if($errors->has('branch_id'))
-                                <div class="mt-1 text-danger"><small>{{ $errors->first('branch_id') }}</small></div>
-                            @endif
+                        <!-- City Filter and Branch Selection Row -->
+                        <div class="row mb-3">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="city-filter">Filter by City</label>
+                                    <select id="city-filter" class="form-select">
+                                        <option value="">All Cities</option>
+                                        @php
+                                            $cities = $branches->pluck('city')->unique()->filter()->sort()->values();
+                                        @endphp
+                                        @foreach($cities as $city)
+                                            <option value="{{ $city }}">{{ $city }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="form-group">
+                                    <label for="branch_id">Branch</label>
+                                    <select id="branch_id" name="branch_id" class="form-select" required>
+                                        <option value="">Select Branch</option>
+                                        @foreach($branches as $branch)
+                                            @php if (is_array($branch)) $branch = (object) $branch; @endphp
+                                            <option value="{{ $branch->id }}"
+                                                    data-city="{{ $branch->city ?? '' }}"
+                                                    data-address="{{ $branch->address }}"
+                                                    data-hours="{{ $branch->hours ?? 'Monday - Sunday: 10:00am - 9:00pm' }}"
+                                                    data-map="{{ $branch->map_src }}"
+                                                    data-time_slot="{{ $branch->time_slot }}"
+                                                    data-slot_capacity="{{ $branch->slot_capacity ?? 5 }}"
+                                                    data-gcash-number="{{ $branch->gcash_number ?? '0917 123 4567' }}"
+                                                    data-gcash-qr="{{ $branch->gcash_qr ? asset($branch->gcash_qr) : asset('img/gcash-qr.png') }}"
+                                                    @if(request('branch_id') == $branch->id) selected @endif>{{ $branch->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if($errors->has('branch_id'))
+                                        <div class="mt-1 text-danger"><small>{{ $errors->first('branch_id') }}</small></div>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3 form-group">
@@ -1105,10 +1125,28 @@ document.addEventListener('DOMContentLoaded', function() {
             var cap = selected.getAttribute('data-slot_capacity') || 5;
             document.getElementById('branch-address').textContent = address;
             document.getElementById('branch-hours').innerHTML = hours + (tslot ? ('<br><strong>Available:</strong> ' + tslot) : '');
-            var directionsLink = document.querySelector('.get-directions');
-            if (directionsLink) directionsLink.href = 'https://www.google.com/maps/search/' + encodeURIComponent(address);
+            
+            // Update Get Directions button
+            var directionsBtn = document.getElementById('get-directions-btn');
+            if (directionsBtn && mapSrc) {
+                directionsBtn.href = mapSrc;
+                directionsBtn.style.display = 'block';
+            } else if (directionsBtn) {
+                directionsBtn.style.display = 'none';
+            }
+            
+            // Update map visibility
             var mapIframe = document.getElementById('branch-map');
-            if (mapIframe && mapSrc) mapIframe.src = mapSrc;
+            var mapPlaceholder = document.getElementById('map-placeholder');
+            if (mapSrc) {
+                mapIframe.src = mapSrc;
+                mapIframe.style.display = 'block';
+                if (mapPlaceholder) mapPlaceholder.style.display = 'none';
+            } else {
+                mapIframe.style.display = 'none';
+                if (mapPlaceholder) mapPlaceholder.style.display = 'flex';
+            }
+            
             // populate services and packages for this branch
             var bid = selected.value;
             var binfo = branchData[bid] || {services:[], packages:[], time_slot:'', slot_capacity:5};
@@ -1161,6 +1199,37 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // City filter functionality
+    const cityFilter = document.getElementById('city-filter');
+    if (cityFilter) {
+        cityFilter.addEventListener('change', function() {
+            const selectedCity = this.value;
+            const branchOptions = branchSelect.querySelectorAll('option');
+            
+            branchOptions.forEach(option => {
+                if (option.value === '') return; // Keep "Select Branch" option
+                
+                const branchCity = option.getAttribute('data-city') || '';
+                if (selectedCity === '' || branchCity === selectedCity) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // Reset branch selection if current selection is filtered out
+            const currentOption = branchSelect.options[branchSelect.selectedIndex];
+            if (currentOption && currentOption.value !== '') {
+                const currentCity = currentOption.getAttribute('data-city') || '';
+                if (selectedCity !== '' && currentCity !== selectedCity) {
+                    branchSelect.value = '';
+                    branchSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    }
+
     // update price display when service or package changed
     function updatePriceDisplay() {
         var priceEl = document.getElementById('service_price');

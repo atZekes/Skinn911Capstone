@@ -1,12 +1,33 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\StaffAvailabilityController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\NotificationController;
 
 Route::get('/booking/slots', [ClientController::class, 'getFullSlots']);
 Route::get('/staff/availability', [StaffAvailabilityController::class, 'getAvailability']);
+
+// Staff booking management routes
+Route::get('/staff/booking-details', [StaffAvailabilityController::class, 'getBookingDetails']);
+Route::post('/staff/confirm-booking/{bookingId}', [StaffAvailabilityController::class, 'confirmBooking']);
+Route::post('/staff/reject-booking/{bookingId}', [StaffAvailabilityController::class, 'rejectBooking']);
+
+// Validate promo code (AJAX)
+Route::get('/promo/validate', [ClientController::class, 'validatePromo'])->name('api.promo.validate');
+
+// Chat widget API routes
+Route::get('/chat/categories', [ChatController::class, 'getCategories']);
+Route::get('/chat/services/{category}', [ChatController::class, 'getServicesByCategory']);
+Route::get('/chat/branch-hours', [ChatController::class, 'getBranchHours']);
+
+// Notification API routes - use web middleware for session support
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications', [NotificationController::class, 'store']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+});
 
 // Staff booking management routes
 Route::get('/staff/booking-details', [StaffAvailabilityController::class, 'getBookingDetails']);

@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Pusher\Pusher;
 
 class StaffAvailabilityController extends Controller
 {
@@ -187,6 +188,17 @@ class StaffAvailabilityController extends Controller
             $booking->status = 'active';
             $booking->save();
 
+            // Send push notification to client
+            if ($booking->user_id) {
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Booking Confirmed',
+                    'Your booking has been confirmed by staff.',
+                    'success',
+                    $booking->id
+                );
+            }
+
             // Log the confirmation action
             Log::info("Staff confirmed booking {$bookingId}");
 
@@ -217,6 +229,17 @@ class StaffAvailabilityController extends Controller
             $booking->status = 'cancelled';
             $booking->save();
 
+            // Send push notification to client
+            if ($booking->user_id) {
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Booking Rejected',
+                    'Your booking has been rejected by staff. Please contact us for more information.',
+                    'error',
+                    $booking->id
+                );
+            }
+
             // Log the rejection action
             Log::info("Staff rejected booking {$bookingId}");
 
@@ -232,6 +255,42 @@ class StaffAvailabilityController extends Controller
                 'success' => false,
                 'message' => 'Failed to reject booking'
             ], 500);
+        }
+    }
+
+    /**
+     * Send push notification to user and save to database
+     */
+    private function sendPushNotification($userId, $title, $message, $type = 'info', $bookingId = null)
+    {
+        try {
+            // Save notification to database for persistence using custom Notification model
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'booking_id' => $bookingId,
+                'read' => false,
+            ]);
+
+            // Send real-time push notification via Pusher
+            $pusher = new Pusher(
+                env('PUSHER_APP_KEY'),
+                env('PUSHER_APP_SECRET'),
+                env('PUSHER_APP_ID'),
+                ['cluster' => env('PUSHER_APP_CLUSTER')]
+            );
+
+            $pusher->trigger('user-' . $userId, 'notification', [
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'booking_id' => $bookingId,
+                'icon' => asset('img/skinlogo.png')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Push notification failed: ' . $e->getMessage());
         }
     }
 }

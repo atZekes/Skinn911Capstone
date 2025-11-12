@@ -35,6 +35,20 @@
 
     <!-- Desktop/Tablet Table View -->
     <div class="branches-table fade-in">
+        <!-- City Filter -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Filter by City:</label>
+            <select id="cityFilter" class="form-select" style="max-width: 300px;">
+                <option value="">All Cities</option>
+                @php
+                    $cities = $branches->pluck('city')->unique()->filter()->sort()->values();
+                @endphp
+                @foreach($cities as $city)
+                    <option value="{{ $city }}">{{ $city }}</option>
+                @endforeach
+            </select>
+        </div>
+
         @if(isset($branches) && count($branches) > 0)
         <div class="table-responsive">
             <table class="table table-hover">
@@ -43,6 +57,7 @@
                         <th>ID</th>
                         <th>Branch Name</th>
                         <th>Address</th>
+                        <th>City</th>
                         <th>Map</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -56,15 +71,16 @@
                                 <i class="fas fa-plus me-2"></i>Add New Branch
                             </button>
                         </td>
-                        <td colspan="5" class="text-muted">
+                        <td colspan="6" class="text-muted">
                             <em>Click to add a new branch location</em>
                         </td>
                     </tr>
                     @foreach($branches as $branch)
-                    <tr data-branch-id="{{ $branch->id }}" class="slide-up">
+                    <tr data-branch-id="{{ $branch->id }}" data-branch-city="{{ $branch->city ?? '' }}" class="slide-up branch-row">
                         <td><strong>#{{ $branch->id }}</strong></td>
                         <td class="branch-name">{{ $branch->name }}</td>
                         <td class="branch-address">{{ $branch->address ?? 'N/A' }}</td>
+                        <td class="branch-city">{{ $branch->city ?? '-' }}</td>
                         <td class="text-center">
                             @if($branch->map_src)
                                 <button class="btn btn-sm btn-map"
@@ -88,6 +104,7 @@
                             <div class="btn-group-horizontal">
                                 <button class="btn btn-action btn-edit"
                                         data-branch-id="{{ $branch->id }}"
+                                        data-city="{{ $branch->city ?? '' }}"
                                         data-contact-number="{{ $branch->contact_number ?? '' }}"
                                         data-telephone-number="{{ $branch->telephone_number ?? '' }}"
                                         data-operating-days="{{ $branch->operating_days ?? '' }}">
@@ -241,6 +258,11 @@
                         <textarea name="address" class="form-control" rows="3" required></textarea>
                     </div>
                     <div class="form-group">
+                        <label class="form-label">City</label>
+                        <input type="text" name="city" class="form-control" placeholder="e.g., Manila, Quezon City, Makati">
+                        <small class="form-text text-muted">City or municipality where this branch is located (optional)</small>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Map Source (Google Maps Embed URL)</label>
                         <input type="url" name="map_src" class="form-control" placeholder="https://www.google.com/maps/embed?...">
                         <small class="form-text text-muted">Paste the Google Maps embed URL here (optional)</small>
@@ -330,6 +352,11 @@
                     <div class="form-group">
                         <label class="form-label">Address</label>
                         <textarea id="editBranchAddress" name="address" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">City</label>
+                        <input type="text" id="editBranchCity" name="city" class="form-control" placeholder="e.g., Manila, Quezon City, Makati">
+                        <small class="form-text text-muted">City or municipality where this branch is located (optional)</small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Map Source (Google Maps Embed URL)</label>

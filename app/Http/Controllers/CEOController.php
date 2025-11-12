@@ -534,9 +534,10 @@ class CEOController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'address' => 'required|string|max:500',
+                'city' => 'nullable|string|max:255',
                 'map_src' => 'nullable|url|max:1000',
                 'contact_number' => [
-                    'nullable',
+                    'required',
                     'string',
                     'regex:/^09[0-9]{9}$/' // Philippine mobile: 09XXXXXXXXX (11 digits)
                 ],
@@ -610,10 +611,16 @@ class CEOController extends Controller
                     ? implode(',', $validated['operating_days'])
                     : null;
 
+                // Normalize city to proper case (first letter uppercase)
+                $city = isset($validated['city']) && $validated['city']
+                    ? ucwords(strtolower(trim($validated['city'])))
+                    : null;
+
                 $branch = Branch::create([
                     'key' => 'temp_key', // Temporary key
                     'name' => $validated['name'],
                     'address' => $validated['address'],
+                    'city' => $city,
                     'map_src' => $validated['map_src'] ?? null,
                     'contact_number' => $validated['contact_number'] ?? null,
                     'telephone_number' => $validated['telephone_number'] ?? null,
@@ -731,9 +738,10 @@ class CEOController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:500',
+            'city' => 'nullable|string|max:255',
             'map_src' => 'nullable|url|max:1000',
             'contact_number' => [
-                'nullable',
+                'required',
                 'string',
                 'regex:/^09[0-9]{9}$/' // Philippine mobile: 09XXXXXXXXX (11 digits)
             ],
@@ -752,6 +760,11 @@ class CEOController extends Controller
         try {
             $operatingDays = $request->operating_days ? implode(',', $request->operating_days) : null;
 
+            // Normalize city to proper case (first letter uppercase)
+            $city = isset($request->city) && $request->city
+                ? ucwords(strtolower(trim($request->city)))
+                : null;
+
             \Log::info('CEO Branch Update Data', [
                 'branch_id' => $branch->id,
                 'operating_days_raw' => $request->operating_days,
@@ -763,6 +776,7 @@ class CEOController extends Controller
             $branch->update([
                 'name' => $request->name,
                 'address' => $request->address,
+                'city' => $city,
                 'map_src' => $request->map_src,
                 'contact_number' => $request->contact_number,
                 'telephone_number' => $request->telephone_number,

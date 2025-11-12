@@ -57,12 +57,13 @@ class SendBookingReminders extends Command
 
                 $message = "Reminder: You have a {$serviceName} appointment tomorrow at {$branchName} during {$timeSlot}.";
 
-                // Send push notification
+                // Send push notification with booking ID
                 $this->sendPushNotification(
                     $booking->user_id,
                     'Appointment Reminder',
                     $message,
-                    'info'
+                    'info',
+                    $booking->id
                 );
 
                 $this->line("✓ Sent reminder to {$booking->user->email} for booking #{$booking->id}");
@@ -78,11 +79,22 @@ class SendBookingReminders extends Command
     }
 
     /**
-     * Send push notification to user
+     * Send push notification to user and save to database
      */
-    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    private function sendPushNotification($userId, $title, $message, $type = 'info', $bookingId = null)
     {
         try {
+            // Save notification to database for persistence using custom Notification model
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'booking_id' => $bookingId,
+                'read' => false,
+            ]);
+
+            // Send real-time push notification via Pusher
             $pusher = new Pusher(
                 env('PUSHER_APP_KEY'),
                 env('PUSHER_APP_SECRET'),
@@ -94,6 +106,7 @@ class SendBookingReminders extends Command
                 'title' => $title,
                 'message' => $message,
                 'type' => $type,
+                'booking_id' => $bookingId,
                 'icon' => asset('img/skinlogo.png')
             ]);
 

@@ -24,7 +24,7 @@ class FrontController extends Controller
     {
         // Get all active branches from database with all contact information
         $branches = \App\Models\Branch::where('active', true)
-                                     ->select('id', 'name', 'address', 'location_detail', 'hours', 'map_src', 'contact_number', 'telephone_number', 'operating_days')
+                                     ->select('id', 'name', 'address', 'city', 'location_detail', 'hours', 'map_src', 'contact_number', 'telephone_number', 'operating_days')
                                      ->orderBy('name')
                                      ->get();
 

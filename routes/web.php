@@ -65,6 +65,10 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // Client messages/chat history page
     Route::get('/client/messages', [ChatMessageController::class, 'index'])->name('client.messages');
+    Route::get('/client/messages/new', [ChatMessageController::class, 'getUnreadCount'])->name('client.messages.unread');
+
+    // Client notifications page
+    Route::get('/client/notifications', [ClientController::class, 'notifications'])->name('client.notifications');
 
     // Real-time chat message routes (with session authentication)
     Route::post('/api/chat/send', [ChatMessageController::class, 'sendMessage']);

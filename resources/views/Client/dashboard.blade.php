@@ -1263,6 +1263,46 @@
 
             // Initial load and attach listeners
             attachCancelButtonListeners();
+
+            // Handle notification highlight parameter
+            function highlightBooking() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const highlightBookingId = urlParams.get('highlight');
+
+                if (highlightBookingId) {
+                    // Find the booking row with the matching ID
+                    const bookingRow = document.querySelector(`tr[data-booking-id="${highlightBookingId}"]`);
+
+                    if (bookingRow) {
+                        // Scroll to the booking
+                        bookingRow.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+
+                        // Add highlight effect
+                        bookingRow.style.background = 'linear-gradient(90deg, #fff0f5 0%, #ffe4ec 100%)';
+                        bookingRow.style.transform = 'scale(1.02)';
+                        bookingRow.style.boxShadow = '0 4px 12px rgba(245, 98, 137, 0.2)';
+                        bookingRow.style.borderLeft = '4px solid #F56289';
+
+                        // Remove highlight after 3 seconds
+                        setTimeout(() => {
+                            bookingRow.style.background = '';
+                            bookingRow.style.transform = '';
+                            bookingRow.style.boxShadow = '';
+                            bookingRow.style.borderLeft = '';
+                        }, 3000);
+
+                        // Clean up URL parameter
+                        const newUrl = window.location.pathname + window.location.hash;
+                        window.history.replaceState({}, document.title, newUrl);
+                    }
+                }
+            }
+
+            // Call highlight function on page load
+            highlightBooking();
         });
         </script>
 @endsection

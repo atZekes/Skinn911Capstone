@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\PurchasedService;
 use App\Mail\BookingReschedule;
+use Pusher\Pusher;
 
 class ClientController extends Controller
 {
@@ -47,6 +48,10 @@ class ClientController extends Controller
         ]);
     }
 
+    public function notifications()
+    {
+        return view('client.notifications');
+    }
 
 
     // New booking form loader for route
@@ -433,7 +438,7 @@ public function submitBooking(Request $request)
         ? 'Your appointment has been successfully booked! A confirmation email has been sent.'
         : 'Your appointment has been successfully booked!';
 
-    $this->sendPushNotification($user->id, 'Booking Confirmed', $notificationMessage, 'success');
+    $this->sendPushNotification($user->id, 'Booking Confirmed', $notificationMessage, 'success', $booking->id);
 
     // Redirect without additional success message since push notification handles it
     return redirect()->route('client.dashboard');
@@ -469,6 +474,15 @@ public function cancelBooking($id)
         // Don't fail the cancellation if email fails
     }
 
+    // Send notification to client
+    $this->sendPushNotification(
+        $booking->user_id,
+        'Booking Cancelled',
+        'Your booking for ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' has been cancelled.',
+        'warning',
+        $booking->id
+    );
+
     return redirect()->route('client.dashboard')->with('success', 'Successfully cancelled booking!');
 }
 
@@ -501,6 +515,15 @@ public function requestRefund($id)
         ]);
         // Don't fail the refund request if email fails
     }
+
+    // Send notification to client
+    $this->sendPushNotification(
+        $booking->user_id,
+        'Refund Requested',
+        'Your refund request for booking on ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' has been submitted. Staff will process it soon.',
+        'info',
+        $booking->id
+    );
 
     return redirect()->route('client.dashboard')->with('success', 'Refund requested successfully! Please visit the branch to collect your refund once approved by staff.');
 }
@@ -666,6 +689,15 @@ public function rescheduleBooking(Request $request, $id)
         ]);
         // Don't fail the reschedule if email fails
     }
+
+    // Send notification to client
+    $this->sendPushNotification(
+        $booking->user_id,
+        'Booking Rescheduled',
+        'Your booking has been rescheduled to ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' at ' . $booking->time_slot,
+        'info',
+        $booking->id
+    );
 
     return redirect()->route('client.dashboard')->with('success', 'Booking rescheduled successfully!');
 }
@@ -1262,11 +1294,22 @@ public function calendarViewer()
     }
 
     /**
-     * Send push notification to user
+     * Send push notification to user and save to database
      */
-    private function sendPushNotification($userId, $title, $message, $type = 'info')
+    private function sendPushNotification($userId, $title, $message, $type = 'info', $bookingId = null)
     {
         try {
+            // Save notification to database for persistence using custom Notification model
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'booking_id' => $bookingId,
+                'read' => false,
+            ]);
+
+            // Send real-time push notification via Pusher
             $pusher = new \Pusher\Pusher(
                 env('PUSHER_APP_KEY'),
                 env('PUSHER_APP_SECRET'),
@@ -1278,6 +1321,7 @@ public function calendarViewer()
                 'title' => $title,
                 'message' => $message,
                 'type' => $type,
+                'booking_id' => $bookingId,
                 'icon' => asset('img/skinlogo.png')
             ]);
         } catch (\Exception $e) {

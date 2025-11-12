@@ -9,7 +9,7 @@ class Branch extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'key', 'name', 'address', 'location_detail', 'hours', 'map_src', 'time_slot', 'slot_capacity', 'break_start', 'break_end', 'active', 'contact_number', 'telephone_number', 'operating_days', 'gcash_number', 'gcash_qr'
+        'key', 'name', 'address', 'city', 'location_detail', 'hours', 'map_src', 'time_slot', 'slot_capacity', 'break_start', 'break_end', 'active', 'contact_number', 'telephone_number', 'operating_days', 'gcash_number', 'gcash_qr'
     ];
 
     protected $casts = [

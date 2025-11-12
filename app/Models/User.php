@@ -100,4 +100,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(\App\Models\Branch::class);
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class);
+    }
 }

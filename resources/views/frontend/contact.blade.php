@@ -5,6 +5,7 @@
 
     <!-- per-view index styles -->
     <link rel="stylesheet" href="{{ asset('css/frontend/index.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/client/booking.css') }}">
 
     <!-- slider_area_start -->
     <div class="slider_area">
@@ -40,17 +41,19 @@
     <div class="background-container">
         <div class="contact-card">
             <div class="map-container">
-                <!-- Set working default map to Cebu City -->
-                                    <iframe
-                        id="map"
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3925.263004968588!2d123.9016596739544!3d10.320824489801565!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a9990509381945%3A0x73e7592e1d0f982f!2sSkin911%20Medical!5e0!3m2!1sen!2sph!4v1755606033060!5m2!1sen!2sph"
-                        width="100%"
-                        height="300"
-                        style="border:0;"
-                        allowfullscreen=""
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
-                    </iframe>
+                <!-- Map placeholder - will be shown when no branch is selected -->
+               <div id="map-wrapper" style="position: relative; min-height: 500px;">
+                    <!-- Placeholder when no branch selected -->
+                    <div id="map-placeholder" style="display: flex; align-items: center; justify-content: center; min-height: 500px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 14px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.10);">
+                        <div style="padding: 40px;">
+                            <i class="fas fa-map-marked-alt" style="font-size: 64px; color: #F56289; margin-bottom: 20px;"></i>
+                            <h3 style="color: #333; margin-bottom: 10px;">No Branch Selected</h3>
+                            <p style="color: #666; font-size: 16px;">Please select a branch below to view its location on the map</p>
+                        </div>
+                    </div>
+                    <!-- Actual Map -->
+                    <iframe id="branch-map" src="" width="100%" height="500" style="display: none; border:0;border-radius:14px;min-height:400px;max-width:1000px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,0.10);" allowfullscreen loading="lazy"></iframe>
+                </div>
             </div>
             <div class="details-container">
                 <div class="header">
@@ -67,61 +70,46 @@
                 </div>
 
 
-                <div class="branch-selector">
-                    <label>Choose a branch:</label>
-
-                    <!-- DEBUG: Show branch count -->
-                    <script>console.log('Branches from server:', {{ $branches->count() }});</script>
-
-                    @if($branches->count() > 0)
-                        <!-- Hidden select that holds the value for our script -->
-                        <select id="branch-select" name="branches" style="display: none;">
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}"
-                                        data-map-src="{{ $branch->map_src ?? '' }}"
-                                        data-address="{{ $branch->address ?? '' }}"
-                                        data-location-detail="{{ $branch->location_detail ?? '' }}"
-                                        data-hours="{{ $branch->hours ?? '' }}"
-                                        data-contact-number="{{ $branch->contact_number ?? '' }}"
-                                        data-telephone-number="{{ $branch->telephone_number ?? '' }}"
-                                        data-operating-days="{{ $branch->operating_days ?? '' }}">
-                                    {{ $branch->name }}
-                                </option>
-                                <!-- DEBUG: Log each branch -->
-                                <script>console.log('Branch: {{ $branch->name }}', 'Map: {{ $branch->map_src ?? "EMPTY" }}');</script>
-                            @endforeach
-                        </select>                        <!-- Custom styled dropdown that users see -->
-                        <div class="custom-select-wrapper">
-                            <div class="custom-select-trigger">
-                                <span>{{ $branches->first()->name }}</span>
-                                <i class="fas fa-chevron-down arrow"></i>
+               <div class="row mb-3">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="city-filter">Filter by City</label>
+                                    <select id="city-filter" class="form-select">
+                                        <option value="">All Cities</option>
+                                        @php
+                                            $cities = $branches->pluck('city')->unique()->filter()->sort()->values();
+                                        @endphp
+                                        @foreach($cities as $city)
+                                            <option value="{{ $city }}">{{ $city }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                            <div class="custom-options">
-                                @foreach($branches as $branch)
-                                    <div class="custom-option"
-                                         data-value="{{ $branch->id }}"
-                                         data-map-src="{{ $branch->map_src ?? '' }}"
-                                         data-address="{{ $branch->address ?? '' }}"
-                                         data-location-detail="{{ $branch->location_detail ?? '' }}"
-                                         data-hours="{{ $branch->hours ?? '' }}"
-                                         data-contact-number="{{ $branch->contact_number ?? '' }}"
-                                         data-telephone-number="{{ $branch->telephone_number ?? '' }}"
-                                         data-operating-days="{{ $branch->operating_days ?? '' }}">
-                                        {{ $branch->name }}
-                                    </div>
-                                @endforeach
+                            <div class="col-md-10">
+                                <div class="form-group">
+                                    <label for="branch_id">Branch</label>
+                                    <select id="branch_id" name="branch_id" class="form-select" required>
+                                        <option value="">Select Branch</option>
+                                        @foreach($branches as $branch)
+                                            @php if (is_array($branch)) $branch = (object) $branch; @endphp
+                                            <option value="{{ $branch->id }}"
+                                                    data-city="{{ $branch->city ?? '' }}"
+                                                    data-address="{{ $branch->address }}"
+                                                    data-hours="{{ $branch->hours ?? 'Monday - Sunday: 10:00am - 9:00pm' }}"
+                                                    data-map="{{ $branch->map_src }}"
+                                                    data-time_slot="{{ $branch->time_slot }}"
+                                                    data-slot_capacity="{{ $branch->slot_capacity ?? 5 }}"
+                                                    data-gcash-number="{{ $branch->gcash_number ?? '0917 123 4567' }}"
+                                                    data-gcash-qr="{{ $branch->gcash_qr ? asset($branch->gcash_qr) : asset('img/gcash-qr.png') }}"
+                                                    @if(request('branch_id') == $branch->id) selected @endif>{{ $branch->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if($errors->has('branch_id'))
+                                        <div class="mt-1 text-danger"><small>{{ $errors->first('branch_id') }}</small></div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    @else
-                        <!-- Show message when no branches are available -->
-                        <div class="no-branches-message">
-                            <p style="color: #666; font-style: italic;">No branches are currently available. Please check back later.</p>
-                        </div>
-                    @endif
-                            <!-- To add more, just copy a line above -->
-                        </div>
-                    </div>
-                </div>
 
                 <div class="sub-header">
                     <span class="rating">5.0 <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i> (196)</span>
@@ -133,7 +121,9 @@
                         <i class="fas fa-map-marker-alt icon"></i>
                         <div>
                             <span id="branch-address"></span><br>
-                            <a href="#" id="get-directions" class="get-directions">Get directions</a>
+                            <a href="#" id="get-directions" class="btn btn-primary btn-sm" style="display:none;width:100%;background:#F56289;border:none;padding:8px 16px;border-radius:8px;font-weight:600;" target="_blank">
+                                <i class="fas fa-directions me-2"></i>Get Directions
+                            </a>
                         </div>
                     </div>
                     <div class="info-item">
@@ -234,67 +224,81 @@
         color: #fff !important;
     }
 
-    .branch-selector { margin-top: 25px; }
-    .branch-selector label {
+    /* Form styles for dropdowns */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 0.5rem;
         font-weight: 500;
         color: #333;
+        font-size: 0.95rem;
     }
 
-    /* --- Custom Dropdown Styles --- */
-    .custom-select-wrapper {
-        position: relative;
-        cursor: pointer;
-        /* Add high z-index to wrapper */
-        z-index: 1000;
-    }
-    .custom-select-trigger {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px;
+    .form-select {
+        width: 100%;
+        padding: 0.65rem 2.5rem 0.65rem 0.75rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: #333;
+        background-color: #fff;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
         border: 1px solid #ccc;
         border-radius: 8px;
-        font-size: 16px;
-        background-color: #fff;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        appearance: none;
+        cursor: pointer;
     }
-    .custom-select-trigger .arrow {
-        transition: transform 0.3s ease;
-    }
-    .custom-select-wrapper.open .arrow {
-        transform: rotate(180deg);
-    }
-    .custom-options {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background-color: #fff;
-        border: 1px solid #ccc;
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-        /* Increase z-index so dropdown appears above everything */
-        z-index: 1001;
-        /* Add shadow to make dropdown more visible */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
-        /* THIS IS THE KEY FOR SCROLLING */
-        max-height: 200px; /* Set a max height */
-        overflow-y: auto;   /* Add a scrollbar if content exceeds max height */
+    .form-select:focus {
+        border-color: #F56289;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(245, 98, 137, 0.25);
     }
-    .custom-select-wrapper.open .custom-options {
-        display: block;
+
+    .form-select:hover {
+        border-color: #F56289;
     }
-    .custom-option {
-        padding: 12px;
-        transition: background-color 0.2s ease;
+
+    .form-select option {
+        padding: 0.5rem;
+        font-size: 0.95rem;
     }
-    .custom-option:hover {
-        background-color: #fdeaf1;
+
+    /* Ensure text doesn't get cut off */
+    select.form-select {
+        min-height: 45px;
+        height: auto;
+        overflow: visible;
     }
-    /* --- End Custom Dropdown Styles --- */
+
+    /* Responsive adjustments */
+    @media (max-width: 991px) {
+        .form-select {
+            font-size: 0.9rem;
+            padding: 0.6rem 2.25rem 0.6rem 0.7rem;
+            min-height: 42px;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .form-select {
+            font-size: 0.85rem;
+            padding: 0.55rem 2rem 0.55rem 0.65rem;
+            background-size: 14px 10px;
+            background-position: right 0.6rem center;
+            min-height: 40px;
+        }
+        
+        .form-group label {
+            font-size: 0.9rem;
+        }
+    }
 
     .sub-header {
         display: flex;
@@ -369,5 +373,137 @@
 
 
 @section('scripts')
-    <script src="{{ asset('js/frontend/contact.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cityFilter = document.getElementById('city-filter');
+        const branchSelect = document.getElementById('branch_id');
+        const mapIframe = document.getElementById('branch-map');
+        const mapPlaceholder = document.getElementById('map-placeholder');
+        const branchAddress = document.getElementById('branch-address');
+        const branchLocationDetail = document.getElementById('branch-location-detail');
+        const branchHours = document.getElementById('branch-hours');
+        const branchContact = document.getElementById('branch-contact');
+        const getDirectionsBtn = document.getElementById('get-directions');
+
+        // Initialize - show placeholder
+        if (mapIframe && mapPlaceholder) {
+            mapIframe.style.display = 'none';
+            mapPlaceholder.style.display = 'flex';
+        }
+
+        // City filter change handler
+        if (cityFilter && branchSelect) {
+            cityFilter.addEventListener('change', function() {
+                const selectedCity = this.value;
+                const branchOptions = branchSelect.querySelectorAll('option');
+                
+                // Show/hide branches based on city
+                branchOptions.forEach(option => {
+                    if (option.value === '') {
+                        option.style.display = ''; // Always show "Select Branch"
+                        return;
+                    }
+                    const branchCity = option.getAttribute('data-city') || '';
+                    if (selectedCity === '' || branchCity === selectedCity) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+
+                // Reset branch selection
+                branchSelect.value = '';
+                
+                // Hide map and reset info
+                if (mapIframe) {
+                    mapIframe.style.display = 'none';
+                    mapIframe.src = '';
+                }
+                if (mapPlaceholder) mapPlaceholder.style.display = 'flex';
+                if (branchAddress) branchAddress.textContent = '';
+                if (branchLocationDetail) branchLocationDetail.textContent = '';
+                if (branchHours) branchHours.innerHTML = '';
+                if (branchContact) branchContact.innerHTML = 'Contact information coming soon';
+                if (getDirectionsBtn) getDirectionsBtn.style.display = 'none';
+            });
+        }
+
+        // Branch selection change handler
+        if (branchSelect) {
+            branchSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                
+                if (!selectedOption || selectedOption.value === '') {
+                    // No branch selected - show placeholder
+                    if (mapIframe) {
+                        mapIframe.style.display = 'none';
+                        mapIframe.src = '';
+                    }
+                    if (mapPlaceholder) mapPlaceholder.style.display = 'flex';
+                    if (branchAddress) branchAddress.textContent = '';
+                    if (branchLocationDetail) branchLocationDetail.textContent = '';
+                    if (branchHours) branchHours.innerHTML = '';
+                    if (branchContact) branchContact.innerHTML = 'Contact information coming soon';
+                    if (getDirectionsBtn) getDirectionsBtn.style.display = 'none';
+                    return;
+                }
+
+                // Get branch data from data attributes
+                const mapSrc = selectedOption.getAttribute('data-map') || '';
+                const address = selectedOption.getAttribute('data-address') || '';
+                const hours = selectedOption.getAttribute('data-hours') || '';
+                const city = selectedOption.getAttribute('data-city') || '';
+                
+                console.log('Selected branch:', selectedOption.text);
+                console.log('Map src:', mapSrc);
+                console.log('Address:', address);
+
+                // Update map
+                if (mapIframe && mapPlaceholder) {
+                    if (mapSrc && mapSrc.trim() !== '') {
+                        mapIframe.src = mapSrc;
+                        mapIframe.style.display = 'block';
+                        mapPlaceholder.style.display = 'none';
+                        console.log('Map loaded successfully');
+                    } else {
+                        mapIframe.style.display = 'none';
+                        mapPlaceholder.style.display = 'flex';
+                        console.log('No map source available');
+                    }
+                }
+
+                // Update address
+                if (branchAddress) {
+                    branchAddress.textContent = address || 'Address not available';
+                }
+
+                // Update location detail (city)
+                if (branchLocationDetail) {
+                    branchLocationDetail.textContent = city || '';
+                }
+
+                // Update hours
+                if (branchHours) {
+                    if (hours && hours.trim() !== '') {
+                        branchHours.innerHTML = hours;
+                    } else {
+                        branchHours.innerHTML = '<div style="color: #888; font-style: italic;">Coming soon</div>';
+                    }
+                }
+
+                // Update contact info (you can enhance this with actual contact data)
+                if (branchContact) {
+                    branchContact.innerHTML = 'Contact information coming soon';
+                }
+
+                // Update directions button
+                if (getDirectionsBtn && address) {
+                    const directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(address);
+                    getDirectionsBtn.href = directionsUrl;
+                    getDirectionsBtn.style.display = mapSrc && mapSrc.trim() !== '' ? 'block' : 'none';
+                }
+            });
+        }
+    });
+    </script>
 @endsection

@@ -75,8 +75,12 @@
 .custom-select-trigger { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; background-color: #fff; }
 .custom-select-trigger .arrow { transition: transform 0.3s ease; }
 .custom-select-wrapper.open .arrow { transform: rotate(180deg); }
-.custom-options { display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: #fff; border: 1px solid #ccc; border-top: none; border-radius: 0 0 8px 8px; z-index: 10; max-height: 200px; overflow-y: auto; }
+.custom-options { display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: #fff; border: 1px solid #ccc; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; }
 .custom-select-wrapper.open .custom-options { display: block; }
+/* City filter dropdown should appear above branch selector - Desktop & Mobile */
+.custom-select-wrapper:first-of-type .custom-options { z-index: 9999 !important; }
+/* Branch selector dropdown (second dropdown) should be below city filter - Desktop & Mobile */
+.custom-select-wrapper:nth-of-type(2) .custom-options { z-index: 10 !important; }
 .custom-option { padding: 12px; transition: background-color 0.2s ease; }
 .custom-option:hover { background-color: #fdeaf1; }
 .sub-header { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; color: #666; font-size: 14px; margin-top: 25px; margin-bottom: 30px; }
@@ -121,13 +125,17 @@
 .branch-selector { margin-top:25px; }
 .branch-selector label { display:block; margin-bottom:8px; font-weight:500; color:#333; }
 
-/* Custom Dropdown Styles */
+/* Custom Dropdown Styles - Mobile Responsive */
 .custom-select-wrapper { position:relative; cursor:pointer; }
 .custom-select-trigger { display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid #ccc; border-radius:8px; font-size:16px; background-color:#fff; }
 .custom-select-trigger .arrow { transition: transform 0.3s ease; }
 .custom-select-wrapper.open .arrow { transform: rotate(180deg); }
-.custom-options { display:none; position:absolute; top:100%; left:0; right:0; background-color:#fff; border:1px solid #ccc; border-top:none; border-radius:0 0 8px 8px; z-index:10; max-height:200px; overflow-y:auto; }
+.custom-options { display:none; position:absolute; top:100%; left:0; right:0; background-color:#fff; border:1px solid #ccc; border-top:none; border-radius:0 0 8px 8px; max-height:200px; overflow-y:auto; }
 .custom-select-wrapper.open .custom-options { display:block; }
+/* City filter (first dropdown) should appear above branch selector */
+.custom-select-wrapper:first-of-type .custom-options { z-index: 1100 !important; }
+/* Branch selector (second dropdown) should be below city filter */
+.custom-select-wrapper:nth-of-type(2) .custom-options { z-index: 1000 !important; }
 .custom-option { padding:12px; transition:background-color 0.2s ease; }
 .custom-option:hover { background-color:#fdeaf1; }
 
@@ -142,5 +150,11 @@
 .branch-hours-grid { display:grid; grid-template-columns:auto 1fr; gap:0 15px; }
 .get-directions { color:#F56289; text-decoration:none; font-weight:500; }
 .get-directions:hover { text-decoration:underline; }
+
+
+/* Explicit class-based z-index rules to avoid ambiguous :first-of-type / nth-of-type matches */
+/* City dropdown should always appear above branch dropdown */
+.city-select-wrapper .custom-options { z-index: 2100 !important; }
+.branch-select-wrapper .custom-options { z-index: 1100 !important; }
 
 

@@ -15,6 +15,12 @@ class BranchManager {
     }
 
     bindEvents() {
+        // City Filter
+        const cityFilter = document.getElementById('cityFilter');
+        if (cityFilter) {
+            cityFilter.addEventListener('change', (e) => this.filterByCity(e.target.value));
+        }
+
         // Add Branch Buttons
         const addBranchBtnTable = document.getElementById('addBranchBtnTable');
         if (addBranchBtnTable) {
@@ -71,6 +77,17 @@ class BranchManager {
                 const branchId = button.getAttribute('data-branch-id');
                 const branchName = button.getAttribute('data-branch-name');
                 this.confirmToggleStatus(branchId, branchName, false);
+            }
+        });
+    }
+
+    filterByCity(city) {
+        const branchRows = document.querySelectorAll('.branch-row');
+        branchRows.forEach(row => {
+            if (city === '' || row.getAttribute('data-branch-city') === city) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
             }
         });
     }
@@ -161,6 +178,7 @@ class BranchManager {
             // Get data from table row
             const name = branchRow.querySelector('.branch-name').textContent.trim();
             const address = branchRow.querySelector('.branch-address').textContent.trim();
+            const city = branchRow.querySelector('.branch-city').textContent.trim();
             const isActive = branchRow.querySelector('.status-badge').classList.contains('status-active');
 
             // Get map source from map button if available
@@ -171,6 +189,7 @@ class BranchManager {
             document.getElementById('editBranchId').value = branchId;
             document.getElementById('editBranchName').value = name;
             document.getElementById('editBranchAddress').value = address;
+            document.getElementById('editBranchCity').value = (city === '-' ? '' : city);
             document.getElementById('editBranchMapSrc').value = mapSrc || '';
             document.getElementById('editBranchActive').checked = isActive;
 

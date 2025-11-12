@@ -74,6 +74,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the text from the input field
         var messageText = messageInput.value;
 
+        // Check if user typed "menu" command
+        if (messageText.trim().toLowerCase() === 'menu') {
+            // Clear the input field first
+            messageInput.value = '';
+            
+            // Show menu command locally
+            var userMenuDiv = document.createElement('div');
+            userMenuDiv.className = 'chat-message user-message';
+            userMenuDiv.style.backgroundColor = '#e3f2fd';
+            userMenuDiv.style.marginLeft = 'auto';
+            userMenuDiv.style.marginRight = '0';
+            userMenuDiv.style.maxWidth = '80%';
+            userMenuDiv.textContent = messageText;
+            messagesContainer.appendChild(userMenuDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Show main menu after short delay
+            setTimeout(function() {
+                showMainMenu();
+            }, 500);
+            return;
+        }
+
         // Check if we have either a message or an image
         if (messageText.trim() !== '' || selectedImage) {
             // If we have a selected branch (live chat mode), send to server
@@ -107,6 +130,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 presetButtonsContainer.classList.add('hidden');
             }
         }
+    }
+
+    // Function to show main menu buttons
+    function showMainMenu() {
+        // Remove any existing preset button containers (except the original)
+        var existingButtons = messagesContainer.querySelectorAll('.preset-buttons:not(#presetButtons)');
+        existingButtons.forEach(function(btn) {
+            btn.remove();
+        });
+
+        // Show response message
+        var responseDiv = document.createElement('div');
+        responseDiv.className = 'chat-message';
+        responseDiv.textContent = 'Here are the main options:';
+        messagesContainer.appendChild(responseDiv);
+
+        // Create new preset buttons container
+        var menuButtonsDiv = document.createElement('div');
+        menuButtonsDiv.className = 'preset-buttons';
+
+        // Create buttons
+        var menuOptions = [
+            { text: '💆 View Services', message: 'What are your services?' },
+            { text: '🕐 Branch Opening Hours', message: 'What are your branch opening hours?' },
+            { text: '👤 Talk to Staff', message: 'I need to talk to staff' }
+        ];
+
+        menuOptions.forEach(function(option) {
+            var button = document.createElement('button');
+            button.className = 'preset-button';
+            button.textContent = option.text;
+            button.setAttribute('data-message', option.message);
+            
+            // Add click event
+            button.addEventListener('click', handlePresetButtonClick);
+            
+            menuButtonsDiv.appendChild(button);
+        });
+
+        // Add menu buttons to chat
+        messagesContainer.appendChild(menuButtonsDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
     // Function to handle preset button clicks
@@ -596,7 +661,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadChatHistory(branchId);
 
         // Enable the message input for live chat
-        messageInput.placeholder = 'Type your message to ' + branchName + ' staff...';
+        messageInput.placeholder = 'Type "menu" to show preset buttons...';
         messageInput.focus();
     }
 
