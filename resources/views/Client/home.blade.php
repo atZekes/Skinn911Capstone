@@ -1,6 +1,47 @@
 @extends('layouts.clientapp')
 
 @section('content')
+    <!-- Email Verification Success Message -->
+    @if(request('verified') == 1)
+        <div style="position: fixed; top: 80px; right: 20px; z-index: 9999; animation: slideInRight 0.5s ease-out;">
+            <div style="background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%); border: 2px solid #28A745; border-radius: 12px; padding: 20px 25px; box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3); max-width: 400px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-check-circle" style="font-size: 32px; color: #28A745;"></i>
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; color: #155724; font-weight: 700;">Email Verified! 🎉</h4>
+                        <p style="margin: 0; color: #155724; font-size: 14px;">Your account is now active. Welcome to Skin911!</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.style.display='none'" style="background: transparent; border: none; color: #28A745; font-size: 24px; cursor: pointer; margin-left: auto;">&times;</button>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        </style>
+        <script>
+            // Auto-hide the success message after 8 seconds
+            setTimeout(function() {
+                var successMsg = document.querySelector('[style*="slideInRight"]');
+                if (successMsg) {
+                    successMsg.style.opacity = '0';
+                    successMsg.style.transition = 'opacity 0.5s';
+                    setTimeout(function() {
+                        successMsg.style.display = 'none';
+                    }, 500);
+                }
+            }, 8000);
+        </script>
+    @endif
+
     <!-- Responsive Banner -->
     @if(request('showLogin'))
         {{-- small flag for client/home.js to pick up and open login modal if present --}}

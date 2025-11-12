@@ -6,15 +6,15 @@
         <div class="login-container" style="display:flex;flex-direction:column;align-items:center;">
             <img src="{{ asset('img/skinlogo.png') }}" class="logo" width="120px" style="margin-bottom:18px;">
             <h3 class="modal-title" style="color: #F56289; font-family: Montserrat, sans-serif; margin-top: 0; margin-bottom: 20px;">Create an Account</h3>
-            <!-- Google Sign In Button -->
-            <a href="{{ route('auth.google') }}" class="google-signin-btn" style="width:100%;display:flex;align-items:center;justify-content:center;padding:12px;border:1.5px solid #ddd;border-radius:8px;background:#fff;margin-bottom:20px;text-decoration:none;color:#333;font-weight:500;font-size:1rem;transition:background 0.2s, border-color 0.2s;">
+            {{-- Google Sign In Button (commented out) --}}
+            {{-- <a href="{{ route('auth.google') }}" class="google-signin-btn" style="width:100%;display:flex;align-items:center;justify-content:center;padding:12px;border:1.5px solid #ddd;border-radius:8px;background:#fff;margin-bottom:20px;text-decoration:none;color:#333;font-weight:500;font-size:1rem;transition:background 0.2s, border-color 0.2s;">
                 <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style="width:18px;height:18px;margin-right:12px;">
                 Continue with Google
             </a>
             <div style="width:100%;text-align:center;margin:20px 0;position:relative;">
                 <span style="background:#fff;padding:0 10px;color:#666;font-size:0.9rem;">or</span>
                 <hr style="border:none;border-top:1px solid #ddd;margin:0;">
-            </div>
+            </div> --}}
             @if($errors->any())
                 <div class="alert alert-danger mb-3" style="border-radius:8px;background:#ffe6f0;color:#F56289;padding:10px 16px;">
                     @foreach($errors->all() as $error)
@@ -36,6 +36,13 @@
                     <input name="email" type="email" placeholder="EMAIL ADDRESS" class="input" required autocomplete="username" value="{{ old('email') }}" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
                     @if($errors->has('email'))
                         <div class="text-danger small mt-1">{{ $errors->first('email') }}</div>
+                    @endif
+                </div>
+                <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
+                    <i class="fa fa-phone" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#F56289;opacity:.6;"></i>
+                    <input name="mobile_phone" type="tel" placeholder="PHONE NUMBER" class="input" required value="{{ old('mobile_phone') }}" pattern="[0-9]{10,11}" title="Please enter a valid 10-11 digit phone number" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    @if($errors->has('mobile_phone'))
+                        <div class="text-danger small mt-1">{{ $errors->first('mobile_phone') }}</div>
                     @endif
                 </div>
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
