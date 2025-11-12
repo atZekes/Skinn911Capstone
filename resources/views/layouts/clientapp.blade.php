@@ -391,6 +391,29 @@
 				timerProgressBar: true
 			});
 		});
+
+		// Register service worker for push notifications
+		if ('serviceWorker' in navigator && 'PushManager' in window) {
+			navigator.serviceWorker.register('{{ asset('sw.js') }}')
+				.then(function(registration) {
+					console.log('Service Worker registered successfully:', registration);
+
+					// Request notification permission
+					return Notification.requestPermission();
+				})
+				.then(function(permission) {
+					if (permission === 'granted') {
+						console.log('Notification permission granted');
+					} else {
+						console.log('Notification permission denied');
+					}
+				})
+				.catch(function(error) {
+					console.error('Service Worker registration failed:', error);
+				});
+		} else {
+			console.warn('Service Worker or Push Manager not supported');
+		}
 	</script>
 
 	<script src="{{ asset('js/client/chat-widget.js') }}"></script>
