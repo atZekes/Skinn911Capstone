@@ -3,25 +3,46 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Auth\Events\Verified;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class VerifyEmailController extends Controller
 {
     /**
      * Mark the authenticated user's email address as verified.
      */
-    public function __invoke(EmailVerificationRequest $request): RedirectResponse
+    public function __invoke(Request $request, $id, $hash): RedirectResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('client.home', absolute: false).'?verified=1');
+        // Find the user by ID
+        $user = User::findOrFail($id);
+
+        // Verify the hash matches
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            abort(403, 'Invalid verification link.');
         }
 
-        if ($request->user()->markEmailAsVerified()) {
-            event(new Verified($request->user()));
+        // Check if link has expired (60 minutes)
+        if (! $request->hasValidSignature()) {
+            return redirect()->route('login')->with('error', 'Verification link has expired. Please request a new one.');
         }
 
-        return redirect()->intended(route('client.home', absolute: false).'?verified=1');
+        // If already verified, just redirect
+        if ($user->hasVerifiedEmail()) {
+            Auth::login($user);
+            return redirect()->route('client.home')->with('success', 'Your email is already verified!');
+        }
+
+        // Mark as verified
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        // Log the user in automatically
+        Auth::login($user);
+
+        return redirect()->route('client.home')->with('verified', 1);
     }
 }
