@@ -1,9 +1,9 @@
 <?php
 
-test('registration screen can be rendered', function () {
+test('registration screen GET /register redirects to home', function () {
     $response = $this->get('/register');
 
-    $response->assertStatus(200);
+    $response->assertStatus(302)->assertRedirect('/');
 });
 
 test('new users can register', function () {

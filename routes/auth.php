@@ -14,15 +14,21 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
+    // Redirect GET /register to home page as registration is handled via modal on client UI
+    Route::get('register', function() {
+        return redirect('/');
+    });
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // Keep POST /register to handle registration submissions; name route 'register' for form action
+    Route::post('register', [RegisteredUserController::class, 'store'])->name('register');
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+    // Redirect GET /login to home page as login is handled via modal on client UI
+    Route::get('login', function() {
+        return redirect('/');
+    });
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // Keep POST /login to handle login submissions (form action for modal)
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])->name('login');
 
     // Google OAuth routes (commented out)
     // Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle'])->name('auth.google');

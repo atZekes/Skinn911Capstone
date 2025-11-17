@@ -9,7 +9,7 @@ class ServiceSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('services')->insert([
+        $services = [
                 // Facial Services
                 ['name' => 'Skin911 Complete Facial', 'category' => 'Facial Services', 'price' => 1100, 'description' => null, 'treatment_details' => 'A deep cleansing facial that rejuvenates and hydrates your skin. Ideal for all skin types and helps restore a healthy glow.', 'image' => 'img/services/skin1.jpg'],
                 ['name' => 'Diamond Peel with complete facial', 'category' => 'Facial Services', 'price' => 2000, 'description' => null, 'treatment_details' => 'Removes dead skin cells and improves skin texture. Perfect for reducing fine lines and brightening complexion.', 'image' => 'img/services/skin2.jpg'],
@@ -45,6 +45,15 @@ class ServiceSeeder extends Seeder
                 ['name' => 'Full Arms', 'category' => 'Permanent Hair Removal', 'price' => 8000, 'description' => null, 'treatment_details' => 'Permanent hair removal for full arms. Effective for both men and women.', 'image' => 'img/services/skin4.jpg'],
                 ['name' => 'Full Face', 'category' => 'Permanent Hair Removal', 'price' => 9000, 'description' => null, 'treatment_details' => 'Permanent hair removal for full face. Achieve flawless, hair-free facial skin.', 'image' => 'img/services/skin5.jpg'],
                 ['name' => 'Chest/Back', 'category' => 'Permanent Hair Removal', 'price' => 10000, 'description' => null, 'treatment_details' => 'Permanent hair removal for chest and back. Great for larger areas and long-lasting results.', 'image' => 'img/services/skin1.jpg'],
-        ]);
+        ];
+
+        // Ensure default_sessions and is_package keys are present
+        $services = array_map(function($s) {
+            if (!isset($s['default_sessions'])) { $s['default_sessions'] = 1; }
+            if (!isset($s['is_package'])) { $s['is_package'] = false; }
+            return $s;
+        }, $services);
+
+        DB::table('services')->insert($services);
     }
 }

@@ -1,0 +1,98 @@
+@startuml DFD_Level_2_SkinSync_With_CEO
+' Level 2 DFD for SkinSync Booking System (with CEO)
+'title DFD Level 2 — SkinSync Booking System (with CEO)
+
+' External entities
+rectangle "Client" as Client
+rectangle "Staff" as Staff
+rectangle "Admin" as Admin
+rectangle "CEO" as CEO
+rectangle "Email/SMS Service" as Email
+rectangle "GCash (external QR)" as GCash
+rectangle "File Storage" as Files
+
+' Data stores
+rectangle "Users" as Users
+rectangle "Bookings" as Bookings
+rectangle "Services" as Services
+rectangle "Branches" as Branches
+rectangle "Transactions" as Transactions
+rectangle "Notifications" as Notifications
+rectangle "Chat Messages" as Chat
+rectangle "Packages" as Packages
+rectangle "Promos" as Promos
+
+' Sub-processes
+circle "1.1 Register Account" as P11
+circle "1.2 Login / 2FA" as P12
+circle "1.3 Update Profile" as P13
+circle "2.1 Send Verification Email" as P21
+circle "2.2 Poll Verification Status" as P22
+circle "3.1 Create Booking" as P31
+circle "3.2 Cancel/Update Booking" as P32
+circle "3.3 Assign Staff" as P33
+circle "4.1 Initiate Payment" as P41
+circle "4.2 Confirm Payment" as P42
+circle "5.1 Send Notification" as P51
+circle "5.2 Send Chat Message" as P52
+circle "6.1 Manage Staff" as P61
+circle "6.2 Manage Branches" as P62
+circle "6.3 Manage Services" as P63
+
+' Data flows
+Client --> P11 : Registration details
+P11 --> Users : Create user
+P11 --> P21 : Trigger verification
+P21 --> Email : Send verification
+P21 --> Notifications : Store notification
+P22 --> Users : Update verified status
+Client --> P12 : Login credentials
+P12 --> Users : Authenticate
+P12 --> P22 : Poll verification
+Client --> P13 : Profile update
+P13 --> Users : Update profile
+
+Client --> P31 : Booking request
+P31 --> Bookings : Create booking
+P31 --> P33 : Assign staff
+P33 --> Staff : Notify assignment
+P32 --> Bookings : Update/cancel booking
+
+P31 --> P41 : Initiate payment
+P41 --> GCash : QR payment
+P41 --> Transactions : Record payment
+P42 --> Bookings : Update payment status
+
+P51 --> Email : Send notification
+P51 --> Notifications : Store notification
+Client --> P52 : Chat message
+Staff --> P52 : Chat message
+P52 --> Chat : Store message
+
+
+' Admin/CEO management and view permissions
+Admin --> P61 : Update staff info
+CEO --> P61 : Staff management
+P61 --> Users : Update staff
+
+Admin --> P62 : Update branch availability
+CEO --> P62 : Branch management
+P62 --> Branches : Update branch
+
+Admin --> P63 : Service management
+CEO --> P63 : Service management
+P63 --> Services : Update service
+
+' Admin can see notifications
+Admin --> P51 : View notifications
+
+' Admin can view bookings
+Admin --> P31 : View bookings
+
+' CEO reporting
+CEO --> P63 : View reports
+P63 --> CEO : Analytics/Reports
+
+P31 --> Files : Upload receipt/image
+
+@enduml

@@ -8,7 +8,7 @@
     if ($currentBranchId) {
         $branch = \App\Models\Branch::find($currentBranchId);
         if ($branch) {
-            $maxSlots = $branch->slot_capacity ?? 5;
+            $maxSlots = $branch->slot_capacity ?? config('booking.default_slot_capacity', 5);
             if ($branch->time_slot && strpos($branch->time_slot, ' - ') !== false) {
                 [$s,$e] = explode(' - ', $branch->time_slot, 2);
                 try {
@@ -326,6 +326,8 @@ $(document).ready(function(){
 
                                     <p><strong>💅 Service:</strong> ${booking.service_name}</p>
                                     ${booking.package_services ? `<p><strong>📦 Package includes:</strong> ${booking.package_services}</p>` : ''}
+                                    ${booking.sessions_left !== undefined && booking.sessions_left > 0 ?
+                                        `<p><strong>🎫 Sessions Left:</strong> <span class="badge bg-warning text-dark">${booking.sessions_left} remaining</span></p>` : ''}
                                     <p><strong>💰 Price:</strong> ₱${booking.price || 'TBD'}</p>
                                     <p><strong>🕐 Booked:</strong> ${booking.created_at}</p>
                                 </div>
@@ -397,18 +399,17 @@ $(document).ready(function(){
     function getActionButtons(booking) {
         var contactButtons = `
             <div class="contact-buttons mb-3">
-                ${booking.email !== 'Not provided' ?
-                    `<button class="btn btn-info btn-sm mb-1 email-customer-btn"
-                            data-email="${booking.email}"
-                            style="background: #17a2b8; border: none; border-radius: 6px; width: 100%;">
-                        📧 Send Email
-                    </button>` : ''}
+                <button class="btn btn-info btn-sm mb-1 send-reminder-btn"
+                        data-booking-id="${booking.id}"
+                        style="background: #17a2b8; border: none; border-radius: 6px; width: 100%;">
+                    🔔 Send Reminder
+                </button>
 
                 ${booking.phone !== 'Not provided' ?
                     `<button class="btn btn-warning btn-sm call-customer-btn"
                             data-phone="${booking.phone}"
                             style="background: #ffc107; border: none; border-radius: 6px; color: #000; width: 100%;">
-                        📞 Call Customer
+                        📞 Call: ${booking.phone}
                     </button>` : ''}
             </div>
         `;
@@ -595,13 +596,26 @@ $(document).ready(function(){
             }
         });
 
-        // Email customer
-        $('.email-customer-btn').on('click', function() {
-            var email = $(this).data('email');
-            if (email && email !== 'Not provided') {
-                window.open('mailto:' + email + '?subject=Skin911 Appointment Update&body=Dear Customer,%0A%0ARegarding your appointment with Skin911...%0A%0ABest regards,%0ASkin911 Team');
-            } else {
-                alert('No email address available for this customer.');
+        // Email customer - send reminder automatically without confirmation
+        $('.send-reminder-btn').on('click', function() {
+            var bookingId = $(this).data('booking-id');
+            if (bookingId) {
+                // Show sending message
+                showSuccessMessage('Sending reminder...');
+
+                $.ajax({
+                    url: '/staff/appointments/' + bookingId + '/send-reminder',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        showSuccessMessage('Reminder email sent successfully!');
+                    },
+                    error: function(xhr) {
+                        showErrorMessage('Failed to send reminder. Please try again.');
+                    }
+                });
             }
         });
     }

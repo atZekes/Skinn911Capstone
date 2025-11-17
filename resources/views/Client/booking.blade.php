@@ -200,13 +200,35 @@
                                     $selectedBranchId = request('branch_id') ?? $firstBranchId;
                                     $selectedDate = request('date') ?? date('Y-m-d');
                                     if($selectedBranchId && $selectedDate) {
-                                        foreach(["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"] as $slot) {
+                                        $selectedBranch = \App\Models\Branch::find($selectedBranchId);
+                                        $slotCapacity = $selectedBranch ? ($selectedBranch->slot_capacity ?? config('booking.default_slot_capacity', 5)) : config('booking.default_slot_capacity', 5);
+                                        // Generate slots based on branch's time_slot
+                                        $branchSlots = [];
+                                        if ($selectedBranch && $selectedBranch->time_slot && strpos($selectedBranch->time_slot, ' - ') !== false) {
+                                            [$s,$e] = explode(' - ', $selectedBranch->time_slot, 2);
+                                            try {
+                                                $start = \Carbon\Carbon::createFromFormat('H:i', $s);
+                                                $end = \Carbon\Carbon::createFromFormat('H:i', $e);
+                                                for ($t = $start->copy(); $t->lt($end); $t->addHour()) {
+                                                    $slotStart = $t->format('H:i');
+                                                    $slotEnd = $t->copy()->addHour()->format('H:i');
+                                                    if (\Carbon\Carbon::createFromFormat('H:i', $slotEnd)->lte($end)) {
+                                                        $branchSlots[] = $slotStart . '-' . $slotEnd;
+                                                    }
+                                                }
+                                            } catch (\Exception $e) {
+                                                $branchSlots = ["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"];
+                                            }
+                                        } else {
+                                            $branchSlots = ["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"];
+                                        }
+                                        foreach($branchSlots as $slot) {
                                             $count = \App\Models\Booking::where('branch_id', $selectedBranchId)
                                                 ->where('date', $selectedDate)
                                                 ->where('time_slot', $slot)
                                                 ->where('status', 'active')
                                                 ->count();
-                                            if ($count >= 5) $disabledSlots[] = $slot;
+                                            if ($count >= $slotCapacity) $disabledSlots[] = $slot;
                                         }
                                     }
                                 @endphp
@@ -257,6 +279,7 @@
                                     @endif
                                 </select>
                                 <div id="duration_note" style="margin-top:8px;font-size:0.95rem;color:#555;display:none;"></div>
+                                <div id="sessions_note" style="margin-top:6px;font-size:0.95rem;color:#555;display:none;"></div>
                                 @if($errors->has('time_slot'))
                                     <div class="alert alert-danger" style="margin-bottom:16px;">
                                         {{ $errors->first('time_slot') }}
@@ -878,10 +901,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     // only include services that are enabled globally and enabled in the pivot (if present)
                     $servicesForBranch = $bModel->services()->get()->filter(function($s){
-                        $globActive = isset($s->active) ? (bool)$s->active : true;
-                        $pivotActive = isset($s->pivot) && isset($s->pivot->active) ? (bool)$s->pivot->active : true;
-                        return $globActive && $pivotActive;
-                    })->map(function($s){ return ['id'=>$s->id,'name'=>$s->name,'price'=> $s->pivot->price ?? $s->price ?? null, 'duration' => $s->pivot->duration ?? $s->duration ?? 1]; })->values()->toArray();
+                            $globActive = isset($s->active) ? (bool)$s->active : true;
+                            $pivotActive = isset($s->pivot) && isset($s->pivot->active) ? (bool)$s->pivot->active : true;
+                            return $globActive && $pivotActive;
+                        })->map(function($s){ return [
+                            'id'=>$s->id,
+                            'name'=>$s->name,
+                            'price'=> $s->pivot->price ?? $s->price ?? null,
+                            'duration' => $s->pivot->duration ?? $s->duration ?? 1,
+                            'default_sessions' => $s->pivot->default_sessions ?? $s->default_sessions ?? 1,
+                            'is_package' => $s->pivot->is_package ?? $s->is_package ?? false,
+                        ]; })->values()->toArray();
                 } catch (\Exception $e) {
                     $servicesForBranch = [];
                 }
@@ -1093,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (svc && svc.duration) duration = Number(svc.duration) || 1;
         }
         var slot = timeSlotSelect.value;
-        if (!slot || duration <= 1) { note.style.display = 'none'; return; }
+        if (!slot || duration <= 1) { note.style.display = 'none'; } // keep displaying sessions note even if duration is 1
         try {
             var parts = slot.split('-');
             var start = parts[0].trim();
@@ -1113,6 +1143,26 @@ document.addEventListener('DOMContentLoaded', function() {
             note.textContent = 'This booking will occupy: ' + slotsList.join(', ') + ' (' + duration + ' hr' + (duration>1?'s':'') + ')';
             note.style.display = '';
         } catch (e) { note.style.display = 'none'; }
+
+        // Show sessions included for the selected service (from branchData mapping)
+        var sessionNote = document.getElementById('sessions_note');
+        if (sessionNote) {
+            var sessions = 0;
+            if (pid && branchData[branchSelect.value] && branchData[branchSelect.value].packages) {
+                // If a package is selected, packages mapping currently doesn't include credit counts per package;
+                // leaving sessions undefined for now. We'll rely on service default_sessions for single-service packages.
+            }
+            if (!pid && sid && branchData[branchSelect.value] && branchData[branchSelect.value].services) {
+                var svc = branchData[branchSelect.value].services.find(function(x){ return String(x.id) === String(sid); });
+                if (svc && svc.default_sessions) sessions = Number(svc.default_sessions) || 1;
+            }
+            if (sessions > 1) {
+                sessionNote.textContent = 'Sessions included: ' + sessions + (sessions>1 ? ' sessions' : ' session');
+                sessionNote.style.display = '';
+            } else {
+                sessionNote.style.display = 'none';
+            }
+        }
     }
 
     if (branchSelect) {
@@ -1125,16 +1175,17 @@ document.addEventListener('DOMContentLoaded', function() {
             var cap = selected.getAttribute('data-slot_capacity') || 5;
             document.getElementById('branch-address').textContent = address;
             document.getElementById('branch-hours').innerHTML = hours + (tslot ? ('<br><strong>Available:</strong> ' + tslot) : '');
-            
+
             // Update Get Directions button
             var directionsBtn = document.getElementById('get-directions-btn');
-            if (directionsBtn && mapSrc) {
-                directionsBtn.href = mapSrc;
+            if (directionsBtn && address) {
+                var encodedAddress = encodeURIComponent(address);
+                directionsBtn.href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedAddress;
                 directionsBtn.style.display = 'block';
             } else if (directionsBtn) {
                 directionsBtn.style.display = 'none';
             }
-            
+
             // Update map visibility
             var mapIframe = document.getElementById('branch-map');
             var mapPlaceholder = document.getElementById('map-placeholder');
@@ -1146,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mapIframe.style.display = 'none';
                 if (mapPlaceholder) mapPlaceholder.style.display = 'flex';
             }
-            
+
             // populate services and packages for this branch
             var bid = selected.value;
             var binfo = branchData[bid] || {services:[], packages:[], time_slot:'', slot_capacity:5};
@@ -1157,6 +1208,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 o.value = s.id;
                 o.textContent = s.name + (s.price ? (' - ₱' + s.price) : '');
                 if (s.price) o.setAttribute('data-price', s.price);
+                if (typeof s.default_sessions !== 'undefined') o.setAttribute('data-default-sessions', s.default_sessions);
+                if (typeof s.is_package !== 'undefined') o.setAttribute('data-is-package', s.is_package ? '1' : '0');
                 serviceSelect.appendChild(o);
             });
             // packages
@@ -1206,10 +1259,10 @@ document.addEventListener('DOMContentLoaded', function() {
         cityFilter.addEventListener('change', function() {
             const selectedCity = this.value;
             const branchOptions = branchSelect.querySelectorAll('option');
-            
+
             branchOptions.forEach(option => {
                 if (option.value === '') return; // Keep "Select Branch" option
-                
+
                 const branchCity = option.getAttribute('data-city') || '';
                 if (selectedCity === '' || branchCity === selectedCity) {
                     option.style.display = '';
@@ -1217,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     option.style.display = 'none';
                 }
             });
-            
+
             // Reset branch selection if current selection is filtered out
             const currentOption = branchSelect.options[branchSelect.selectedIndex];
             if (currentOption && currentOption.value !== '') {
@@ -2108,6 +2161,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             }
 
+            // Check if refund policy modal should be shown (for ALL payment methods)
+            if (typeof window.shouldShowRefundPolicyModal === 'function' &&
+                window.shouldShowRefundPolicyModal() &&
+                !window.refundPolicyAgreed) {
+
+                // Store the submission function to be called after modal agreement
+                window.pendingBookingSubmission = function() {
+                    submitBookingForm(paymentMethod, paymentData);
+                };
+
+                // Show refund policy modal
+                if (typeof window.showRefundPolicyModal === 'function') {
+                    window.showRefundPolicyModal();
+                }
+                return;
+            }
+
+            // If policy already agreed, proceed with submission
+            submitBookingForm(paymentMethod, paymentData);
+        });
+
+        // Helper function to submit booking form
+        function submitBookingForm(paymentMethod, paymentData) {
             // Set flag to prevent double submission
             isSubmitting = true;
 
@@ -2128,10 +2204,14 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentDataInput.value = JSON.stringify(paymentData);
             bookingForm.appendChild(paymentDataInput);
 
-            // Close modal and submit form
+            // Close payment modal and submit form
             paymentModal.hide();
+
+            // Reset refund policy agreed flag for next booking
+            window.refundPolicyAgreed = false;
+
             bookingForm.submit();
-        });
+        }
     }
 });
 
@@ -2616,5 +2696,8 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 5px 10px;
 }
 </style>
+
+<!-- Include Refund Policy Modal -->
+@include('components.refund-policy-modal')
 
 @endsection

@@ -1,10 +1,9 @@
 @extends('layouts.ceoapp')
 
 @section('dashboard')
-
-<!-- Top statistics cards -->
-<div class="container-fluid">
-    <div class="mb-4 row">
+<div class="container-fluid px-3 px-md-4">
+    <!-- Top statistics cards -->
+    <div class="mb-4 row g-3">
         <!-- Total Users Card -->
         <div class="mb-4 col-xl-3 col-md-6">
             <div class="stats-card">
@@ -78,10 +77,67 @@
                 @endif
             </div>
         </div>
+            </div>
+
+    <!-- Client Retention Analytics -->
+    <div class="mb-4">
+        <div class="chart-container">
+            <h4 class="chart-title">
+                <i class="fas fa-chart-line me-2"></i>Client Retention Analytics
+            </h4>
+
+            <!-- Metrics Cards (Mobile Responsive) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                            <div class="card-body text-white py-3 px-2">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-users mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
+                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Total Clients</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ number_format($retentionSummary['total_clients'] ?? 0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #F56289 0%, #e75480 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(245, 98, 137, 0.3);">
+                            <div class="card-body text-white py-3 px-2">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-percentage mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
+                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Return Rate (30d)</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ $retentionSummary['average_return_rate'] ?? 0 }}%</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);">
+                            <div class="card-body text-white py-3 px-2">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-clock mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
+                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Avg Days Between</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ $retentionSummary['average_days_between_bookings'] ?? 0 }}<small style="font-size: 0.6rem;">d</small></h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(250, 112, 154, 0.3);">
+                            <div class="card-body text-white py-3 px-2">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-calendar-check mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
+                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Total Visits</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ number_format($retentionSummary['total_visits'] ?? 0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
     </div>
 
     <!-- Executive Summary Row -->
-    <div class="mb-4 row">
+    <div class="mb-4 row g-3">
         <!-- Branch Performance Comparison -->
         <div class="mb-4 col-xl-6 col-lg-6">
             <div class="executive-card">
@@ -120,12 +176,40 @@
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="mb-4 row">
-        <!-- Revenue Growth Chart -->
-        <div class="mb-4 col-xl-12">
-            <div class="chart-container">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Retention Chart Row -->
+    <div class="mb-4">
+        <div class="chart-container">
+                <!-- Retention Analytics Chart -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <h6 class="mb-0 fw-bold" style="color: #333;">
+                        <i class="fas fa-chart-area me-2" style="color: #F56289;"></i>Return Rate & Visits Trend
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm" id="retentionPeriodFilter" style="min-width: 100px;">
+                                <option value="month" selected>Last 6 Months</option>
+                                <option value="quarter">Last Year</option>
+                                <option value="year">Last 2 Years</option>
+                            </select>
+                        </div>
+                        <div class="filter-dropdown">
+                            <select class="form-select form-select-sm" id="retentionChartTypeFilter" style="min-width: 100px;">
+                                <option value="line" selected>Line Chart</option>
+                                <option value="bar">Bar Chart</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-wrapper" style="position: relative; height: 350px;">
+                    <canvas id="retentionChart"></canvas>
+                </div>
+        </div>
+    </div>
+
+    <!-- Revenue Growth Chart -->
+    <div class="mb-4">
+        <div class="chart-container">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
                     <h4 class="chart-title mb-0">
                         <i class="fas fa-chart-line me-2"></i>Revenue Growth Trends
                     </h4>
@@ -160,39 +244,6 @@
             </div>
         </div>
 
-        <!-- Client Retention -->
-        <div class="col-12">
-            <div class="chart-container">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="chart-title mb-0">
-                        <i class="fas fa-users-cog me-2"></i>Client Retention
-                    </h4>
-                    <div class="d-flex gap-2">
-                        <div class="filter-dropdown">
-                            <select class="form-select form-select-sm branch-filter" data-target="retention" style="min-width: 140px; max-width: 150px;">
-                                <option value="">All Branches</option>
-                                @foreach($branches as $branch)
-                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="filter-dropdown">
-                            <select class="form-select form-select-sm" id="retentionFilter" style="min-width: 120px; max-width: 130px;">
-                                <option value="week">Last Week</option>
-                                <option value="month" selected>Last Month</option>
-                                <option value="quarter">Last Quarter</option>
-                                <option value="all">All Time</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="chart-wrapper" style="position: relative; height: 100px; max-height: 500px;">
-                    <canvas id="clientChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Peak Booking Hours Chart -->
     <div class="mb-4 row">
         <div class="col-12">
@@ -226,7 +277,11 @@
         </div>
     </div>
 
-    <!-- Branch Comparison Section -->
+    <!-- Client Retention Analytics Section -->
+    <div class="mb-4 row">
+        <div class="col-12">
+
+                   <!-- Branch Comparison Section -->
     <div class="mb-4 row branch-comparison-section">
         <div class="col-12">
             <div class="chart-container">
@@ -350,7 +405,174 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize dashboard functionality
     initializeDashboard(revenueData, clientData, peakHoursData, compareUrl, csrfToken);
+
+    // Initialize Retention Chart
+    initializeRetentionChart();
 });
+
+// Retention Chart Management
+let retentionChart = null;
+
+function initializeRetentionChart() {
+    loadRetentionChartData();
+
+    // Add event listeners for filters
+    document.getElementById('retentionPeriodFilter').addEventListener('change', loadRetentionChartData);
+    document.getElementById('retentionChartTypeFilter').addEventListener('change', function() {
+        if (retentionChart) {
+            loadRetentionChartData();
+        }
+    });
+}
+
+function loadRetentionChartData() {
+    const period = document.getElementById('retentionPeriodFilter').value;
+    const chartType = document.getElementById('retentionChartTypeFilter').value;
+
+    // Build query parameters
+    const params = new URLSearchParams({
+        period: period,
+        chart_type: chartType
+    });    // Fetch data from API
+    fetch(`{{ route('ceo.retention-chart-data') }}?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading retention chart:', data.error);
+                return;
+            }
+            renderRetentionChart(data, chartType);
+        })
+        .catch(error => {
+            console.error('Error fetching retention chart data:', error);
+        });
+}
+
+function renderRetentionChart(data, chartType) {
+    const ctx = document.getElementById('retentionChart').getContext('2d');
+
+    // Destroy existing chart if it exists
+    if (retentionChart) {
+        retentionChart.destroy();
+    }
+
+    // Create new chart
+    retentionChart = new Chart(ctx, {
+        type: chartType,
+        data: {
+            labels: data.labels,
+            datasets: data.datasets.map(dataset => ({
+                ...dataset,
+                fill: chartType === 'line' ? true : false,
+                borderWidth: 2,
+                pointRadius: chartType === 'line' ? 4 : 0,
+                pointHoverRadius: chartType === 'line' ? 6 : 0,
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: window.innerWidth < 768 ? 9 : 11
+                        },
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(245, 98, 137, 0.1)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 10
+                        },
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Return Rate (%)',
+                        color: '#F56289',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    ticks: {
+                        font: {
+                            size: 10
+                        },
+                        callback: function(value) {
+                            return Math.round(value);
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Total Visits',
+                        color: '#667eea',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
 </script>
 @endsection
 

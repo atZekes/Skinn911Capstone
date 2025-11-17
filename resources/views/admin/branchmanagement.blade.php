@@ -116,6 +116,7 @@
                                         <th>Service</th>
                                         <th>Description</th>
                                         <th>Price (₱)</th>
+                                        <th>Sessions</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -131,6 +132,13 @@
                                             @endif
                                         </td>
                                         <td>{{ $service->description ?? ($service->pivot->custom_description ?? '') }}</td>
+                                        <td>
+                                            @php $svcSessions = $service->pivot->default_sessions ?? $service->default_sessions ?? 1; @endphp
+                                            {{ $svcSessions }}
+                                            @if(isset($service->pivot) && isset($service->pivot->default_sessions) && ($service->pivot->default_sessions != ($service->default_sessions ?? 1)))
+
+                                            @endif
+                                        </td>
                                         <td>{{ $service->pivot->price ?? $service->price }}</td>
                                         <td>
                                             @php $isActive = isset($service->pivot) ? $service->pivot->active : ($service->active ?? 1); @endphp
@@ -191,6 +199,17 @@
                                                         <div class="mb-3">
                                                             <label>Duration (hours)</label>
                                                             <input type="number" name="duration" class="form-control" value="{{ $service->pivot->duration ?? $service->duration ?? 1 }}" min="1" step="1" required>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label for="default_sessions{{ $service->id }}" class="form-label">
+                                                                Number of Sessions
+                                                                <i class="fas fa-info-circle text-muted ms-1" title="Total sessions included when client books this service"></i>
+                                                            </label>
+                                                            <input type="number" name="default_sessions" id="default_sessions{{ $service->id }}" class="form-control" value="{{ $service->default_sessions ?? 1 }}" min="1" max="100" step="1">
+                                                            <small class="form-text text-muted">
+                                                                Default is 1. Increase for multi-session packages (e.g., 10 for "HIFU 10 Sessions")
+                                                            </small>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
@@ -311,6 +330,11 @@
                                                 <div class="mb-3">
                                                     <label>Duration (hours)</label>
                                                     <input type="number" name="duration" class="form-control" value="1" min="1" step="1" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label>Number of Sessions</label>
+                                                    <input type="number" name="default_sessions" class="form-control" value="1" min="1" step="1">
+                                                    <small class="text-muted">Default is 1. Increase for multi-session packages.</small>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
@@ -535,6 +559,7 @@
                                                     <label class="form-check-label me-3" for="svc{{ $branchId }}_{{ $s->id }}">{{ $s->name }} <small class="text-muted">({{ $s->category }})</small></label>
                                                         <input type="number" step="0.01" min="0" name="prices[{{ $s->id }}]" class="form-control form-control-sm ms-2" style="width:120px;" placeholder="Price" value="{{ isset($pivotMap[$s->id]) ? $pivotMap[$s->id]->price : $s->price }}">
                                                         <input type="number" step="1" min="1" name="durations[{{ $s->id }}]" class="form-control form-control-sm ms-2" style="width:100px;" placeholder="Hours" value="{{ isset($pivotMap[$s->id]) && isset($pivotMap[$s->id]->duration) ? $pivotMap[$s->id]->duration : ($s->duration ?? 1) }}">
+                                                        <input type="number" step="1" min="1" name="default_sessions[{{ $s->id }}]" class="form-control form-control-sm ms-2" style="width:120px;" placeholder="Sessions" value="{{ isset($pivotMap[$s->id]) && isset($pivotMap[$s->id]->default_sessions) ? $pivotMap[$s->id]->default_sessions : ($s->default_sessions ?? 1) }}">
                                                 </div>
                                             </div>
                                         @endforeach

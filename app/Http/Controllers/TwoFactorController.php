@@ -129,7 +129,7 @@ class TwoFactorController extends Controller
         $user = Auth::user();
 
         if (!$user || !$user->google2fa_enabled) {
-            return redirect()->route('login')->withErrors(['error' => 'Invalid session.']);
+            return redirect('/')->withErrors(['error' => 'Invalid session.']);
         }
 
         $valid = $this->google2fa->verifyKey($user->google2fa_secret, $request->one_time_password);

@@ -155,6 +155,15 @@ class StaffAvailabilityController extends Controller
                     $price = $booking->service->price;
                 }
 
+                // Get sessions left for this booking
+                $sessionsLeft = 0;
+                try {
+                    $sessionsLeft = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                        ->sum('sessions_remaining');
+                } catch (\Exception $e) {
+                    $sessionsLeft = 0;
+                }
+
                 return [
                     'id' => $booking->id,
                     'customer_name' => $customerName,
@@ -164,6 +173,7 @@ class StaffAvailabilityController extends Controller
                     'package_services' => $packageServices,
                     'price' => $price,
                     'status' => $booking->status ?? 'pending',
+                    'sessions_left' => $sessionsLeft,
                     'created_at' => $booking->created_at->format('M j, Y g:i A')
                 ];
             });

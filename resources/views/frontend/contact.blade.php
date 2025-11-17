@@ -62,9 +62,9 @@
                         @auth
                             <a href="{{ route('client.booking') }}" class="enquire-btn">Enquire</a>
                             <a href="{{ route('client.booking') }}" class="book-now-btn">Book now</a>
-                        @else
-                            <button class="enquire-btn" onclick="openLoginModal()">Enquire</button>
-                            <button class="book-now-btn" onclick="openLoginModal()">Book now</button>
+                            @else
+                                <button class="enquire-btn" onclick="document.getElementById('openLoginModalBtn').click(); return false;">Enquire</button>
+                                <button class="book-now-btn" onclick="document.getElementById('openLoginModalBtn').click(); return false;">Book now</button>
                         @endauth
                     </div>
                 </div>
@@ -506,4 +506,7 @@
         }
     });
     </script>
+
+    <!-- Page specific JS -->
+    <script src="{{ asset('js/frontend/contact.js') }}"></script>
 @endsection

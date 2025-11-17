@@ -478,6 +478,15 @@ class StaffController extends Controller
             }
         }
 
+        // If booking was created as paid (e.g., staff recorded payment at creation time)
+        try {
+            if ($booking->payment_status === 'paid') {
+                $booking->ensurePackageSessionsExist();
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Staff.createBooking ensurePackageSessionsExist failed', ['booking_id' => $booking->id, 'err' => $e->getMessage()]);
+        }
+
         if ($request->ajax()) {
             // Use the same totalDuration that was calculated earlier for the booking logic
             // (already includes branch-specific pivot duration overrides)
@@ -699,9 +708,9 @@ class StaffController extends Controller
     {
         $booking = \App\Models\Booking::findOrFail($id);
 
-        // Validate that the payment status is pending
-        if ($booking->payment_status !== 'pending') {
-            return redirect()->back()->with('error', 'This booking payment is not pending confirmation.');
+        // Validate that the payment status is pending or unpaid
+        if (!in_array($booking->payment_status, ['pending', 'unpaid'])) {
+            return redirect()->back()->with('error', 'This booking payment has already been confirmed.');
         }
 
         // Update payment status to paid
@@ -715,18 +724,31 @@ class StaffController extends Controller
             'staff_name' => $staff->name,
             'booking_id' => $booking->id,
             'payment_method' => $booking->payment_method,
-            'customer_id' => $booking->customer_id,
+            'customer_id' => $booking->user_id,
         ]);
 
         // Send notification to client if registered user
         if ($booking->user_id) {
+            $sessionsText = '';
+            if ($booking->hasSessionCredits()) {
+                $totalSessions = $booking->getTotalSessionsCount();
+                $sessionsText = " Your package includes {$totalSessions} sessions.";
+            }
+
             $this->sendPushNotification(
                 $booking->user_id,
                 'Payment Confirmed',
-                'Your payment for booking on ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' has been confirmed by staff.',
+                'Your payment for booking on ' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . ' has been confirmed by staff.' . $sessionsText,
                 'success',
                 $booking->id
             );
+        }
+
+        // Create client package/session records if this booking is for a package or multi-session service
+        try {
+            $booking->ensurePackageSessionsExist();
+        } catch (\Exception $e) {
+            Log::warning('Failed to create package sessions on payment confirmation', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
         }
 
         return redirect()->route('staff.appointments')->with('success', 'Payment confirmed successfully!');
@@ -819,7 +841,29 @@ class StaffController extends Controller
     // Walk-ins: bookings without user in staff's branch (all statuses)
     $walkins = $bookings->whereNull('user_id');
 
-    return view('Staff.staff_appointments', compact('appointments', 'bookings', 'walkins'));
+    // Get all active client package sessions for this branch (clients with session credits)
+    $packageSessions = \App\Models\ClientPackageSession::with(['client', 'service', 'branch'])
+        ->forBranch($staffBranchId)
+        ->active()
+        ->orderBy('expiry_date', 'asc')
+        ->orderBy('sessions_remaining', 'asc')
+        ->get();
+
+    // Pre-compute session credits for each booking (all bookings collection) to avoid repeated queries in the view
+    $sessionCreditsByBooking = [];
+    foreach ($bookings as $b) {
+        try {
+            // Get sessions only for this specific booking_id
+            $credits = \App\Models\ClientPackageSession::where('booking_id', $b->id)
+                ->sum('sessions_remaining');
+        } catch (\Exception $e) {
+            $credits = 0;
+        }
+
+        $sessionCreditsByBooking[$b->id] = $credits;
+    }
+
+    return view('Staff.staff_appointments', compact('appointments', 'bookings', 'walkins', 'packageSessions', 'sessionCreditsByBooking'));
     }
 
     // Staff cancel appointment
@@ -855,6 +899,21 @@ class StaffController extends Controller
         // Check if already completed
         if ($appointment->status === 'completed') {
             return redirect()->route('staff.appointments')->with('info', 'This appointment is already marked as completed.');
+        }
+
+        // Prevent completion if client still has session credits for this service
+        try {
+            $credits = \App\Models\ClientPackageSession::where('user_id', $appointment->user_id)
+                        ->where('branch_id', $appointment->branch_id)
+                        ->where('service_id', $appointment->service_id)
+                        ->active()
+                        ->sum('sessions_remaining');
+        } catch (\Exception $e) {
+            $credits = 0;
+        }
+
+        if ($credits > 0) {
+            return redirect()->route('staff.appointments')->with('error', 'Cannot complete appointment: client still has session credits remaining.');
         }
 
         // If payment method is cash and not yet paid, mark payment as paid when completing
@@ -928,6 +987,14 @@ class StaffController extends Controller
             $booking->payment_status = 'refunded';
             $booking->save();
 
+            // Zero out any session credits for this booking
+            try {
+                \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                    ->update(['sessions_remaining' => 0, 'status' => 'refunded']);
+            } catch (\Exception $e) {
+                Log::warning('Error zeroing sessions on refund', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+            }
+
             // Send push notification to client with booking ID
             if ($booking->user_id) {
                 $this->sendPushNotification(
@@ -946,6 +1013,30 @@ class StaffController extends Controller
                 $ps->save();
             }
 
+            // Restore any session credits associated with this booking
+            try {
+                // Restore ClientPackageSession rows by booking id
+                $clientSessions = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->get();
+                foreach ($clientSessions as $cs) {
+                    try {
+                        // If sessions were used because of this booking, refund them
+                        $cs->refundSession();
+                    } catch (\Exception $e) {
+                        // If refunding fails (e.g., no used session), continue
+                    }
+                }
+
+                // If this booking linked to a package booking, refund one credit from PackageBooking
+                if ($booking->package_booking_id) {
+                    $pkg = \App\Models\PackageBooking::find($booking->package_booking_id);
+                    if ($pkg) {
+                        $pkg->refundCredit();
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to restore sessions during refund processing', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+            }
+
             // Send refund confirmed email
             try {
                 Mail::to($booking->user->email)->send(new BookingRefundConfirmed($booking));
@@ -961,6 +1052,49 @@ class StaffController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to process refund: ' . $e->getMessage());
             return redirect()->route('staff.appointments')->with('error', 'Failed to process refund. Please try again.');
+        }
+    }
+
+    public function denyRefund($id)
+    {
+        try {
+            // Find the booking
+            $booking = \App\Models\Booking::findOrFail($id);
+
+            // Validate that booking is pending refund
+            if ($booking->status !== 'pending_refund') {
+                return redirect()->route('staff.appointments')->with('error', 'This booking is not pending refund.');
+            }
+
+            // Revert booking status back to active (deny the refund request)
+            $booking->status = 'active';
+            $booking->save();
+
+            // Send email notification to client about denied refund
+            try {
+                Mail::to($booking->user->email)->send(new \App\Mail\RefundDenied($booking));
+            } catch (\Exception $e) {
+                Log::error('Failed to send refund denied email', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Send push notification to client
+            if ($booking->user_id) {
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Refund Request Denied',
+                    'Your refund request has been denied by staff. Please contact the branch for more information.',
+                    'error',
+                    $booking->id
+                );
+            }
+
+            return redirect()->route('staff.appointments')->with('success', 'Refund request denied and client has been notified.');
+        } catch (\Exception $e) {
+            Log::error('Failed to deny refund: ' . $e->getMessage());
+            return redirect()->route('staff.appointments')->with('error', 'Failed to deny refund. Please try again.');
         }
     }
 
@@ -1018,6 +1152,270 @@ class StaffController extends Controller
             return response()->json(['success' => true, 'message' => 'Transaction recorded successfully.']);
         }
         return redirect()->route('staff.index')->with('success', 'Transaction recorded successfully.');
+    }
+
+    // ==================== SESSION CREDITS MANAGEMENT ====================
+
+    /**
+     * Book a session from client's package credits
+     */
+    public function bookPackageSession(Request $request, $packageId)
+    {
+        $request->validate([
+            'date' => 'required|date|after_or_equal:today',
+            'time_slot' => 'required|string',
+        ]);
+
+        try {
+            $package = \App\Models\ClientPackageSession::findOrFail($packageId);
+
+            // Verify package can book
+            if (!$package->canBookSession()) {
+                return back()->with('error', 'Cannot book session: Package expired or no credits remaining.');
+            }
+
+            // Get staff branch
+            $staffBranchId = auth()->guard('staff')->user()->branch_id;
+
+            // Verify package belongs to staff's branch
+            if ($package->branch_id != $staffBranchId) {
+                return back()->with('error', 'This package belongs to a different branch.');
+            }
+
+            // Create the booking
+            $booking = \App\Models\Booking::create([
+                'user_id' => $package->user_id,
+                'service_id' => $package->service_id,
+                'branch_id' => $staffBranchId,
+                'date' => $request->date,
+                'time_slot' => $request->time_slot,
+                'status' => 'active',
+                'payment_status' => 'paid', // Already paid through package
+                'payment_method' => $package->payment_method,
+                'notes' => 'Booked from package: ' . $package->booking_id,
+            ]);
+
+            // Deduct one credit from the package
+            $package->deductSession();
+
+            // Send notification to client
+            $this->sendPushNotification(
+                $package->user_id,
+                'Session Booked',
+                'Your next session has been scheduled for ' . $request->date . ' at ' . $request->time_slot,
+                'success',
+                $booking->id
+            );
+
+            return redirect()->route('staff.appointments')->with('success', 'Session booked successfully! Credits remaining: ' . $package->sessions_remaining);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error booking session: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cancel a package session and refund credit
+     */
+    public function cancelPackageSession($bookingId)
+    {
+        try {
+            $booking = \App\Models\Booking::findOrFail($bookingId);
+
+            // Find the package by checking notes or user/service match
+            $package = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                ->where('service_id', $booking->service_id)
+                ->where('branch_id', $booking->branch_id)
+                ->first();
+
+            if ($package) {
+                // Refund the credit
+                $package->refundSession();
+
+                $message = 'Booking cancelled and credit refunded. Credits remaining: ' . $package->sessions_remaining;
+            } else {
+                $message = 'Booking cancelled (no package found to refund).';
+            }
+
+            // Cancel the booking
+            $booking->status = 'cancelled';
+            $booking->save();
+
+            // Notify client
+            if ($booking->user_id) {
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Booking Cancelled',
+                    'Your booking has been cancelled and your session credit has been refunded.',
+                    'warning',
+                    $booking->id
+                );
+            }
+
+            return redirect()->route('staff.appointments')->with('success', $message);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error cancelling session: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send reminder to client about remaining session credits
+     */
+    public function sendPackageReminder($bookingId)
+    {
+        try {
+            // Find the booking first
+            $booking = \App\Models\Booking::with(['user', 'service', 'branch', 'package'])->findOrFail($bookingId);
+
+            // Get session credits for this booking
+            $sessionCredit = \App\Models\ClientPackageSession::where('booking_id', $bookingId)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$sessionCredit || $sessionCredit->sessions_remaining <= 0) {
+                return back()->with('error', 'Cannot send reminder: No active session credits found.');
+            }
+
+            $client = $booking->user;
+            $service = $booking->service ?? $booking->package->services->first();
+            $serviceName = $booking->package ? $booking->package->name : ($service ? $service->name : 'your service');
+
+            // Send Email about remaining sessions
+            try {
+                \Mail::to($client->email)->send(new \App\Mail\SessionReminder($booking, $sessionCredit));
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send session reminder email: ' . $e->getMessage());
+            }
+
+            // Send Push Notification
+            $message = "You have {$sessionCredit->sessions_remaining} session credits remaining for {$serviceName}. ";
+            if ($sessionCredit->expiry_date) {
+                $expiryDate = \Carbon\Carbon::parse($sessionCredit->expiry_date);
+                $daysUntilExpiry = now()->diffInDays($expiryDate, false);
+                if ($daysUntilExpiry <= 30 && $daysUntilExpiry > 0) {
+                    $message .= "Expires in {$daysUntilExpiry} days. Book your next session today!";
+                } else {
+                    $message .= "Book your next session today!";
+                }
+            } else {
+                $message .= "Book your next session today!";
+            }
+
+            $this->sendPushNotification(
+                $client->id,
+                'Session Credits Reminder',
+                $message,
+                'info',
+                $booking->id
+            );
+
+            return back()->with('success', 'Reminder sent to ' . $client->name . ' via email and push notification.');
+
+        } catch (\Exception $e) {
+            \Log::error('Error sending package reminder: ' . $e->getMessage());
+            return back()->with('error', 'Error sending reminder: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Complete a session and deduct credit
+     */
+    public function completeSession($bookingId)
+    {
+        try {
+            $booking = \App\Models\Booking::with(['user', 'clientPackageSessions'])->findOrFail($bookingId);
+
+            // Verify booking belongs to staff's branch
+            $staffBranchId = auth()->guard('staff')->user()->branch_id;
+            if ($booking->branch_id != $staffBranchId) {
+                return back()->with('error', 'This booking belongs to a different branch.');
+            }
+
+            // Check if payment is confirmed
+            if ($booking->payment_status !== 'paid') {
+                return back()->with('error', 'Payment must be confirmed before completing a session.');
+            }
+
+            // If booking has session credits, mark one session as complete
+            if ($booking->hasSessionCredits()) {
+                $remaining = $booking->getRemainingSessionsCount();
+
+                if ($remaining <= 0) {
+                    // All sessions used, mark booking as completed
+                    $booking->status = 'completed';
+                    $booking->save();
+
+                    return back()->with('success', 'All sessions completed! Booking marked as complete.');
+                }
+
+                // Deduct one session - only for this specific booking_id
+                try {
+                    $session = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                        ->where('sessions_remaining', '>', 0)
+                        ->first();
+
+                    if ($session) {
+                        $session->sessions_remaining -= 1;
+                        $session->save();
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error completing session', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                }
+
+                $newRemaining = $booking->getRemainingSessionsCount();
+
+                // Send notification
+                if ($booking->user_id) {
+                    $message = "Session completed! You have {$newRemaining} session(s) remaining.";
+                    if ($newRemaining > 0) {
+                        $message .= " Book your next session soon!";
+                    }
+
+                    $this->sendPushNotification(
+                        $booking->user_id,
+                        'Session Completed',
+                        $message,
+                        'success',
+                        $booking->id
+                    );
+                }
+
+                if ($newRemaining === 0) {
+                    // Mark booking as completed when all sessions are used
+                    $booking->status = 'completed';
+                    $booking->save();
+                    return back()->with('success', 'Final session completed! Booking marked as complete.');
+                }
+
+                return back()->with('success', "Session completed! Client has {$newRemaining} session(s) remaining.");
+
+            } else {
+                // Single-session booking - mark as completed
+                $booking->status = 'completed';
+                $booking->save();
+
+                // Notify client
+                if ($booking->user_id) {
+                    $this->sendPushNotification(
+                        $booking->user_id,
+                        'Service Completed',
+                        'Your service has been completed. Thank you for choosing Skin911!',
+                        'success',
+                        $booking->id
+                    );
+                }
+
+                return back()->with('success', 'Booking marked as completed!');
+            }
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error completing session', [
+                'booking_id' => $bookingId,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Error completing session: ' . $e->getMessage());
+        }
     }
 
 

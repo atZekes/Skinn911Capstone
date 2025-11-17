@@ -58,6 +58,7 @@
                 <a class="ceo-tab @if(request()->routeIs('ceo.usermanage')) active @endif" href="{{ route('ceo.usermanage') }}">
                     <i class="fas fa-users"></i> User Management
                 </a>
+
             </div>
 
             <!-- Logout button at bottom -->
@@ -79,7 +80,6 @@
                         <i class="fas fa-user-plus me-2"></i>Add User/Admin
                     @elseif(request()->routeIs('ceo.usermanage'))
                         <i class="fas fa-users me-2"></i>User Management
-                    @else
                         <i class="fas fa-crown me-2"></i>CEO Panel
                     @endif
                 </h1>

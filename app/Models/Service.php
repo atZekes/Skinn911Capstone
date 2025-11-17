@@ -14,15 +14,32 @@ class Service extends Model
 
     // Define attributes typically present in the services table for clarity
     protected $fillable = [
-    'name', 'category', 'description', 'benefits', 'price', 'sessions', 'image', 'branch_id', 'active', 'duration'
+    'name', 'category', 'description', 'benefits', 'price', 'sessions', 'image', 'branch_id', 'active', 'duration', 'default_sessions', 'is_package'
+    ];
+
+    protected $casts = [
+        'active' => 'boolean',
+        'is_package' => 'boolean',
     ];
 
     // Relationship: service belongs to many branches (pivot)
     public function branches()
     {
         return $this->belongsToMany(\App\Models\Branch::class, 'branch_service')
-                    ->withPivot('price','active','custom_description','duration')
+                ->withPivot('price','active','custom_description','duration','default_sessions')
                     ->withTimestamps();
+    }
+
+    // Package bookings for this service
+    public function packageBookings()
+    {
+        return $this->hasMany(\App\Models\PackageBooking::class);
+    }
+
+    // Check if service is a multi-session package
+    public function isMultiSession(): bool
+    {
+        return $this->is_package && $this->default_sessions > 1;
     }
 
     // Relationship: optional direct branch (legacy)

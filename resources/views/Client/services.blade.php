@@ -118,9 +118,8 @@
                                         @if($service->price)
                                             <p class="mb-1 price" style="font-size:1rem;color:#222;"><strong>₱{{ number_format($service->price, 2) }}</strong></p>
                                         @endif
-                                        @if($service->sessions)
-                                            <p class="mb-1 sessions" style="font-size:0.95rem;color:#888;">{{ $service->sessions }}</p>
-                                        @endif
+                                        @php $serviceSessions = $service->sessions ?? $service->default_sessions ?? 1; @endphp
+                                        <p class="mb-1 sessions" style="font-size:0.95rem;color:#888;">Sessions included: {{ $serviceSessions }} </p>
                                         <button class="mt-2 expand-btn btn btn-outline-pink btn-sm w-100" style="border-radius:6px;">Learn More</button>
                                     </div>
                                     <div class="p-3 service-details" style="display:none;border-radius:0 0 16px 16px;background:#fff;box-shadow:0 2px 12px rgba(245,98,137,0.08);position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;">

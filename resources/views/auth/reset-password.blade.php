@@ -318,8 +318,8 @@
             </button>
         </form>
 
-        <a href="{{ route('login') }}" class="back-link">
-            <i class="fas fa-arrow-left me-1"></i>Back to Login
+        <a href="{{ url('/') }}" class="back-link">
+            <i class="fas fa-arrow-left me-1"></i>Back to Home
         </a>
     </div>
 

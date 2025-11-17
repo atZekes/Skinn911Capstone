@@ -574,8 +574,8 @@
                         </div>
                     </div>
 
-                    <div id="clientBookingQueue" class="booking-queue-wrapper" style="max-height:400px;overflow-y:auto;padding-right:6px;">
-                    <table class="table table-hover" style="border-radius:10px;overflow:hidden;">
+                    <div id="clientBookingQueue" class="booking-queue-wrapper" style="max-height:600px;overflow-y:auto;padding-right:6px;">
+                    <table class="table table-hover" style="border-radius:10px;overflow:hidden;width:100%;">
                         <thead style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color:#fff;">
                             <tr>
                                 <th style="border: none; padding: 15px;">Booking ID</th>
@@ -583,6 +583,8 @@
                                 <th style="border: none; padding: 15px;">Service</th>
                                 <th style="border: none; padding: 15px;">Date</th>
                                 <th style="border: none; padding: 15px;">Time Slot</th>
+                                <th style="border: none; padding: 15px;">Sessions Left</th>
+                                <th style="border: none; padding: 15px;">Expiry Date</th>
                                 <th style="border: none; padding: 15px;">Status</th>
                                 <th style="border: none; padding: 15px;">Action</th>
                             </tr>
@@ -674,6 +676,38 @@
                                         @endphp
                                         {{ $displaySlot }}
                                     </td>
+                                    <td data-label="Sessions Left">
+                                        @php
+                                            $sessionsLeft = 0;
+                                            try {
+                                                // Only get sessions for THIS specific booking_id
+                                                $sessionsLeft = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                                                    ->sum('sessions_remaining');
+                                            } catch (\Exception $e) {
+                                                $sessionsLeft = 0;
+                                            }
+                                        @endphp
+                                        @if($sessionsLeft > 0)
+                                            <span class="badge bg-pink">{{ $sessionsLeft }} left</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td data-label="Expiry Date">
+                                        @php
+                                            $expiryDate = null;
+                                            try {
+                                                $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                                                    ->whereNotNull('expiry_date')
+                                                    ->first()?->expiry_date;
+                                            } catch (\Exception $e) { /* ignore */ }
+                                        @endphp
+                                        @if($expiryDate)
+                                            <span class="badge bg-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     <td data-label="Status">
                                         @if($booking->status === 'pending_refund')
                                             <span class="badge bg-warning">Pending Refund</span>
@@ -698,6 +732,15 @@
                                     <td data-label="Actions">
                                         @if(strtolower($booking->status) === 'active')
                                             <div class="d-flex gap-1 flex-wrap">
+                                                @if($sessionsLeft > 0 && $booking->payment_status === 'paid')
+                                                    <button type="button" class="btn btn-sm btn-primary book-next-session-btn"
+                                                        data-booking-id="{{ $booking->id }}"
+                                                        data-branch-id="{{ $booking->branch->id ?? '' }}"
+                                                        data-service-name="{{ $pkgToShow ? $pkgToShow->name : ($booking->service ? $booking->service->name : '-') }}"
+                                                        style="border-radius: 8px;">
+                                                        <i class="fas fa-calendar-plus me-1"></i>Book Next Session
+                                                    </button>
+                                                @endif
                                                 <button type="button" class="btn btn-sm btn-info reschedule-booking-btn"
                                                     data-booking-id="{{ $booking->id }}"
                                                     data-booking-date="{{ $booking->date }}"
@@ -706,6 +749,7 @@
                                                     style="border-radius: 8px;">
                                                     <i class="fas fa-calendar-alt me-1"></i>Reschedule
                                                 </button>
+
                                                 @if($booking->payment_status === 'paid' && $booking->status !== 'pending_refund')
                                                     <button type="button" class="btn btn-sm btn-success request-refund-btn"
                                                         data-action="{{ route('client.booking.requestRefund', $booking->id) }}"
@@ -731,7 +775,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-5">
+                                    <td colspan="9" class="text-center py-5">
                                         <div class="py-4">
                                             <i class="fas fa-calendar-times" style="font-size: 4rem; color: #ddd;"></i>
                                             <h4 class="mt-3 text-muted">No Bookings Found</h4>
@@ -973,6 +1017,10 @@
         {{-- per-view CSS and JS for client dashboard --}}
         <link rel="stylesheet" href="{{ asset('css/client/dashboard.css') }}">
 
+        <script>
+            // Mark that this page uses AJAX-based bookings filtering so public JS won't attach duplicate filters
+            window.ajaxBookingsFilter = true;
+        </script>
         <script src="{{ asset('js/client/dashboard.js') }}" defer></script>
         {{-- Ensure bootstrap bundle is present (modal support). If your layout already includes it, this can be removed. --}}
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -1043,6 +1091,44 @@
                 });
             });
 
+            // Handle book next session - open reschedule modal
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.book-next-session-btn')) {
+                    e.preventDefault();
+                    const btn = e.target.closest('.book-next-session-btn');
+                    const bookingId = btn.getAttribute('data-booking-id');
+                    const branchId = btn.getAttribute('data-branch-id');
+
+                    // Show info message
+                    Swal.fire({
+                        title: 'Book Next Session',
+                        html: '<p>Select a new date and time for your next session.</p>' +
+                              '<p class="text-muted"><small>You can only book slots that are available.</small></p>',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonColor: '#e75480',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Continue',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Trigger the reschedule modal for this booking
+                            const rescheduleModal = document.getElementById('rescheduleModal' + bookingId);
+                            if (rescheduleModal) {
+                                $(rescheduleModal).modal('show');
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Unable to open booking form. Please refresh the page and try again.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#e75480'
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+
             // Debounce function to improve performance
             function debounce(func, wait) {
                 let timeout;
@@ -1071,7 +1157,7 @@
                 const dateVal = clientDateFilter ? clientDateFilter.value : '';
 
                 // Show loading state
-                bookingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading bookings...</td></tr>';
+                bookingTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading bookings...</td></tr>';
 
                 // Build query parameters
                 const params = new URLSearchParams();
@@ -1088,7 +1174,7 @@
                         return response.json();
                     })
                     .then(data => {
-                        if (data.html) {
+                            if (data.html) {
                             bookingTableBody.innerHTML = data.html;
 
                             // Handle modals if present in response
@@ -1101,13 +1187,24 @@
 
                             // Reattach event listeners to new buttons
                             attachCancelButtonListeners();
+
+                            // Mark that AJAX filtering is active (disable client-side JS filter)
+                            window.ajaxBookingsFilter = true;
+
+                            // Add responsive data-labels to columns for mobile view
+                            if (typeof window.addLabels === 'function') {
+                                const tableEl = document.querySelector('#clientBookingQueue table');
+                                if (tableEl) {
+                                    window.addLabels(tableEl, ['Booking ID','Branch','Service','Date','Time Slot','Sessions Left','Expiry Date','Status','Action']);
+                                }
+                            }
                         } else {
-                            bookingTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Invalid response format</td></tr>';
+                            bookingTableBody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Invalid response format</td></tr>';
                         }
                     })
                     .catch(error => {
                         console.error('Error loading bookings:', error);
-                        bookingTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle"></i> Error loading bookings. Please refresh the page.</td></tr>';
+                        bookingTableBody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle"></i> Error loading bookings. Please refresh the page.</td></tr>';
                     });
             }
 
@@ -1171,93 +1268,241 @@
             // Handle request refund
             function handleRequestRefund() {
                 const action = this.getAttribute('data-action');
+                const bookingId = this.getAttribute('data-booking-id');
 
-                Swal.fire({
-                    title: 'Request Refund?',
-                    html: '<p><strong>Important Notice:</strong></p>' +
-                          '<p>To receive your refund, you must visit the branch physically.</p>' +
-                          '<p>Once approved by staff, you can collect your refund at the branch location.</p>' +
-                          '<p>Do you want to proceed with the refund request?</p>',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Request Refund',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Create a form and submit
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = action;
-
-                        // Add CSRF token
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = '{{ csrf_token() }}';
-                        form.appendChild(csrfInput);
-
-                        document.body.appendChild(form);
-                        form.submit();
+                // Fetch booking details to check session usage
+                fetch(`/api/booking/${bookingId}/session-info`, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const sessionsUsed = data.sessions_used || 0;
+                    const hasDeductedSessions = sessionsUsed > 0;
+
+                    let warningHtml = '<p><strong>Important Notice:</strong></p>' +
+                          '<p>To receive your refund, you must visit the branch physically.</p>' +
+                          '<p>Once approved by staff, you can collect your refund at the branch location.</p>';
+
+                    if (hasDeductedSessions) {
+                        warningHtml += `
+                            <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545; margin: 15px 0;">
+                                <p style="margin: 0; color: #721c24; font-weight: 600;">
+                                    <i class="fas fa-ban" style="color: #dc3545; margin-right: 5px;"></i>
+                                    <strong>WARNING:</strong> ${sessionsUsed} session(s) have been used.
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: #721c24;">
+                                    Your refund request may be <strong>DENIED</strong> because sessions have been deducted.
+                                </p>
+                            </div>
+                        `;
+                    }
+
+                    warningHtml += '<p>Do you want to proceed with the refund request?</p>';
+
+                    Swal.fire({
+                        title: 'Request Refund?',
+                        html: warningHtml,
+                        icon: hasDeductedSessions ? 'warning' : 'info',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, Request Refund',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Create a form and submit
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = action;
+
+                            // Add CSRF token
+                            const csrfInput = document.createElement('input');
+                            csrfInput.type = 'hidden';
+                            csrfInput.name = '_token';
+                            csrfInput.value = '{{ csrf_token() }}';
+                            form.appendChild(csrfInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching session info:', error);
+                    // Fallback to simple refund request
+                    Swal.fire({
+                        title: 'Request Refund?',
+                        html: '<p><strong>Important Notice:</strong></p>' +
+                              '<p>To receive your refund, you must visit the branch physically.</p>' +
+                              '<p>Once approved by staff, you can collect your refund at the branch location.</p>' +
+                              '<p>Do you want to proceed with the refund request?</p>',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, Request Refund',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = action;
+
+                            const csrfInput = document.createElement('input');
+                            csrfInput.type = 'hidden';
+                            csrfInput.name = '_token';
+                            csrfInput.value = '{{ csrf_token() }}';
+                            form.appendChild(csrfInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
                 });
             }
 
             // Handle cancel booking
             function handleCancelBooking() {
                 const action = this.getAttribute('data-action');
+                const bookingId = this.getAttribute('data-action').match(/\d+$/)[0];
 
-                Swal.fire({
-                    title: 'Cancel Booking?',
-                    html: `
-                        <div style="text-align: left; padding: 10px 20px;">
-                            <p style="margin-bottom: 15px; color: #555;">
-                                <strong>Are you sure you want to cancel this booking?</strong>
-                            </p>
-                            <div style="background: #fff3cd; padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 10px;">
-                                <p style="margin: 0; color: #856404; font-size: 14px;">
-                                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 5px;"></i>
-                                    This action cannot be undone
+                // Fetch booking details to check session usage
+                fetch(`/api/booking/${bookingId}/session-info`, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const sessionsUsed = data.sessions_used || 0;
+                    const hasDeductedSessions = sessionsUsed > 0;
+
+                    let warningHtml = '';
+                    if (hasDeductedSessions) {
+                        warningHtml = `
+                            <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545; margin-bottom: 15px;">
+                                <p style="margin: 0; color: #721c24; font-size: 14px; font-weight: 600;">
+                                    <i class="fas fa-ban" style="color: #dc3545; margin-right: 5px;"></i>
+                                    <strong>Warning:</strong> ${sessionsUsed} session(s) have been used.
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: #721c24; font-size: 13px;">
+                                    You <strong>CANNOT request a refund</strong> for this booking.
                                 </p>
                             </div>
-                        </div>
-                    `,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#e75480',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-check"></i> Yes, Cancel Booking',
-                    cancelButtonText: '<i class="fas fa-times"></i> Keep Booking',
-                    customClass: {
-                        popup: 'swal-wide',
-                        title: 'swal-title-custom',
-                        confirmButton: 'btn-lg',
-                        cancelButton: 'btn-lg'
+                        `;
+                    } else {
+                        warningHtml = `
+                            <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8; margin-bottom: 15px;">
+                                <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                                    <i class="fas fa-info-circle" style="color: #17a2b8; margin-right: 5px;"></i>
+                                    No sessions have been used yet. You may request a refund from staff after cancelling.
+                                </p>
+                            </div>
+                        `;
                     }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Create and submit form
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = action;
 
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                        const methodInput = document.createElement('input');
-                        methodInput.type = 'hidden';
-                        methodInput.name = '_method';
-                        methodInput.value = 'DELETE';
-                        form.appendChild(methodInput);
+                    Swal.fire({
+                        title: 'Cancel Booking?',
+                        html: `
+                            <div style="text-align: left; padding: 10px 20px;">
+                                <p style="margin-bottom: 15px; color: #555;">
+                                    <strong>Are you sure you want to cancel this booking?</strong>
+                                </p>
+                                ${warningHtml}
+                                <div style="background: #fff3cd; padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                                    <p style="margin: 0; color: #856404; font-size: 14px;">
+                                        <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 5px;"></i>
+                                        This action cannot be undone
+                                    </p>
+                                </div>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#e75480',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-check"></i> Yes, Cancel Booking',
+                        cancelButtonText: '<i class="fas fa-times"></i> Keep Booking',
+                        customClass: {
+                            popup: 'swal-wide',
+                            title: 'swal-title-custom',
+                            confirmButton: 'btn-lg',
+                            cancelButton: 'btn-lg'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Create and submit form
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = action;
 
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = csrfToken;
-                        form.appendChild(csrfInput);
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                            const methodInput = document.createElement('input');
+                            methodInput.type = 'hidden';
+                            methodInput.name = '_method';
+                            methodInput.value = 'DELETE';
+                            form.appendChild(methodInput);
 
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
+                            const csrfInput = document.createElement('input');
+                            csrfInput.type = 'hidden';
+                            csrfInput.name = '_token';
+                            csrfInput.value = csrfToken;
+                            form.appendChild(csrfInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching session info:', error);
+                    // Fallback to simple confirmation if API fails
+                    Swal.fire({
+                        title: 'Cancel Booking?',
+                        html: `
+                            <div style="text-align: left; padding: 10px 20px;">
+                                <p style="margin-bottom: 15px; color: #555;">
+                                    <strong>Are you sure you want to cancel this booking?</strong>
+                                </p>
+                                <div style="background: #fff3cd; padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                                    <p style="margin: 0; color: #856404; font-size: 14px;">
+                                        <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 5px;"></i>
+                                        This action cannot be undone
+                                    </p>
+                                </div>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#e75480',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-check"></i> Yes, Cancel Booking',
+                        cancelButtonText: '<i class="fas fa-times"></i> Keep Booking'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = action;
+
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                            const methodInput = document.createElement('input');
+                            methodInput.type = 'hidden';
+                            methodInput.name = '_method';
+                            methodInput.value = 'DELETE';
+                            form.appendChild(methodInput);
+
+                            const csrfInput = document.createElement('input');
+                            csrfInput.type = 'hidden';
+                            csrfInput.name = '_token';
+                            csrfInput.value = csrfToken;
+                            form.appendChild(csrfInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
                 });
             }
 

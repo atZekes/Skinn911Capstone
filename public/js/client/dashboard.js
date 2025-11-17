@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 3) Mobile friendly table labels: add data-label attributes to td elements
     try {
-        function addLabels(table, labels) {
+        // Expose globally so AJAX-loaded rows can re-run it
+        window.addLabels = function(table, labels) {
             if (!table) return;
             var rows = table.querySelectorAll('tbody tr');
             rows.forEach(function(row) {
@@ -62,19 +63,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     cell.setAttribute('data-label', labels[i] || '');
                 });
             });
-        }
+        };
         var tables = document.querySelectorAll('.card-body table.table-bordered');
         if (tables.length > 0) addLabels(tables[0], ['Service','Price','Date Purchased','Location','Status']);
         if (tables.length > 1) addLabels(tables[1], ['Branch','Service','Date','Time Slot','Status','Action']);
     } catch (e) { /* fail silently */ }
 
     // 4) Booking search filter
-    try {
-        var searchInput = document.getElementById('clientBookingSearch');
-        if (searchInput) {
-            var tbody = document.querySelector('#clientBookingQueue table tbody');
-            if (tbody) {
-                var rows = Array.from(tbody.querySelectorAll('tr'));
+        try {
+            var searchInput = document.getElementById('clientBookingSearch');
+            if (searchInput) {
+                // If the page uses the AJAX filter, skip the simple client-side filter to avoid conflicts
+                if (window.ajaxBookingsFilter) {
+                    // re-binding will be handled by the AJAX filtering logic
+                } else {
+                    var tbody = document.querySelector('#clientBookingQueue table tbody');
+                    if (tbody) {
+                        var rows = Array.from(tbody.querySelectorAll('tr'));
                 function filterRows() {
                     var q = (searchInput.value || '').trim().toLowerCase();
                     var anyVisible = false;
@@ -96,3 +101,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } catch (e) { /* fail silently */ }
 });
+                }

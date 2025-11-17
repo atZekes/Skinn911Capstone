@@ -292,11 +292,11 @@ public function submitBooking(Request $request)
         if ($request->filled('payment_method')) {
             $booking->payment_method = $request->payment_method;
 
-            // Mark as pending if card or gcash payment (staff needs to confirm)
-            if (in_array($request->payment_method, ['card', 'gcash'])) {
+            // Mark as pending for card, gcash, and cash (staff needs to confirm all)
+            if (in_array($request->payment_method, ['card', 'gcash', 'cash'])) {
                 $booking->payment_status = 'pending';
             } else {
-                $booking->payment_status = 'unpaid'; // cash payment at branch
+                $booking->payment_status = 'unpaid';
             }
 
             // Save payment data as JSON
@@ -433,6 +433,15 @@ public function submitBooking(Request $request)
         ]);
     }
 
+    // If booking is paid already, create package / client sessions
+    try {
+        if ($booking->payment_status === 'paid') {
+            $booking->ensurePackageSessionsExist();
+        }
+    } catch (\Exception $e) {
+        Log::warning('Failed to create package sessions on client booking', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+    }
+
     // Always send push notification to client (email status doesn't affect push notification)
     $notificationMessage = $emailSent
         ? 'Your appointment has been successfully booked! A confirmation email has been sent.'
@@ -448,6 +457,15 @@ public function cancelBooking($id)
 {
     $booking = \App\Models\Booking::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
 
+    // Check if any sessions have been used (deducted)
+    $sessionsUsed = 0;
+    try {
+        $sessionsUsed = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+            ->sum('sessions_used');
+    } catch (\Exception $e) {
+        Log::error('Error checking session usage on cancel', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+    }
+
     // Prevent cancellation only if booking payment is confirmed/paid by staff
     if ($booking->payment_status === 'paid') {
         return redirect()->route('client.dashboard')->withErrors(['error' => 'Cannot cancel a booking that has been confirmed as paid by staff. Please contact support for assistance.']);
@@ -455,6 +473,15 @@ public function cancelBooking($id)
 
     $booking->status = 'cancelled';
     $booking->save();
+
+    // Zero out any session credits for this booking
+    try {
+        \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+            ->update(['sessions_remaining' => 0, 'status' => 'cancelled']);
+    } catch (\Exception $e) {
+        Log::error('Error zeroing sessions on cancel', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+    }
+
     // Also mark the related purchased services as cancelled (match by booking_id)
     $purchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->get();
     foreach ($purchasedServices as $ps) {
@@ -500,6 +527,16 @@ public function requestRefund($id)
         return redirect()->route('client.dashboard')->withErrors(['error' => 'This booking already has a refund request or has been refunded.']);
     }
 
+    // NOTE: We allow refund requests even if sessions were used
+    // Staff can deny the refund request if they see fit
+    // Check sessions used for information purposes only
+    $sessionsUsed = 0;
+    try {
+        $sessionsUsed = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->sum('sessions_used');
+    } catch (\Exception $e) {
+        Log::error('Error checking session usage for refund', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+    }
+
     // Update booking status to pending_refund
     $booking->status = 'pending_refund';
     $booking->save();
@@ -526,6 +563,40 @@ public function requestRefund($id)
     );
 
     return redirect()->route('client.dashboard')->with('success', 'Refund requested successfully! Please visit the branch to collect your refund once approved by staff.');
+}
+
+public function bookNextSession($id)
+{
+    try {
+        $booking = \App\Models\Booking::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        // Check if booking has remaining sessions
+        $remainingSessions = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+            ->sum('sessions_remaining');
+
+        if ($remainingSessions <= 0) {
+            return response()->json(['error' => 'No sessions remaining for this booking.'], 400);
+        }
+
+        // Check if payment is confirmed
+        if ($booking->payment_status !== 'paid') {
+            return response()->json(['error' => 'Payment must be confirmed before booking next session.'], 400);
+        }
+
+        // Return success - the modal will handle the reschedule UI
+        return response()->json([
+            'success' => true,
+            'booking_id' => $booking->id,
+            'branch_id' => $booking->branch_id,
+            'service_id' => $booking->service_id,
+            'package_id' => $booking->package_id,
+            'sessions_remaining' => $remainingSessions,
+            'message' => 'Please select a new time slot for your next session.'
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error booking next session', ['booking_id' => $id, 'error' => $e->getMessage()]);
+        return response()->json(['error' => 'Failed to process your request. Please try again.'], 500);
+    }
 }
 
 public function cancelAllBookings()
@@ -750,7 +821,7 @@ public function rescheduleBooking(Request $request, $id)
                         $slots = $default;
                     }
                 }
-                $max = $branch->slot_capacity ?? 5;
+                $max = $branch->slot_capacity ?? config('booking.default_slot_capacity', 5);
                 foreach ($slots as $slot) {
                     // Treat slot as start of service duration=1 for full slots list.
                     $count = \App\Models\Booking::where('branch_id', $branchId)
@@ -965,6 +1036,21 @@ public function calendarViewer()
             $service = $ps->service;
             $booking = $ps->booking;
 
+            // Compute sessions left for this purchased service: check by booking_id if present, else by user's active client package sessions for this service/branch
+            $sessionsLeft = 0;
+            try {
+                if ($booking && $booking->id) {
+                    $sessionsLeft = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->sum('sessions_remaining');
+                }
+                if (!$sessionsLeft) {
+                    $sessionsLeft = \App\Models\ClientPackageSession::where('user_id', Auth::id())
+                        ->where('branch_id', $booking?->branch_id ?? null)
+                        ->where('service_id', $service?->id ?? null)
+                        ->where('status', 'active')
+                        ->sum('sessions_remaining');
+                }
+            } catch (\Exception $e) { $sessionsLeft = 0; }
+
             $statusClass = match(strtolower($ps->status)) {
                 'active' => 'bg-success',
                 'cancelled' => 'bg-danger',
@@ -981,6 +1067,9 @@ public function calendarViewer()
             $html .= '<p class="card-text"><strong>Price:</strong> ₱' . number_format($ps->price ?? 0, 2) . '</p>';
             $html .= '<p class="card-text"><strong>Purchase Date:</strong> ' . \Carbon\Carbon::parse($ps->purchase_date)->format('M d, Y') . '</p>';
             $html .= '<p class="card-text"><strong>Branch:</strong> ' . e($booking && $booking->branch ? $booking->branch->name : 'N/A') . '</p>';
+            if ($sessionsLeft > 0) {
+                $html .= '<div class="mt-2"><strong>Sessions left:</strong> <span class="badge bg-pink">' . $sessionsLeft . '</span></div>';
+            }
             $html .= '<span class="badge ' . $statusClass . '">' . ucfirst($ps->status) . '</span>';
             $html .= '</div></div></div>';
         }
@@ -1093,17 +1182,96 @@ public function calendarViewer()
             };
 
             $html .= '<tr data-booking-id="' . $booking->id . '" data-status="' . $booking->status . '" data-payment-status="' . $booking->payment_status . '" data-date="' . $booking->date . '">';
-            // Column 0: Booking ID
+            // Column 1: Booking ID
             $html .= '<td><span class="badge" style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color: white; cursor: pointer;" title="Click to search">#' . $booking->id . '</span></td>';
-            // Column 1: Branch
+            // Column 2: Branch
             $html .= '<td>' . e($booking->branch ? $booking->branch->name : 'N/A') . '</td>';
-            // Column 2: Service
+            // Column 3: Service
             $html .= '<td>' . e($serviceName) . '</td>';
-            // Column 3: Date
+            // Column 4: Date
             $html .= '<td>' . \Carbon\Carbon::parse($booking->date)->format('M d, Y') . '</td>';
-            // Column 4: Time Slot
+            // Column 5: Time Slot
             $html .= '<td>' . e($displaySlot) . '</td>';
-            // Column 5: Status (same logic as staff)
+
+            // Column 6: Sessions Left
+            $sessionsLeft = '-';
+            try {
+                // Prefer session credits bound to this booking
+                $sessionsSum = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->where('status', 'active')->sum('sessions_remaining');
+                if ($sessionsSum) {
+                    $sessionsLeft = $sessionsSum;
+                } else {
+                    // Fallback: prefer package_id match
+                    $sessionsSum = 0;
+                    if ($booking->package_id) {
+                        $sessionsSum = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                            ->where('branch_id', $booking->branch_id)
+                            ->where('package_id', $booking->package_id)
+                            ->where('status', 'active')
+                            ->sum('sessions_remaining');
+                    }
+                    // If still not found, fallback to service_id
+                    if (!$sessionsSum) {
+                        $sessionsSum = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                            ->where('branch_id', $booking->branch_id)
+                            ->where('service_id', $booking->service_id)
+                            ->where('status', 'active')
+                            ->sum('sessions_remaining');
+                    }
+                    if ($sessionsSum) $sessionsLeft = $sessionsSum;
+                }
+            } catch (\Exception $e) { /* ignore errors and show dash */ }
+            // Render sessions left with same design as unfiltered dashboard
+            if ($sessionsLeft !== '-' && is_numeric($sessionsLeft) && $sessionsLeft > 0) {
+                $html .= '<td><span class="badge bg-pink">' . e($sessionsLeft) . ' left</span></td>';
+            } else {
+                $html .= '<td><span class="text-muted">-</span></td>';
+            }
+
+            // Column 7: Expiry Date
+            $expiryDate = '-';
+            try {
+                // Prefer session credit bound to this booking
+                $sessionCredit = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->where('status', 'active')->first();
+                if (!$sessionCredit) {
+                    // Fallback: prefer package_id match
+                    if ($booking->package_id) {
+                        $sessionCredit = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                            ->where('branch_id', $booking->branch_id)
+                            ->where('package_id', $booking->package_id)
+                            ->where('status', 'active')
+                            ->orderBy('expiry_date', 'asc')
+                            ->first();
+                    }
+                    // If still not found, fallback to service_id expiry
+                    if (!$sessionCredit) {
+                        $sessionCredit = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                            ->where('branch_id', $booking->branch_id)
+                            ->where('service_id', $booking->service_id)
+                            ->where('status', 'active')
+                            ->orderBy('expiry_date', 'asc')
+                            ->first();
+                    }
+                }
+                if ($sessionCredit && $sessionCredit->expiry_date) {
+                    $expiryDateVal = \Carbon\Carbon::parse($sessionCredit->expiry_date);
+                    $expiryDate = $expiryDateVal->format('M d, Y');
+                    $daysUntilExpiry = now()->diffInDays($expiryDateVal, false);
+                    if ($daysUntilExpiry <= 30 && $daysUntilExpiry > 0) {
+                        $expiryDate = '<span class="text-warning" title="Expiring in ' . $daysUntilExpiry . ' days">' . $expiryDate . ' ⚠️</span>';
+                    } elseif ($daysUntilExpiry <= 0) {
+                        $expiryDate = '<span class="text-danger" title="Expired">Expired ❌</span>';
+                    }
+                }
+            } catch (\Exception $e) { /* ignore */ }
+            // Render expiry date as the same info badge used on unfiltered dashboard
+            if ($expiryDate !== '-' && $expiryDate) {
+                $html .= '<td><span class="badge bg-info">' . $expiryDate . '</span></td>';
+            } else {
+                $html .= '<td><span class="text-muted">-</span></td>';
+            }
+
+            // Column 8: Status (same logic as staff)
             $html .= '<td>';
 
             if ($booking->status === 'pending_refund') {
@@ -1127,7 +1295,7 @@ public function calendarViewer()
             }
 
             $html .= '</td>';
-            // Column 6: Action
+            // Column 9: Action
             $html .= '<td>';
 
             if (strtolower($booking->status) === 'active') {
@@ -1154,7 +1322,7 @@ public function calendarViewer()
         }
 
         if (empty($html)) {
-            $html = '<tr><td colspan="6" class="py-5 text-center">';
+            $html = '<tr><td colspan="9" class="py-5 text-center">';
             $html .= '<div class="py-4">';
             $html .= '<i class="fas fa-calendar-times" style="font-size: 4rem; color: #ddd;"></i>';
             $html .= '<h4 class="mt-3 text-muted">No Bookings Found</h4>';

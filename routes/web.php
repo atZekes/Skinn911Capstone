@@ -46,6 +46,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::delete('/client/booking/cancel-all', [App\Http\Controllers\ClientController::class, 'cancelAllBookings'])->name('client.booking.cancelAll');
     Route::put('/client/booking/{id}/reschedule', [App\Http\Controllers\ClientController::class, 'rescheduleBooking'])->name('client.booking.reschedule');
     Route::post('/client/booking/{id}/request-refund', [App\Http\Controllers\ClientController::class, 'requestRefund'])->name('client.booking.requestRefund');
+    Route::post('/client/booking/{id}/book-next-session', [App\Http\Controllers\ClientController::class, 'bookNextSession'])->name('client.booking.bookNextSession');
     Route::get('/client/calendar', [App\Http\Controllers\ClientController::class, 'calendarViewer'])->name('client.calendar');
     Route::get('/client/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->name('client.dashboard');
 
@@ -146,8 +147,19 @@ Route::middleware('staff')->group(function () {
     Route::patch('/staff/appointments/{id}/complete', [App\Http\Controllers\StaffController::class, 'completeAppointment'])->name('staff.completeAppointment');
     Route::post('/staff/appointments/{id}/send-reminder', [App\Http\Controllers\StaffController::class, 'sendReminder'])->name('staff.sendReminder');
     Route::post('/staff/appointments/{id}/process-refund', [App\Http\Controllers\StaffController::class, 'processRefund'])->name('staff.processRefund');
+    Route::post('/staff/appointments/{id}/deny-refund', [App\Http\Controllers\StaffController::class, 'denyRefund'])->name('staff.denyRefund');
+
+    // New session management routes
+    Route::post('/staff/booking/{id}/complete-session', [App\Http\Controllers\StaffController::class, 'completeSession'])->name('staff.completeSession');
+    Route::post('/staff/package-session/{id}/send-reminder', [App\Http\Controllers\StaffController::class, 'sendPackageReminder'])->name('staff.sendPackageReminder');
 
     Route::post('/staff/pos/record', [App\Http\Controllers\StaffController::class, 'recordTransaction'])->name('staff.pos.record');
+
+    // Package Session Credits Routes
+    Route::post('/staff/package/{packageId}/book', [App\Http\Controllers\StaffController::class, 'bookPackageSession'])->name('staff.package.book');
+    Route::post('/staff/package/booking/{bookingId}/cancel', [App\Http\Controllers\StaffController::class, 'cancelPackageSession'])->name('staff.package.cancel');
+    Route::post('/staff/package/{packageId}/remind', [App\Http\Controllers\StaffController::class, 'sendPackageReminder'])->name('staff.package.remind');
+
     // Staff Interact page (GET)
     Route::get('/staff/interact', [App\Http\Controllers\StaffController::class, 'interact'])->name('staff.interact');
     // Staff Interact form submission (POST)
@@ -247,6 +259,11 @@ Route::middleware('ceo')->group(function () {
     Route::post('/ceo/create-branch', [App\Http\Controllers\CEOController::class, 'storeBranch'])->name('ceo.createBranch');
     Route::put('/ceo/branch-manage/{branch}', [App\Http\Controllers\CEOController::class, 'updateBranch'])->name('ceo.updateBranch');
     Route::delete('/ceo/branch-manage/{branch}', [App\Http\Controllers\CEOController::class, 'deleteBranch'])->name('ceo.deleteBranch');
+
+    // Client Retention Overview (CEO only)
+    Route::get('/ceo/client-retention', [App\Http\Controllers\CEOController::class, 'clientRetention'])->name('ceo.client-retention');
+    Route::get('/ceo/retention-chart-data', [App\Http\Controllers\CEOController::class, 'getRetentionChartData'])->name('ceo.retention-chart-data');
+
     Route::get('/ceo/logout', [CEOController::class, 'logout'])->name('ceo.logout');
     Route::post('/ceo/change-password', [App\Http\Controllers\CEOController::class, 'changePassword'])->name('ceo.changePassword');
     Route::post('/ceo/user-manage/{user}/change-password', [App\Http\Controllers\CEOController::class, 'adminChangePassword'])->name('ceo.adminChangePassword');

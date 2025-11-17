@@ -142,12 +142,7 @@ h3 {
 .bg-img-1 {
     background-image: url(../img/slider/slider-img-1.jpg);
 }
-.bg-img-2 {
-    background-image: url(../img/background-img/bg-img-2.jpg);
-}
-.cta-bg-1 {
-    background-image: url(../img/background-img/bg-img-3.jpg);
-}
+
 .overlay {
     position: relative;
     z-index: 0;
@@ -730,40 +725,8 @@ h3 {
         padding: 10px 20px;
     }
 }
-.header-area .main-header-area.sticky .main-menu {
-    padding: 0;
-}
-.slider_bg_1 {
-    background-image: url(../img/banner/banner.png);
-}
-.slider_bg_2 {
-    background-image: url(../img/banner/banner2.png);
-}
-.slider_bg_3 {
-    background-image: url(../img/banner/banner3.png);
-}
-.slider_bg_4 {
-    background-image: url(../img/banner/banner4.png);
-}
 
-/* Responsive banner images */
-@media (min-width: 768px) and (max-width: 991.98px) {
-    /* Tablet */
-    .slider_bg_1 { background-image: url(../img/banner/banner.png); } /* Changed from banner21.png */
-    .slider_bg_2 { background-image: url(../img/banner/banner22.png); }
-    .slider_bg_3 { background-image: url(../img/banner/banner10.png); }
-    .slider_bg_4 { background-image: url(../img/banner/banner3.png); }
-    .single_slider { min-height: 1000vh; background-position: center; background-size: cover; }
-}
 
-@media (max-width: 767.98px) {
-    /* Mobile */
-    .slider_bg_1 { background-image: url(../img/banner/banner1111.png); } /* Changed from banner11111.png */
-    .slider_bg_2 { background-image: url(../img/banner/banner1111.png); }
-    .slider_bg_3 { background-image: url(../img/banner/banner10.png); } /* Changed from banner11.png */
-    .slider_bg_4 { background-image: url(../img/banner/banner3.png); } /* Changed from banner2.png */
-    .single_slider { min-height: 70vh; background-position: center top; background-size: cover; }
-}
 .slider_area .single_slider {
     height: 100vh;
     background-size: cover;
@@ -1538,104 +1501,8 @@ h3 {
         margin-bottom: 30px;
     }
 }
-.features_room .rooms_here .single_rooms::before {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    content: "";
-    background: #ffffff;
-    background: -moz-linear-gradient(top, #fff 0%, #000 77%);
-    background: -webkit-linear-gradient(top, #fff 0%, #000 77%);
-    background: linear-gradient(to bottom, #fff 0%, #000 77%);
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#000000',GradientType=0 );
-    z-index: 1;
-    opacity: 0.5;
-}
-.features_room .rooms_here .single_rooms .room_thumb {
-    position: relative;
-    overflow: hidden;
-}
-.features_room .rooms_here .single_rooms .room_thumb img {
-    width: 100%;
-    -webkit-transform: scale(1);
-    -moz-transform: scale(1);
-    -ms-transform: scale(1);
-    transform: scale(1);
-    -webkit-transition: 0.5s;
-    -moz-transition: 0.5s;
-    -o-transition: 0.5s;
-    transition: 0.5s;
-    cursor: pointer;
-}
-.features_room .rooms_here .single_rooms .room_thumb .room_heading {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0px;
-    padding: 60px 60px 47px 60px;
-}
-@media (max-width: 767px) {
-    .features_room .rooms_here .single_rooms .room_thumb .room_heading {
-        padding: 20px;
-    }
-}
-@media (min-width: 768px) and (max-width: 991px) {
-    .features_room .rooms_here .single_rooms .room_thumb .room_heading {
-        padding: 20px;
-    }
-}
-.features_room .rooms_here .single_rooms .room_thumb .room_heading span {
-    font-size: 14px;
-    color: #ffffff;
-    margin-bottom: 9px;
-    display: block;
-    position: relative;
-    z-index: 8;
-}
-.features_room .rooms_here .single_rooms .room_thumb .room_heading h3 {
-    font-size: 30px;
-    color: #fff;
-    position: relative;
-    z-index: 8;
-}
-@media (max-width: 767px) {
-    .features_room .rooms_here .single_rooms .room_thumb .room_heading h3 {
-        font-size: 20px;
-    }
-}
-.features_room .rooms_here .single_rooms .room_thumb .room_heading a {
-    color: #fff;
-    text-transform: capitalize;
-    font-weight: 600;
-    position: relative;
-    z-index: 8;
-    -webkit-transform: translateY(-40px);
-    -moz-transform: translateY(-40px);
-    -ms-transform: translateY(-40px);
-    transform: translateY(-40px);
-    opacity: 0;
-    visibility: hidden;
-}
-.features_room .rooms_here .single_rooms .room_thumb .room_heading a:hover {
-    color: #F56289;
-}
-.features_room .rooms_here .single_rooms:hover img {
-    width: 100%;
-    -webkit-transform: scale(1.1);
-    -moz-transform: scale(1.1);
-    -ms-transform: scale(1.1);
-    transform: scale(1.1);
-}
-.features_room .rooms_here .single_rooms:hover .room_heading a {
-    -webkit-transform: translateY(0px);
-    -moz-transform: translateY(0px);
-    -ms-transform: translateY(0px);
-    transform: translateY(0px);
-    opacity: 1;
-    visibility: visible;
-}
+/* Index-specific 'features_room' styles moved to frontend/index.css to avoid duplication.
+   Kept in separate per-view CSS to maintain consistent index styling. */
 .forQuery {
     padding-top: 200px;
     padding-bottom: 200px;

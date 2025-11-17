@@ -329,28 +329,37 @@ class Admincontroller extends Controller{
 
     public function updateBranch(Request $request, $branchId)
     {
-        // Accept break_start / break_end as optional free-form input and parse them server-side.
-        // This avoids strict "The break start field must match the format H:i" validation messages.
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'address' => 'required|string|max:255',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after_or_equal:start_time',
-            'slot_capacity' => 'required|integer|min:1',
-            // break_start and break_end accepted as nullable (no strict format) and handled below
-            'break_start' => 'nullable',
-            'break_end' => 'nullable',
-            'remove_break' => 'nullable|in:0,1',
-            // New contact fields
-            'contact_number' => 'nullable|string|max:20',
-            'telephone_number' => 'nullable|string|max:20',
-            'operating_days' => 'nullable|array',
-            'operating_days.*' => 'string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
-            // GCash payment fields
-            'gcash_number' => 'nullable|string|max:20',
-            'gcash_qr' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-        $branch = Branch::findOrFail($branchId);
+        try {
+            // Accept break_start / break_end as optional free-form input and parse them server-side.
+            // This avoids strict "The break start field must match the format H:i" validation messages.
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'address' => 'required|string|max:255',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after_or_equal:start_time',
+                'slot_capacity' => 'required|integer|min:1',
+                // break_start and break_end accepted as nullable (no strict format) and handled below
+                'break_start' => 'nullable',
+                'break_end' => 'nullable',
+                'remove_break' => 'nullable|in:0,1',
+                // New contact fields
+                'contact_number' => 'nullable|string|max:20',
+                'telephone_number' => 'nullable|string|max:20',
+                'operating_days' => 'nullable|array',
+                'operating_days.*' => 'string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+                // GCash payment fields
+                'gcash_number' => 'nullable|string|max:20',
+                'gcash_qr' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+            $branch = Branch::findOrFail($branchId);
+
+            // Log the incoming slot_capacity and all request data
+            \Log::info('Admin Update Branch - Request Data', [
+                'branch_id' => $branchId,
+                'all_request_data' => $request->all(),
+                'slot_capacity_from_request' => $request->slot_capacity,
+                'old_slot_capacity' => $branch->slot_capacity
+            ]);
 
         // Validate that new slot_capacity doesn't violate existing bookings
         $newSlotCapacity = $request->slot_capacity;
@@ -452,7 +461,22 @@ class Admincontroller extends Controller{
         }
 
         $branch->save();
+
+        // Log after save
+        \Log::info('Admin Branch Updated Successfully', [
+            'branch_id' => $branchId,
+            'saved_slot_capacity' => $branch->slot_capacity
+        ]);
+
         return redirect()->back()->with('success', 'Branch details updated successfully.');
+    } catch (\Exception $e) {
+        \Log::error('Admin Branch Update Failed', [
+            'branch_id' => $branchId,
+            'error' => $e->getMessage(),
+            'slot_capacity' => $request->slot_capacity
+        ]);
+        return redirect()->back()->withErrors(['error' => 'Failed to update branch: ' . $e->getMessage()]);
+    }
     }
 
     // Toggle branch active/inactive
@@ -478,6 +502,10 @@ class Admincontroller extends Controller{
             'service_ids.*' => 'integer|exists:services,id',
             'prices' => 'nullable|array',
             'prices.*' => 'nullable|numeric|min:0',
+            'durations' => 'nullable|array',
+            'durations.*' => 'nullable|integer|min:1',
+            'default_sessions' => 'nullable|array',
+            'default_sessions.*' => 'nullable|integer|min:1|max:100',
         ]);
 
         $serviceIds = $request->input('service_ids', []);
@@ -505,10 +533,17 @@ class Admincontroller extends Controller{
             }
 
             // prefer submitted duration if provided, otherwise keep existing pivot duration, otherwise fallback to 1
-            $durationToSet = isset($submittedDurations[$sid]) ? $submittedDurations[$sid] : ($existingDuration ?? 1);
+                $defaultSessions = $request->input('default_sessions', []);
+                $durationToSet = isset($submittedDurations[$sid]) ? $submittedDurations[$sid] : ($existingDuration ?? 1);
+                // Load the service to determine global default_sessions fallback
+                $serviceModel = \App\Models\Service::find($sid);
+                $globalDefault = $serviceModel ? ($serviceModel->default_sessions ?? 1) : 1;
+                $existingPivotSessions = ($existing && isset($existing->pivot) && isset($existing->pivot->default_sessions)) ? (int)$existing->pivot->default_sessions : null;
+                $defaultSessionsValue = isset($defaultSessions[$sid]) && is_numeric($defaultSessions[$sid]) ? (int)$defaultSessions[$sid] : ($existingPivotSessions !== null ? $existingPivotSessions : $globalDefault);
 
-            $sync[$sid] = [
-                'price' => isset($prices[$sid]) ? $prices[$sid] : null,
+                $sync[$sid] = [
+                    'price' => isset($prices[$sid]) ? $prices[$sid] : null,
+                    'default_sessions' => $defaultSessionsValue,
                 'active' => 1,
                 'duration' => $durationToSet,
                 'created_at' => now(),
@@ -616,6 +651,7 @@ class Admincontroller extends Controller{
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'duration' => 'nullable|integer|min:1',
+            'default_sessions' => 'nullable|integer|min:1|max:100',
             'category' => 'nullable|string',
             'new_category' => 'nullable|string',
         ]);
@@ -629,18 +665,21 @@ class Admincontroller extends Controller{
         if ($category) $service->category = $category;
         // keep legacy branch_id for backwards compatibility but also create pivot
         $service->branch_id = $branchId;
+        // Default sessions for this service (single-session default)
+        $service->default_sessions = $request->input('default_sessions', 1);
+        $service->is_package = $service->default_sessions > 1;
         $service->save();
 
         // create pivot entry for branch_service so the service is available to this branch
-        if (method_exists($service, 'branches')) {
+            if (method_exists($service, 'branches')) {
             $service->branches()->syncWithoutDetaching([
-                $branchId => ['price' => $request->price, 'active' => 1, 'duration' => $request->input('duration', 1), 'created_at' => now(), 'updated_at' => now()]
+                $branchId => ['price' => $request->price, 'active' => 1, 'duration' => $request->input('duration', 1), 'default_sessions' => $service->default_sessions ?? 1, 'created_at' => now(), 'updated_at' => now()]
             ]);
         } else {
             // fallback: direct DB insert
             \Illuminate\Support\Facades\DB::table('branch_service')->updateOrInsert(
                 ['branch_id' => $branchId, 'service_id' => $service->id],
-                ['price' => $request->price, 'active' => 1, 'created_at' => now(), 'updated_at' => now()]
+                ['price' => $request->price, 'active' => 1, 'duration' => $request->input('duration', 1), 'default_sessions' => $service->default_sessions ?? 1, 'created_at' => now(), 'updated_at' => now()]
             );
         }
         return redirect()->back()->with('success', 'Service added successfully.');
@@ -654,6 +693,8 @@ class Admincontroller extends Controller{
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'duration' => 'nullable|integer|min:1',
+            'default_sessions' => 'nullable|integer|min:1|max:100',
+            'is_package' => 'nullable|boolean',
         ]);
         $service = \App\Models\Service::findOrFail($serviceId);
         // If a branch_id is provided, update the branch-specific pivot instead of the global service
@@ -673,6 +714,10 @@ class Admincontroller extends Controller{
             // Set custom_description even if empty string was submitted so admin can clear it
             if ($request->has('description')) {
                 $pivotData['custom_description'] = $request->input('description');
+            }
+            // Add default_sessions to branch-specific pivot
+            if ($request->has('default_sessions')) {
+                $pivotData['default_sessions'] = $request->input('default_sessions', 1);
             }
             if ($branch && method_exists($branch, 'services')) {
                 // syncWithoutDetaching will insert or update the pivot for this branch-service
@@ -701,6 +746,11 @@ class Admincontroller extends Controller{
         if ($request->has('duration')) {
             $service->duration = $request->input('duration');
         }
+        // Update session count - always save it
+        $service->default_sessions = $request->input('default_sessions', 1);
+        // Auto-detect if it's a package based on session count
+        $service->is_package = $request->input('default_sessions', 1) > 1;
+
         $service->save();
         return redirect()->back()->with('success', 'Service updated successfully.');
     }
@@ -895,7 +945,6 @@ class Admincontroller extends Controller{
         $currentSettings = [
             'minimum_advance_days' => config('booking.minimum_advance_days', 2),
             'maximum_advance_days' => config('booking.maximum_advance_days', 60),
-            'default_slot_capacity' => config('booking.default_slot_capacity', 5),
             'allow_staff_override' => config('booking.allow_staff_override', true),
         ];
 
@@ -914,38 +963,22 @@ class Admincontroller extends Controller{
         $request->validate([
             'minimum_advance_days' => 'required|integer|min:0|max:30',
             'maximum_advance_days' => 'required|integer|min:1|max:365',
-            'default_slot_capacity' => 'required|integer|min:1|max:50',
             'allow_staff_override' => 'boolean',
         ]);
 
         try {
-            // Update the environment file or use a settings table
-            // For now, we'll update the config temporarily (this will reset on server restart)
+            $admin = Auth::guard('admin')->user();
+
+            // Update global config for non-branch specific settings
             config(['booking.minimum_advance_days' => $request->minimum_advance_days]);
             config(['booking.maximum_advance_days' => $request->maximum_advance_days]);
-            config(['booking.default_slot_capacity' => $request->default_slot_capacity]);
             config(['booking.allow_staff_override' => $request->boolean('allow_staff_override')]);
 
-            // For persistent storage, update .env file
+            // Update .env file for persistent global settings
             $this->updateEnvFile([
                 'BOOKING_MINIMUM_ADVANCE_DAYS' => $request->minimum_advance_days,
                 'BOOKING_MAXIMUM_ADVANCE_DAYS' => $request->maximum_advance_days,
-                'BOOKING_DEFAULT_SLOT_CAPACITY' => $request->default_slot_capacity,
                 'BOOKING_ALLOW_STAFF_OVERRIDE' => $request->boolean('allow_staff_override') ? 'true' : 'false',
-            ]);
-
-            // Log the change with admin information
-            $admin = Auth::guard('admin')->user();
-            Log::info('Booking settings updated by admin', [
-                'admin_id' => $admin->id,
-                'admin_name' => $admin->name,
-                'branch_id' => $admin->branch_id,
-                'settings' => [
-                    'minimum_advance_days' => $request->minimum_advance_days,
-                    'maximum_advance_days' => $request->maximum_advance_days,
-                    'default_slot_capacity' => $request->default_slot_capacity,
-                    'allow_staff_override' => $request->boolean('allow_staff_override'),
-                ]
             ]);
 
             return response()->json([

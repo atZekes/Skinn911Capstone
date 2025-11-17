@@ -13,7 +13,7 @@ class ClientMiddleware
         // Step 1: Check if user is logged in using web guard
         if (!Auth::guard('web')->check()) {
             // If not logged in, send to login page
-            return redirect('/login')->with('error', 'Please login first');
+            return redirect('/')->with('error', 'Please login first');
         }
 
         // Step 2: Get the logged in client user
@@ -23,7 +23,7 @@ class ClientMiddleware
         if ($user->role !== 'client') {
             // If not client, show error message
             Auth::guard('web')->logout();
-            return redirect('/login')->with('error', 'Only client accounts can access this area');
+            return redirect('/')->with('error', 'Only client accounts can access this area');
         }
 
         // Step 4: If everything is OK, let the user continue

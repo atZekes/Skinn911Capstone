@@ -64,3 +64,21 @@ Route::get('/branches/{id}/services', function($id) {
 		'services' => $list,
 	]);
 });
+
+// Get session info for a booking (used by cancel booking confirmation)
+Route::middleware(['web', 'auth'])->get('/booking/{id}/session-info', function($id) {
+	$booking = \App\Models\Booking::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+
+	$sessionsUsed = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+		->sum('sessions_used');
+
+	$sessionsRemaining = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+		->sum('sessions_remaining');
+
+	return response()->json([
+		'booking_id' => $booking->id,
+		'sessions_used' => $sessionsUsed,
+		'sessions_remaining' => $sessionsRemaining,
+		'has_deducted_sessions' => $sessionsUsed > 0
+	]);
+});

@@ -69,24 +69,6 @@
                             </div>
                         </div>
 
-                        <!-- Default Slot Capacity -->
-                        <div class="mb-4">
-                            <label for="default_slot_capacity" class="form-label fw-bold" style="color: #F56289;">
-                                <i class="fas fa-users me-2"></i>Default Slot Capacity
-                            </label>
-                            <input type="number"
-                                   class="form-control form-control-lg"
-                                   id="default_slot_capacity"
-                                   name="default_slot_capacity"
-                                   value="{{ $currentSettings['default_slot_capacity'] }}"
-                                   min="1"
-                                   max="50"
-                                   style="border: 2px solid #ffe4ec; border-radius: 8px;">
-                            <div class="form-text">
-                                Default number of concurrent bookings per time slot
-                            </div>
-                        </div>
-
                         <!-- Staff Override -->
                         <div class="mb-4">
                             <div class="form-check form-switch">
@@ -114,7 +96,6 @@
                             <ul class="mb-0" style="color: #1b5e20;">
                                 <li>Clients must book <strong>{{ $currentSettings['minimum_advance_days'] }} days</strong> in advance</li>
                                 <li>Maximum booking window: <strong>{{ $currentSettings['maximum_advance_days'] }} days</strong></li>
-                                <li>Default capacity: <strong>{{ $currentSettings['default_slot_capacity'] }} bookings</strong> per slot</li>
                                 <li>Staff override: <strong>{{ $currentSettings['allow_staff_override'] ? 'Enabled' : 'Disabled' }}</strong></li>
                             </ul>
                         </div>

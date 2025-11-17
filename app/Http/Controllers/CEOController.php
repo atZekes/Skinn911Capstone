@@ -123,6 +123,9 @@ class CEOController extends Controller
         // Get branches for the comparison dropdown
         $branches = Branch::all();
 
+        // Get retention summary for dashboard
+        $retentionSummary = $this->getRetentionSummary();
+
         // Pass all data to the view
         return view('CEO.dashboard', compact(
             'totalUsers',
@@ -139,7 +142,8 @@ class CEOController extends Controller
             'bookingGrowth',
             'revenueGrowthPercent',
             'peakBookingHours',
-            'branches'
+            'branches',
+            'retentionSummary'
         ));
     }
 
@@ -1062,6 +1066,325 @@ class CEOController extends Controller
                 'labels' => [],
                 'revenues' => []
             ];
+        }
+    }
+
+    /**
+     * Client Retention Overview
+     */
+    public function clientRetention(Request $request)
+    {
+        // Get filter parameters
+        $branchFilter = $request->input('branch_id');
+        $dateRange = $request->input('date_range', 'all'); // all, 3months, 6months, 12months
+        $inactiveDays = $request->input('inactive_days', 90);
+        $showInactiveOnly = $request->input('show_inactive', false);
+
+        // Base query for users with role 'client' and at least one completed booking
+        $query = User::where('role', 'client')
+            ->whereHas('bookings', function($q) {
+                $q->where('status', 'completed');
+            });
+
+        // Apply branch filter
+        if ($branchFilter) {
+            $query->whereHas('bookings', function($q) use ($branchFilter) {
+                $q->where('branch_id', $branchFilter);
+            });
+        }
+
+        // Apply date range filter on bookings
+        if ($dateRange !== 'all') {
+            $months = match($dateRange) {
+                '3months' => 3,
+                '6months' => 6,
+                '12months' => 12,
+                default => null,
+            };
+
+            if ($months) {
+                $startDate = \Carbon\Carbon::now()->subMonths($months);
+                $query->whereHas('bookings', function($q) use ($startDate) {
+                    $q->where('status', 'completed')
+                      ->where('date', '>=', $startDate);
+                });
+            }
+        }
+
+        // Get clients with their booking data
+        $clients = $query->with(['bookings' => function($q) use ($branchFilter) {
+            $q->where('status', 'completed')
+              ->orderBy('date', 'desc')
+              ->orderBy('time_slot', 'desc');
+
+            if ($branchFilter) {
+                $q->where('branch_id', $branchFilter);
+            }
+        }])->get();
+
+        // Calculate retention metrics for each client
+        $retentionData = $clients->map(function($client) use ($branchFilter, $inactiveDays) {
+            $completedBookings = $client->bookings->where('status', 'completed');
+
+            if ($branchFilter) {
+                $completedBookings = $completedBookings->where('branch_id', $branchFilter);
+            }
+
+            $totalVisits = $completedBookings->count();
+            $lastVisit = $completedBookings->first();
+
+            $returnInterval = null;
+            if ($completedBookings->count() >= 2) {
+                $lastTwo = $completedBookings->take(2)->values();
+                $returnInterval = \Carbon\Carbon::parse($lastTwo[1]->date)
+                    ->diffInDays(\Carbon\Carbon::parse($lastTwo[0]->date));
+            }
+
+            $daysSinceLastVisit = $lastVisit
+                ? now()->diffInDays(\Carbon\Carbon::parse($lastVisit->date))
+                : null;
+
+            return [
+                'id' => $client->id,
+                'name' => $client->masked_name, // Privacy: Masked name
+                'email' => $client->masked_email, // Privacy: Masked email
+                'mobile_phone' => $client->masked_phone, // Privacy: Masked phone
+                'total_visits' => $totalVisits,
+                'last_visit_date' => $lastVisit ? $lastVisit->date : null,
+                'days_since_last_visit' => $daysSinceLastVisit,
+                'return_interval' => $returnInterval,
+                'is_inactive' => $daysSinceLastVisit !== null && $daysSinceLastVisit > $inactiveDays,
+            ];
+        });
+
+        // Filter inactive clients if requested
+        if ($showInactiveOnly) {
+            $retentionData = $retentionData->filter(function($client) {
+                return $client['is_inactive'];
+            });
+        }
+
+        // Sort by last visit date (most recent first)
+        $retentionData = $retentionData->sortByDesc('last_visit_date')->values();
+
+        // Calculate average metrics
+        $totalClients = $retentionData->count();
+        $activeClients = $retentionData->where('is_inactive', false)->count();
+        $inactiveClients = $retentionData->where('is_inactive', true)->count();
+
+        $averageReturnInterval = $retentionData
+            ->filter(fn($c) => $c['return_interval'] !== null)
+            ->avg('return_interval');
+
+        $averageVisits = $retentionData->avg('total_visits');
+
+        // Get branches for filter dropdown
+        $branches = Branch::where('active', true)->get();
+
+        return view('CEO.client-retention', compact(
+            'retentionData',
+            'branches',
+            'branchFilter',
+            'dateRange',
+            'inactiveDays',
+            'showInactiveOnly',
+            'totalClients',
+            'activeClients',
+            'inactiveClients',
+            'averageReturnInterval',
+            'averageVisits'
+        ));
+    }
+
+    /**
+     * Get retention analytics for dashboard
+     * Calculates: Total Clients, Average Return Rate (Past 30 Days),
+     * Average Days Between Bookings, Total Visits
+     */
+    private function getRetentionSummary()
+    {
+        try {
+            // METRIC 1: Total Clients
+            // Count unique clients in the database
+            $totalClients = User::where('role', 'client')->count();
+
+            // METRIC 2: Average Return Rate (Past 30 Days)
+            // Calculate percentage of clients who booked 2+ times in last 30 days
+            $thirtyDaysAgo = now()->subDays(30);
+
+            // Get clients who booked at least once in last 30 days
+            $clientsBookedInLast30Days = User::where('role', 'client')
+                ->whereHas('bookings', function($q) use ($thirtyDaysAgo) {
+                    $q->where('status', 'completed')
+                      ->where('date', '>=', $thirtyDaysAgo);
+                })->count();
+
+            // Get clients who booked 2+ times in last 30 days
+            $clientsWithTwoOrMoreBookings = User::where('role', 'client')
+                ->whereHas('bookings', function($q) use ($thirtyDaysAgo) {
+                    $q->where('status', 'completed')
+                      ->where('date', '>=', $thirtyDaysAgo);
+                }, '>=', 2)->count();
+
+            // Calculate return rate percentage
+            $averageReturnRate = $clientsBookedInLast30Days > 0
+                ? round(($clientsWithTwoOrMoreBookings / $clientsBookedInLast30Days) * 100, 1)
+                : 0;
+
+            // METRIC 3: Average Days Between Bookings
+            // For each client with 2+ bookings, calculate average interval
+            $clientsWithMultipleBookings = User::where('role', 'client')
+                ->whereHas('bookings', function($q) {
+                    $q->where('status', 'completed');
+                }, '>=', 2)
+                ->with(['bookings' => function($q) {
+                    $q->where('status', 'completed')
+                      ->orderBy('date', 'asc')
+                      ->orderBy('time_slot', 'asc');
+                }])->get();
+
+            $totalIntervals = 0;
+            $intervalCount = 0;
+
+            foreach ($clientsWithMultipleBookings as $client) {
+                $bookings = $client->bookings->sortBy('date');
+
+                // Calculate intervals between consecutive bookings
+                for ($i = 1; $i < $bookings->count(); $i++) {
+                    $previousDate = \Carbon\Carbon::parse($bookings[$i-1]->date);
+                    $currentDate = \Carbon\Carbon::parse($bookings[$i]->date);
+
+                    // Get difference in days
+                    $daysDiff = $previousDate->diffInDays($currentDate);
+
+                    $totalIntervals += $daysDiff;
+                    $intervalCount++;
+                }
+            }
+
+            // Calculate average days between bookings
+            $averageDaysBetweenBookings = $intervalCount > 0
+                ? round($totalIntervals / $intervalCount, 1)
+                : 0;
+
+            // METRIC 4: Total Visits (Overall)
+            // Count all completed bookings across all clients
+            $totalVisits = \App\Models\Booking::where('status', 'completed')->count();
+
+            return [
+                'total_clients' => $totalClients,
+                'average_return_rate' => $averageReturnRate,
+                'average_days_between_bookings' => $averageDaysBetweenBookings,
+                'total_visits' => $totalVisits,
+            ];
+        } catch (\Exception $e) {
+            logger()->error('Retention Summary Error: ' . $e->getMessage());
+            return [
+                'total_clients' => 0,
+                'average_return_rate' => 0,
+                'average_days_between_bookings' => 0,
+                'total_visits' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Get retention analytics chart data (AJAX endpoint)
+     * Returns time-series data for return rate and total visits
+     */
+    public function getRetentionChartData(Request $request)
+    {
+        try {
+            $period = $request->input('period', 'month'); // month, quarter, year
+            $chartType = $request->input('chart_type', 'line'); // line or bar
+
+            // Determine date range and grouping
+            $endDate = now();
+            $startDate = match($period) {
+                'month' => now()->subMonths(6), // Last 6 months
+                'quarter' => now()->subMonths(12), // Last 12 months
+                'year' => now()->subYears(2), // Last 2 years
+                default => now()->subMonths(6),
+            };
+
+            // Determine date format for grouping
+            $dateFormat = match($period) {
+                'month' => '%Y-%m', // Group by month
+                'quarter' => '%Y-%m', // Group by month
+                'year' => '%Y-%m', // Group by month
+                default => '%Y-%m',
+            };
+
+            // Get bookings grouped by month with client counts
+            $monthlyData = \App\Models\Booking::where('status', 'completed')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->selectRaw('DATE_FORMAT(date, "' . $dateFormat . '") as period')
+                ->selectRaw('COUNT(*) as total_visits')
+                ->selectRaw('COUNT(DISTINCT user_id) as unique_clients')
+                ->groupBy('period')
+                ->orderBy('period')
+                ->get();
+
+            $labels = [];
+            $totalVisitsData = [];
+            $returnRateData = [];
+
+            foreach ($monthlyData as $data) {
+                // Format label based on period
+                $carbonDate = \Carbon\Carbon::createFromFormat('Y-m', $data->period);
+                $labels[] = $carbonDate->format('M Y');
+
+                // Total visits for this period
+                $totalVisitsData[] = $data->total_visits;
+
+                // Calculate return rate for this specific period
+                // Get clients who booked 2+ times in this month
+                $periodStart = $carbonDate->startOfMonth()->toDateString();
+                $periodEnd = $carbonDate->endOfMonth()->toDateString();
+
+                $clientsWithMultipleBookings = User::where('role', 'client')
+                    ->whereHas('bookings', function($q) use ($periodStart, $periodEnd) {
+                        $q->where('status', 'completed')
+                          ->whereBetween('date', [$periodStart, $periodEnd]);
+                    }, '>=', 2)
+                    ->count();
+
+                // Return rate percentage for this period
+                $returnRate = $data->unique_clients > 0
+                    ? round(($clientsWithMultipleBookings / $data->unique_clients) * 100, 1)
+                    : 0;
+
+                $returnRateData[] = $returnRate;
+            }
+
+            return response()->json([
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => 'Average Return Rate (%)',
+                        'data' => $returnRateData,
+                        'borderColor' => '#F56289',
+                        'backgroundColor' => 'rgba(245, 98, 137, 0.1)',
+                        'yAxisID' => 'y',
+                        'tension' => 0.4,
+                    ],
+                    [
+                        'label' => 'Total Visits',
+                        'data' => $totalVisitsData,
+                        'borderColor' => '#667eea',
+                        'backgroundColor' => 'rgba(102, 126, 234, 0.1)',
+                        'yAxisID' => 'y1',
+                        'tension' => 0.4,
+                    ]
+                ],
+                'chart_type' => $chartType,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'labels' => [],
+                'datasets' => [],
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

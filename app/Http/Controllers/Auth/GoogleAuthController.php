@@ -41,7 +41,7 @@ class GoogleAuthController extends Controller
             return redirect()->intended(route('client.home'));
 
         } catch (\Exception $e) {
-            return redirect()->route('login')->with('error', 'Google authentication failed. Please try again.');
+            return redirect('/')->with('error', 'Google authentication failed. Please try again.');
         }
     }
 }

@@ -157,7 +157,7 @@
                 Booking ID: #{{ $booking->id }}
             </p>
         </div>
-        
+
         <!-- Content -->
         <div class="content">
             <div class="greeting">
@@ -169,18 +169,33 @@
                 Below are the details of your appointment:
             </p>
 
-            <!-- Booking ID Notice -->
-            <div style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 25px 0;">
-                <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Your Booking Reference Number</p>
-                <h2 style="margin: 0; font-size: 36px; letter-spacing: 2px;">#{{ $booking->id }}</h2>
-                <p style="margin: 10px 0 0 0; font-size: 13px; opacity: 0.85;">
-                    📌 Please save this ID for verification when you visit our branch
-                </p>
+            <!-- Client & Booking ID Notice -->
+            <div style="background: linear-gradient(135deg, #F56289 0%, #FF8FAB 100%); color: white; padding: 25px; border-radius: 12px; margin: 25px 0;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.9;">Your Booking Reference Number</p>
+                    <h2 style="margin: 0; font-size: 36px; letter-spacing: 2px;">#{{ $booking->id }}</h2>
+                    <p style="margin: 10px 0 0 0; font-size: 13px; opacity: 0.85;">
+                        📌 Please save this ID for verification when you visit our branch
+                    </p>
+                </div>
+
+                <div style="border-top: 1px solid rgba(255,255,255,0.3); padding-top: 15px; margin-top: 15px; text-align: center;">
+                    <p style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.85;">Your Client ID</p>
+                    <h3 style="margin: 0; font-size: 24px; letter-spacing: 1px;">{{ $booking->user_id }}</h3>
+                    <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.75;">
+                        For account reference and inquiries
+                    </p>
+                </div>
             </div>
 
             <!-- Booking Details -->
             <div class="info-box">
                 <h3 style="margin-top: 0; color: #F56289;">📋 Booking Details</h3>
+
+                <div class="info-row">
+                    <span class="info-label">Client ID:</span>
+                    <span class="info-value highlight">{{ $booking->user_id }}</span>
+                </div>
 
                 <div class="info-row">
                     <span class="info-label">Booking ID:</span>
@@ -197,6 +212,18 @@
                     <span class="info-label">Service:</span>
                     <span class="info-value">{{ $booking->service->name }}</span>
                 </div>
+
+                {{-- Show sessions if this is a multi-session service --}}
+                @php
+                    $sessionsRemaining = $booking->getRemainingSessionsCount();
+                    $totalSessions = $booking->getTotalSessionsCount();
+                @endphp
+                @if($totalSessions > 1 && $booking->payment_status === 'paid')
+                <div class="info-row">
+                    <span class="info-label">Sessions Included:</span>
+                    <span class="info-value highlight">{{ $totalSessions }} sessions</span>
+                </div>
+                @endif
                 @endif
 
                 @if($booking->package)
@@ -280,7 +307,13 @@
             <h4 style="color: #F56289;">⚠️ Important Notes:</h4>
             <ul style="color: #555; line-height: 1.8;">
                 <li>Please arrive <strong>10 minutes early</strong> for your appointment</li>
-                <li>Bring a valid ID for verification</li>
+                <li>Bring a valid ID and <strong>your Booking ID (#{{ $booking->id }})</strong> for verification</li>
+                @if($booking->payment_status === 'pending')
+                <li>Your payment is pending confirmation. Staff will verify your payment when you arrive.</li>
+                @endif
+                @if($totalSessions > 1 && $booking->payment_status === 'paid')
+                <li><strong>Multi-Session Package:</strong> You have {{ $totalSessions }} sessions included. Sessions cannot be cancelled or refunded once used.</li>
+                @endif
                 <li>If you need to reschedule or cancel, please contact us at least 24 hours in advance</li>
                 <li>Check your email for payment confirmation updates</li>
             </ul>
