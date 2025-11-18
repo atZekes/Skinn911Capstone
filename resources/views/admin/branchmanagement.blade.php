@@ -115,8 +115,8 @@
                                     <tr>
                                         <th>Service</th>
                                         <th>Description</th>
-                                        <th>Price (₱)</th>
                                         <th>Sessions</th>
+                                        <th>Price (₱)</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -141,7 +141,7 @@
                                         </td>
                                         <td>{{ $service->pivot->price ?? $service->price }}</td>
                                         <td>
-                                            @php $isActive = isset($service->pivot) ? $service->pivot->active : ($service->active ?? 1); @endphp
+                                            @php $isActive = isset($service->pivot) ? $service->pivot->active : ($service->active ?? 0); @endphp
                                             @if($isActive)
                                                 <span class="badge bg-success">Enabled</span>
                                             @else
@@ -153,7 +153,7 @@
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="branch_id" value="{{ $branchId }}">
-                                                @php $isActive = isset($service->pivot) ? $service->pivot->active : ($service->active ?? 1); @endphp
+                                                @php $isActive = isset($service->pivot) ? $service->pivot->active : ($service->active ?? 0); @endphp
                                                 <button type="submit" class="btn btn-sm {{ $isActive ? 'btn-warning' : 'btn-success' }}">
                                                     {{ $isActive ? 'Disable' : 'Enable' }}
                                                 </button>
@@ -829,6 +829,61 @@
                 dels.forEach(function(d){ d.addEventListener('click', onDeleteClick); });
             });
         })();
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle service toggle forms via AJAX to prevent page scroll
+        document.querySelectorAll('form[action*="toggleService"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const button = this.querySelector('button[type="submit"]');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the badge and button in the same row
+                        const row = this.closest('tr');
+                        const badge = row.querySelector('.badge');
+                        if (data.active) {
+                            badge.className = 'badge bg-success';
+                            badge.textContent = 'Enabled';
+                            button.className = 'btn btn-sm btn-warning';
+                            button.textContent = 'Disable';
+                        } else {
+                            badge.className = 'badge bg-secondary';
+                            badge.textContent = 'Disabled';
+                            button.className = 'btn btn-sm btn-success';
+                            button.textContent = 'Enable';
+                        }
+                    } else {
+                        alert('Failed to toggle service status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while toggling service status');
+                })
+                .finally(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                });
+            });
+        });
+    });
     </script>
 
 </div>

@@ -791,14 +791,18 @@ class Admincontroller extends Controller{
                     ->update(['active' => $new, 'updated_at' => now()]);
             } else {
                 // create pivot if missing and set active
+                $new = 1;
                 \Illuminate\Support\Facades\DB::table('branch_service')->insert([
                     'branch_id' => $branchId,
                     'service_id' => $serviceId,
                     'price' => null,
-                    'active' => 1,
+                    'active' => $new,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+            }
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'active' => $new]);
             }
             return redirect()->back()->with('success', 'Service status updated for branch.');
         }
@@ -807,6 +811,9 @@ class Admincontroller extends Controller{
         $service = \App\Models\Service::findOrFail($serviceId);
         $service->active = !$service->active;
         $service->save();
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'active' => $service->active]);
+        }
         return redirect()->back()->with('success', 'Service status updated.');
     }
 

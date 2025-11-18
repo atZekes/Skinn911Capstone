@@ -48,6 +48,7 @@
                         <ul class="list-unstyled ms-4">
                             <li class="mb-2"><i class="fas fa-hourglass-half text-secondary me-2"></i>Refund processing times may vary depending on your payment provider.</li>
                             <li class="mb-2"><i class="fas fa-envelope text-info me-2"></i>You will receive an email confirmation once your refund has been initiated.</li>
+                            <li class="mb-2"><i class="fas fa-envelope text-info me-2"></i>Refunds are not available for sessions that have already taken place.</li>
                             <li class="mb-2"><i class="fas fa-phone-alt text-success me-2"></i>For refund inquiries, please contact our support team at <strong>{{ config('mail.from.address') }}</strong>.</li>
                         </ul>
                     </div>
@@ -75,7 +76,7 @@
                 </div>
             </div>
             <div class="modal-footer" style="border-top: 1px solid #eee; padding: 20px 30px;">
-                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">
+                <button type="button" class="btn btn-outline-secondary px-4" id="cancelRefundPolicy" style="border-radius: 8px;">
                     <i class="fas fa-times me-2"></i>Cancel
                 </button>
                 <button type="button" class="btn px-4" id="confirmRefundPolicy" style="background: linear-gradient(135deg, #F56289 0%, #e75480 100%); color: white; border: none; border-radius: 8px;">
@@ -92,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const agreeCheckbox = document.getElementById('agreeRefundPolicy');
     const confirmButton = document.getElementById('confirmRefundPolicy');
     const agreementError = document.getElementById('agreementError');
+    const cancelButton = document.getElementById('cancelRefundPolicy');
 
     // Confirm button click handler
     confirmButton.addEventListener('click', function() {
@@ -114,6 +116,13 @@ document.addEventListener('DOMContentLoaded', function() {
             window.pendingBookingSubmission();
         }
     });
+
+    // Cancel button click handler
+    if (cancelButton) {
+        cancelButton.addEventListener('click', function() {
+            refundPolicyModal.hide();
+        });
+    }
 
     // Reset error when checkbox is checked
     agreeCheckbox.addEventListener('change', function() {
