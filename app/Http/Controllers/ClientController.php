@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Models\PurchasedService;
 use App\Mail\BookingReschedule;
 use Pusher\Pusher;
@@ -105,7 +107,7 @@ public function services()
 public function submitBooking(Request $request)
 {
     // Log the incoming request for debugging
-    \Log::info('Booking attempt', [
+    Log::info('Booking attempt', [
         'user_id' => Auth::id(),
         'data' => $request->all()
     ]);
@@ -124,10 +126,10 @@ public function submitBooking(Request $request)
             'time_slot' => 'required',
         ]);
 
-        \Log::info('Booking validation passed', ['user_id' => Auth::id()]);
+        Log::info('Booking validation passed', ['user_id' => Auth::id()]);
 
     } catch (\Illuminate\Validation\ValidationException $e) {
-        \Log::warning('Booking validation failed', [
+        Log::warning('Booking validation failed', [
             'user_id' => Auth::id(),
             'errors' => $e->errors()
         ]);
@@ -263,7 +265,7 @@ public function submitBooking(Request $request)
     }
 
     // Use database transaction to prevent race conditions
-    $result = \DB::transaction(function () use ($request, $requiredSlots, $max) {
+    $result = DB::transaction(function () use ($request, $requiredSlots, $max) {
         // Final capacity check within transaction to prevent race conditions
         foreach ($requiredSlots as $slot) {
             $existingCount = \App\Models\Booking::where('branch_id', $request->branch_id)
@@ -410,7 +412,7 @@ public function submitBooking(Request $request)
             // Load relationships for email
             $booking->load(['user', 'branch', 'service', 'package']);
 
-            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BookingConfirmation($booking));
+            Mail::to($user->email)->send(new \App\Mail\BookingConfirmation($booking));
 
             Log::info('Booking confirmation email sent', [
                 'booking_id' => $booking->id,
@@ -658,11 +660,14 @@ public function rescheduleBooking(Request $request, $id)
     // Get the branch for capacity checks
     $branch = $booking->branch;
 
-    // Validate the request
-    $request->validate([
+    // Validate the request using manual validator so we can attach booking ID to errors and preserve it on redirect
+    $validator = Validator::make($request->all(), [
         'new_date' => 'required|date',
         'new_time_slot' => 'required|string',
     ]);
+    if ($validator->fails()) {
+        return redirect()->back()->withErrors($validator)->withInput()->with('reschedule_booking_id', $id);
+    }
 
     // Check if the new date is at least 3 days from the current booking date
     $currentBookingDate = \Carbon\Carbon::parse($booking->date);
@@ -670,7 +675,7 @@ public function rescheduleBooking(Request $request, $id)
     $minAllowedDate = $currentBookingDate->copy()->addDays(3);
 
     if ($newDate->lt($minAllowedDate)) {
-        return redirect()->back()->withErrors(['new_date' => 'You can only reschedule to a date at least 3 days from your current booking date.']);
+    return redirect()->back()->withErrors(['new_date' => 'You can only reschedule to a date at least 3 days from your current booking date.'])->withInput()->with('reschedule_booking_id', $id);
     }
 
     // Calculate required slots based on service/package duration
@@ -692,8 +697,8 @@ public function rescheduleBooking(Request $request, $id)
                 $slotEnd = \Carbon\Carbon::createFromFormat('H:i', trim($slotEndStr));
 
                 // Check for overlap: slot overlaps with break if slotStart < breakEnd and slotEnd > breakStart
-                if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
-                    return redirect()->back()->withErrors(['new_time_slot' => 'Selected time falls within branch break time. Please choose another slot.']);
+                        if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
+                    return redirect()->back()->withErrors(['new_time_slot' => 'Selected time falls within branch break time. Please choose another slot.'])->withInput()->with('reschedule_booking_id', $id);
                 }
             }
         } catch (\Exception $e) {
@@ -703,7 +708,7 @@ public function rescheduleBooking(Request $request, $id)
 
     // Use database transaction to prevent race conditions during rescheduling
     try {
-        $result = \DB::transaction(function () use ($booking, $request, $requiredSlots, $newDate, $branch) {
+        $result = DB::transaction(function () use ($booking, $request, $requiredSlots, $newDate, $branch) {
             $slotCapacity = $branch->slot_capacity ?? 1;
             foreach ($requiredSlots as $slot) {
                 // Parse the requested slot
@@ -808,8 +813,8 @@ public function rescheduleBooking(Request $request, $id)
                                         if ($sTime->lt($be) && $eTime->gt($bs)) {
                                             $skip = true;
                                         }
-                                    } catch (\Exception $ex) {
-                                        // ignore parsing errors and don't skip
+                                    } catch (\Exception $e) {
+                                        return redirect()->back()->with('error', $e->getMessage());
                                     }
                                 }
                                 if (! $skip) {
@@ -1194,6 +1199,7 @@ public function calendarViewer()
             $html .= '<td>' . e($displaySlot) . '</td>';
 
             // Column 6: Sessions Left
+            // Only show sessions left when payment is confirmed (paid). This avoids showing confusing values for pending payments.
             $sessionsLeft = '-';
             try {
                 // Prefer session credits bound to this booking
@@ -1201,28 +1207,19 @@ public function calendarViewer()
                 if ($sessionsSum) {
                     $sessionsLeft = $sessionsSum;
                 } else {
-                    // Fallback: prefer package_id match
-                    $sessionsSum = 0;
+                    // Fallback: prefer package_id match — only when a package ID exists for this booking
                     if ($booking->package_id) {
                         $sessionsSum = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
                             ->where('branch_id', $booking->branch_id)
                             ->where('package_id', $booking->package_id)
                             ->where('status', 'active')
                             ->sum('sessions_remaining');
+                        if ($sessionsSum) $sessionsLeft = $sessionsSum;
                     }
-                    // If still not found, fallback to service_id
-                    if (!$sessionsSum) {
-                        $sessionsSum = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
-                            ->where('branch_id', $booking->branch_id)
-                            ->where('service_id', $booking->service_id)
-                            ->where('status', 'active')
-                            ->sum('sessions_remaining');
-                    }
-                    if ($sessionsSum) $sessionsLeft = $sessionsSum;
                 }
             } catch (\Exception $e) { /* ignore errors and show dash */ }
             // Render sessions left with same design as unfiltered dashboard
-            if ($sessionsLeft !== '-' && is_numeric($sessionsLeft) && $sessionsLeft > 0) {
+            if ($booking->payment_status === 'paid' && $sessionsLeft !== '-' && is_numeric($sessionsLeft) && $sessionsLeft > 0) {
                 $html .= '<td><span class="badge bg-pink">' . e($sessionsLeft) . ' left</span></td>';
             } else {
                 $html .= '<td><span class="text-muted">-</span></td>';
@@ -1234,20 +1231,11 @@ public function calendarViewer()
                 // Prefer session credit bound to this booking
                 $sessionCredit = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->where('status', 'active')->first();
                 if (!$sessionCredit) {
-                    // Fallback: prefer package_id match
+                    // Fallback: prefer package_id match — only when a package ID exists for this booking
                     if ($booking->package_id) {
                         $sessionCredit = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
                             ->where('branch_id', $booking->branch_id)
                             ->where('package_id', $booking->package_id)
-                            ->where('status', 'active')
-                            ->orderBy('expiry_date', 'asc')
-                            ->first();
-                    }
-                    // If still not found, fallback to service_id expiry
-                    if (!$sessionCredit) {
-                        $sessionCredit = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
-                            ->where('branch_id', $booking->branch_id)
-                            ->where('service_id', $booking->service_id)
                             ->where('status', 'active')
                             ->orderBy('expiry_date', 'asc')
                             ->first();
@@ -1265,7 +1253,8 @@ public function calendarViewer()
                 }
             } catch (\Exception $e) { /* ignore */ }
             // Render expiry date as the same info badge used on unfiltered dashboard
-            if ($expiryDate !== '-' && $expiryDate) {
+            // Only show expiry when payment is confirmed
+            if ($booking->payment_status === 'paid' && $expiryDate !== '-' && $expiryDate) {
                 $html .= '<td><span class="badge bg-info">' . $expiryDate . '</span></td>';
             } else {
                 $html .= '<td><span class="text-muted">-</span></td>';
@@ -1298,14 +1287,18 @@ public function calendarViewer()
             // Column 9: Action
             $html .= '<td>';
 
-            if (strtolower($booking->status) === 'active') {
+                if (strtolower($booking->status) === 'active') {
                 $html .= '<div class="flex-wrap gap-1 d-flex">';
+                // Book Next Session (show only for paid bookings with sessions left)
+                if (($sessionsLeft !== '-' && is_numeric($sessionsLeft) && $sessionsLeft > 0) && $booking->payment_status === 'paid') {
+                    $html .= '<button type="button" class="btn btn-sm btn-primary book-next-session-btn" data-booking-id="' . $booking->id . '" data-branch-id="' . ($booking->branch_id ?? '') . '" data-service-name="' . e($serviceName) . '" style="border-radius: 8px;"><i class="fas fa-calendar-plus me-1"></i>Book Next Session</button>';
+                }
                 $html .= '<button type="button" class="btn btn-sm btn-info reschedule-booking-btn" data-booking-id="' . $booking->id . '" data-bs-toggle="modal" data-bs-target="#rescheduleModal' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-calendar-alt me-1"></i>Reschedule</button>';
 
                 if ($booking->payment_status === 'paid' && $booking->status !== 'pending_refund') {
                     $html .= '<button type="button" class="btn btn-sm btn-success request-refund-btn" data-action="' . route('client.booking.requestRefund', $booking->id) . '" data-booking-id="' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-undo-alt me-1"></i>Request Refund</button>';
                 } elseif ($booking->payment_status !== 'paid') {
-                    $html .= '<button type="button" class="btn btn-sm btn-danger cancel-booking-btn" data-action="' . route('client.booking.cancel', $booking->id) . '" style="border-radius: 8px;"><i class="fas fa-times me-1"></i>Cancel</button>';
+                    $html .= '<button type="button" class="btn btn-sm btn-danger cancel-booking-btn" data-action="' . route('client.booking.cancel', $booking->id) . '" data-booking-id="' . $booking->id . '" style="border-radius: 8px;"><i class="fas fa-times me-1"></i>Cancel</button>';
                 }
 
                 $html .= '</div>';
@@ -1440,11 +1433,7 @@ public function calendarViewer()
         }
 
         $modalHtml .= '</select>
-                    @error(\'new_time_slot\')
-                        <div class="text-danger mt-1">
-                            <small>{{ $message }}</small>
-                        </div>
-                    @enderror
+
                     </div>
                 </div>
                 <div class="modal-footer">

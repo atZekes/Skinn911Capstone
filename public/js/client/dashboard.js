@@ -13,21 +13,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 2) Attach click handlers to cancel buttons to open modal and set form action
     try {
-        var cancelButtons = document.querySelectorAll('.cancel-booking-btn');
-        cancelButtons.forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var form = document.getElementById('cancelBookingForm');
-                if (!form) return;
-                form.action = btn.getAttribute('data-action');
-                // show bootstrap modal
-                var modalEl = document.getElementById('cancelBookingModal');
-                if (modalEl && typeof bootstrap !== 'undefined') {
-                    var modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-                }
+        // Only attach bootstrap modal behavior if the cancel booking modal/form exists
+        var modalEl = document.getElementById('cancelBookingModal');
+        var cancelFormEl = document.getElementById('cancelBookingForm');
+        if (modalEl && cancelFormEl) {
+            var cancelButtons = document.querySelectorAll('.cancel-booking-btn');
+            cancelButtons.forEach(function(btn) {
+                // remove previous anonymous handlers if any (best-effort) - attach named handler
+                try { if (btn._cancelModalHandler) btn.removeEventListener('click', btn._cancelModalHandler); } catch (e) { }
+                var handler = function(e) {
+                    e.preventDefault();
+                    cancelFormEl.action = btn.getAttribute('data-action');
+                    if (typeof bootstrap !== 'undefined') {
+                        var modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    }
+                };
+                btn._cancelModalHandler = handler;
+                btn.addEventListener('click', handler);
             });
-        });
+        }
 
         // Ensure form hides modal when submitted
         var cancelForm = document.getElementById('cancelBookingForm');

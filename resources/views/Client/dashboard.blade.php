@@ -678,14 +678,27 @@
                                     </td>
                                     <td data-label="Sessions Left">
                                         @php
-                                            $sessionsLeft = 0;
-                                            try {
-                                                // Only get sessions for THIS specific booking_id
-                                                $sessionsLeft = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
-                                                    ->sum('sessions_remaining');
-                                            } catch (\Exception $e) {
-                                                $sessionsLeft = 0;
-                                            }
+                                                $sessionsLeft = '-';
+                                                try {
+                                                    if ($booking->payment_status === 'paid') {
+                                                        // Prefer package sessions bound to this booking
+                                                        $sum = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                                                            ->sum('sessions_remaining');
+                                                        if ($sum) {
+                                                            $sessionsLeft = $sum;
+                                                        } elseif ($booking->package_id) {
+                                                            // fallback to package ID match if booking lacks session record
+                                                            $sum = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                                                                ->where('branch_id', $booking->branch_id)
+                                                                ->where('package_id', $booking->package_id)
+                                                                ->where('status', 'active')
+                                                                ->sum('sessions_remaining');
+                                                            if ($sum) $sessionsLeft = $sum;
+                                                        }
+                                                    }
+                                                } catch (\Exception $e) {
+                                                    $sessionsLeft = '-';
+                                                }
                                         @endphp
                                         @if($sessionsLeft > 0)
                                             <span class="badge bg-pink">{{ $sessionsLeft }} left</span>
@@ -697,9 +710,22 @@
                                         @php
                                             $expiryDate = null;
                                             try {
-                                                $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
-                                                    ->whereNotNull('expiry_date')
-                                                    ->first()?->expiry_date;
+                                                if ($booking->payment_status === 'paid') {
+                                                    $session = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                                                        ->whereNotNull('expiry_date')
+                                                        ->first();
+                                                    if ($session && $session->expiry_date) {
+                                                        $expiryDate = $session->expiry_date;
+                                                    } elseif ($booking->package_id) {
+                                                        $session = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)
+                                                            ->where('branch_id', $booking->branch_id)
+                                                            ->where('package_id', $booking->package_id)
+                                                            ->whereNotNull('expiry_date')
+                                                            ->orderBy('expiry_date', 'asc')
+                                                            ->first();
+                                                        if ($session && $session->expiry_date) $expiryDate = $session->expiry_date;
+                                                    }
+                                                }
                                             } catch (\Exception $e) { /* ignore */ }
                                         @endphp
                                         @if($expiryDate)
@@ -758,8 +784,10 @@
                                                         <i class="fas fa-undo-alt me-1"></i>Request Refund
                                                     </button>
                                                 @elseif($booking->payment_status !== 'paid')
+                                                    <!-- Provide data-booking-id so JS can directly use it instead of parsing the route URL -->
                                                     <button type="button" class="btn btn-sm btn-danger cancel-booking-btn"
                                                         data-action="{{ route('client.booking.cancel', $booking->id) }}"
+                                                        data-booking-id="{{ $booking->id }}"
                                                         style="border-radius: 8px;">
                                                         <i class="fas fa-times me-1"></i>Cancel
                                                     </button>
@@ -849,6 +877,7 @@
                                     id="new_date_{{ $booking->id }}"
                                     name="new_date"
                                     min="{{ \Carbon\Carbon::parse($booking->date)->addDays(3)->format('Y-m-d') }}"
+                                    value="{{ session('reschedule_booking_id') == $booking->id ? old('new_date') : '' }}"
                                     required>
                                 <small class="text-muted">You can only reschedule to a date at least 3 days from your current booking date.</small>
                             </div>
@@ -888,17 +917,21 @@
                                                     $displaySlot .= " ({$serviceDuration} hour" . ($serviceDuration > 1 ? 's' : '') . ")";
                                                 }
 
-                                                echo '<option value="' . $slotStart . ' - ' . $slotEnd . '">' . $displaySlot . '</option>';
+                                                $optionValue = $slotStart . ' - ' . $slotEnd;
+                                                $isSelected = (session('reschedule_booking_id') == $booking->id && old('new_time_slot') == $optionValue) ? ' selected' : '';
+                                                echo '<option value="' . $optionValue . '"' . $isSelected . '>' . $displaySlot . '</option>';
                                                 $currentTime->addHours($serviceDuration);
                                             }
                                         }
                                     @endphp
                                 </select>
-                                @error('new_time_slot')
+                                @if(session('reschedule_booking_id') == $booking->id)
+                                    @error('new_time_slot')
                                     <div class="text-danger mt-1">
                                         <small>{{ $message }}</small>
                                     </div>
-                                @enderror
+                                    @enderror
+                                @endif
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -1224,13 +1257,17 @@
 
             // Function to attach all button listeners
             function attachCancelButtonListeners() {
-                // Attach cancel button listeners
+                // Attach cancel button listeners safely (avoid duplicate bindings)
                 document.querySelectorAll('.cancel-booking-btn').forEach(btn => {
+                    try {
+                        btn.removeEventListener('click', handleCancelBooking);
+                    } catch (e) { /* ignore */ }
                     btn.addEventListener('click', handleCancelBooking);
                 });
 
                 // Attach request refund button listeners
                 document.querySelectorAll('.request-refund-btn').forEach(btn => {
+                    try { btn.removeEventListener('click', handleRequestRefund); } catch (e) { /* ignore */ }
                     btn.addEventListener('click', handleRequestRefund);
                 });
 
@@ -1366,7 +1403,17 @@
             // Handle cancel booking
             function handleCancelBooking() {
                 const action = this.getAttribute('data-action');
-                const bookingId = this.getAttribute('data-action').match(/\d+$/)[0];
+                // Prefer explicit data attribute; fallback to regex to extract the ID from URL
+                let bookingId = this.getAttribute('data-booking-id');
+                if (!bookingId && action) {
+                    // match /booking/{id}/ in the URL
+                    const m = action.match(/\/booking\/(\d+)\//);
+                    bookingId = (m && m[1]) ? m[1] : null;
+                }
+                if (!bookingId) {
+                    console.error('Could not determine booking ID for cancel action:', action);
+                    return;
+                }
 
                 // Fetch booking details to check session usage
                 fetch(`/api/booking/${bookingId}/session-info`, {
@@ -1548,6 +1595,21 @@
 
             // Call highlight function on page load
             highlightBooking();
+            // If server returned a reschedule modal error (validation error), open the reschedule modal automatically
+            try {
+                @if(session('reschedule_booking_id'))
+                    (function() {
+                        const id = '{{ session('reschedule_booking_id') }}';
+                        const modalEl = document.getElementById('rescheduleModal' + id);
+                        if (modalEl) {
+                            // Use jQuery/Bootstrap modal show for compatibility across pages
+                            $(modalEl).modal('show');
+                        } else {
+                            console.warn('Reschedule modal element not found for booking', id);
+                        }
+                    })();
+                @endif
+            } catch (e) { /* ignore */ }
         });
         </script>
 @endsection
