@@ -170,7 +170,7 @@
                                     <!-- Edit Service Modal -->
                                     <div class="modal fade" id="editServiceModal{{ $service->id }}" tabindex="-1" aria-labelledby="editServiceModalLabel{{ $service->id }}" aria-hidden="true">
                                         <div class="modal-dialog">
-                                            <form action="{{ route('admin.updateService', $service->id) }}" method="POST">
+                                            <form action="{{ route('admin.updateService', $service->id) }}" method="POST" enctype="multipart/form-data">
                                                 @csrf
                                                 @method('PUT')
                                                 <div class="modal-content">
@@ -193,8 +193,19 @@
                                                             <textarea name="description" class="form-control">{{ $pivotDesc ?? $service->description }}</textarea>
                                                         </div>
                                                         <div class="mb-3">
+                                                            <label>Treatment Details</label>
+                                                            <textarea name="treatment_details" class="form-control">{{ $service->treatment_details }}</textarea>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label>Image</label>
+                                                            <input type="file" name="image" class="form-control" accept="image/*">
+                                                            @if($service->image)
+                                                                <small class="text-muted">Current image: {{ basename($service->image) }}</small>
+                                                            @endif
+                                                        </div>
+                                                        <div class="mb-3">
                                                             <label>Price (₱)</label>
-                                                            <input type="number" name="price" class="form-control" value="{{ $pivotPrice ?? $service->price }}" min="0" step="0.01" required>
+                                                            <input type="number" name="price" class="form-control" value="{{ $pivotPrice ?? $service->price }}" min="0" max="999999.99" step="0.01" required>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label>Duration (hours)</label>
@@ -243,7 +254,7 @@
                                                     <div class="modal-header"><h5 class="modal-title">Create Package</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
                                                     <div class="modal-body">
                                                         <div class="mb-3"><label>Name</label><input class="form-control" name="name" required></div>
-                                                        <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" required></div>
+                                                        <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" max="999999.99" required></div>
                                                         <div class="mb-3"><label>Description</label><textarea class="form-control" name="description"></textarea></div>
                                                         <p class="small text-muted">Total package duration: <strong id="newPkgDuration{{ $branch->id }}">0 hrs</strong></p>
                                                         <div class="row" id="newPkgServicesContainer{{ $branch->id }}">
@@ -295,7 +306,7 @@
                             <!-- Add Service Modal -->
                             <div class="modal fade" id="addServiceModal{{ $branch->id }}" tabindex="-1" aria-labelledby="addServiceModalLabel{{ $branch->id }}" aria-hidden="true">
                                 <div class="modal-dialog">
-                                    <form action="{{ route('admin.addService', $branch->id) }}" method="POST">
+                                    <form action="{{ route('admin.addService', $branch->id) }}" method="POST" enctype="multipart/form-data">
                                         @csrf
                                         <div class="modal-content">
                                             <div class="modal-header">
@@ -324,8 +335,16 @@
                                                     <textarea name="description" class="form-control"></textarea>
                                                 </div>
                                                 <div class="mb-3">
+                                                    <label>Treatment Details</label>
+                                                    <textarea name="treatment_details" class="form-control" rows="4"></textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label>Service Image</label>
+                                                    <input type="file" name="image" class="form-control" accept="image/*">
+                                                </div>
+                                                <div class="mb-3">
                                                     <label>Price (₱)</label>
-                                                    <input type="number" name="price" class="form-control" min="0" step="0.01" required>
+                                                    <input type="number" name="price" class="form-control" min="0" max="999999.99" step="0.01" required>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label>Duration (hours)</label>
@@ -644,7 +663,7 @@
                                                             <div class="modal-header"><h5 class="modal-title">Edit Package</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
                                                             <div class="modal-body">
                                                                 <div class="mb-3"><label>Name</label><input class="form-control" name="name" value="{{ $pkg->name }}" required></div>
-                                                                <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" value="{{ $pkg->price }}" required></div>
+                                                                <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" max="999999.99" value="{{ $pkg->price }}" required></div>
                                                                 <div class="mb-3"><label>Description</label><textarea class="form-control" name="description">{{ $pkg->description }}</textarea></div>
                                                             </div>
                                                             <div class="modal-footer"><button class="btn btn-admin">Save</button><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
@@ -731,7 +750,7 @@
                                 <div class="modal-header"><h5 class="modal-title">Create Package</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
                                 <div class="modal-body">
                                     <div class="mb-3"><label>Name</label><input class="form-control" name="name" required></div>
-                                    <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" required></div>
+                                    <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" max="999999.99" required></div>
                                     <div class="mb-3"><label>Description</label><textarea class="form-control" name="description"></textarea></div>
                                     <div class="mb-3"><label>Include Services</label>
                                                                     @foreach($allServicesForPackage as $s)

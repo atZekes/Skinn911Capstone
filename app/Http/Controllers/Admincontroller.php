@@ -501,7 +501,7 @@ class Admincontroller extends Controller{
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'prices' => 'nullable|array',
-            'prices.*' => 'nullable|numeric|min:0',
+            'prices.*' => 'nullable|numeric|min:0|max:999999.99',
             'durations' => 'nullable|array',
             'durations.*' => 'nullable|integer|min:1',
             'default_sessions' => 'nullable|array',
@@ -592,7 +592,7 @@ class Admincontroller extends Controller{
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0|max:999999.99',
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
         ]);
@@ -611,7 +611,7 @@ class Admincontroller extends Controller{
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0|max:999999.99',
         ]);
         $pkg->update($request->only(['name','description','price']));
         return redirect()->back()->with('success', 'Package updated.');
@@ -649,7 +649,9 @@ class Admincontroller extends Controller{
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'treatment_details' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'price' => 'required|numeric|min:0|max:999999.99',
             'duration' => 'nullable|integer|min:1',
             'default_sessions' => 'nullable|integer|min:1|max:100',
             'category' => 'nullable|string',
@@ -658,6 +660,13 @@ class Admincontroller extends Controller{
         $service = new \App\Models\Service();
         $service->name = $request->name;
         $service->description = $request->description;
+        $service->treatment_details = $request->treatment_details;
+        if ($request->hasFile('image')) {
+            $originalName = $request->file('image')->getClientOriginalName();
+            $safeName = preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', $originalName);
+            $imagePath = $request->file('image')->storeAs('services', $safeName, 'public');
+            $service->image = '/img/services/' . $safeName;
+        }
         $service->price = $request->price;
     $service->duration = $request->input('duration', 1);
         // category: prefer new_category when provided
@@ -691,12 +700,34 @@ class Admincontroller extends Controller{
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'treatment_details' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'price' => 'required|numeric|min:0|max:999999.99',
             'duration' => 'nullable|integer|min:1',
             'default_sessions' => 'nullable|integer|min:1|max:100',
             'is_package' => 'nullable|boolean',
         ]);
         $service = \App\Models\Service::findOrFail($serviceId);
+        // Always update global service fields
+        $service->name = $request->name;
+        $service->description = $request->description;
+        $service->treatment_details = $request->treatment_details;
+        if ($request->hasFile('image')) {
+            $originalName = $request->file('image')->getClientOriginalName();
+            $safeName = preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', $originalName);
+            $imagePath = $request->file('image')->storeAs('services', $safeName, 'public');
+            $service->image = '/img/services/' . $safeName;
+        }
+        $service->price = $request->price;
+        if ($request->has('duration')) {
+            $service->duration = $request->input('duration');
+        }
+        // Update session count - always save it
+        $service->default_sessions = $request->input('default_sessions', 1);
+        // Auto-detect if it's a package based on session count
+        $service->is_package = $request->input('default_sessions', 1) > 1;
+        $service->save();
+
         // If a branch_id is provided, update the branch-specific pivot instead of the global service
         $branchId = $request->input('branch_id');
         if ($branchId) {
@@ -738,20 +769,6 @@ class Admincontroller extends Controller{
             }
             return redirect()->back()->with('success', 'Service updated for branch.');
         }
-
-        // Otherwise update global service record
-        $service->name = $request->name;
-        $service->description = $request->description;
-        $service->price = $request->price;
-        if ($request->has('duration')) {
-            $service->duration = $request->input('duration');
-        }
-        // Update session count - always save it
-        $service->default_sessions = $request->input('default_sessions', 1);
-        // Auto-detect if it's a package based on session count
-        $service->is_package = $request->input('default_sessions', 1) > 1;
-
-        $service->save();
         return redirect()->back()->with('success', 'Service updated successfully.');
     }
 
@@ -759,7 +776,7 @@ class Admincontroller extends Controller{
     public function updateServicePrice(Request $request, $serviceId)
     {
         $request->validate([
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0|max:999999.99',
         ]);
         $service = \App\Models\Service::findOrFail($serviceId);
         $service->price = $request->price;

@@ -14,7 +14,7 @@ class Service extends Model
 
     // Define attributes typically present in the services table for clarity
     protected $fillable = [
-    'name', 'category', 'description', 'benefits', 'price', 'sessions', 'image', 'branch_id', 'active', 'duration', 'default_sessions', 'is_package'
+    'name', 'category', 'description', 'treatment_details', 'benefits', 'price', 'sessions', 'image', 'branch_id', 'active', 'duration', 'default_sessions', 'is_package'
     ];
 
     protected $casts = [

@@ -72,7 +72,6 @@
                     $catLabel = $category;
                     $filteredServices = $services
                         ->where('category', $category)
-                        ->whereNotNull('treatment_details')
                         ->whereNotNull('image')
                         ->unique('name');
                 @endphp
@@ -88,52 +87,8 @@
                                 @php
                                     $serviceSlug = strtolower(str_replace(' ', '-', $service->name));
 
-                                    // Map ALL service slugs to their correct images
-                                    $imageMap = [
-                                        // Facial Services
-                                        'hydrafacial' => 'hydrafacial.png',
-                                        'diamond-peel-with-complete-facial' => 'Diamond peel.jpg',
-                                        'acne-laser-+-acne-facial' => 'Acne laser + Acne Facial.jpg',
-                                        'microneedling' => 'Acne Treatment.jpg',
-                                        'pigmentation-laser-+-facial' => 'pigmentation.png',
-                                        'skin-rejuvenation-laser-+-facial' => 'Skin Rejuvenation Laser + Facial.jpg',
-                                        'skin911-complete-facial' => 'complete.png',
-                                        'wart-removal-(face-and-neck)' => 'Wart removal (face and neck).jpg',
-                                        'hifu-ultralift' => 'HIFU Ultralift.jpg',
-
-                                        // Immuno Boosters
-                                        'cindella-drip' => 'Cinderella Drip Treatment.jpg',
-                                        'collagen-injection' => 'Collagen Injection.jpg',
-                                        'elea-white-drip' => 'Elea White Treatment.jpg',
-                                        'immuno-gold-+-vitamin-c' => 'Immuno Gold + Vitamin C Treatment.jpg',
-                                        'luminous-white-drip' => 'Luminous White Drip Treatment.jpg',
-                                        'placenta-injection' => 'Placenta Injection.jpg',
-
-                                        // Permanent Hair Removal
-                                        'beard' => 'beard.png',
-                                        'bikini' => 'bikini.png',
-                                        'chest/back' => 'chest.png',
-                                        'full-arms' => 'fullarms.png',
-                                        'full-brazilian' => 'wax.png',
-                                        'full-face' => 'fullface.png',
-                                        'full-legs' => 'fulllegs.png',
-                                        'half-legs' => 'halflegs.png',
-                                        'mustache' => 'mus.png',
-                                        'mustache-&-beard' => 'full.png',
-                                        'underarms' => 'Underarm whitening.jpg',
-
-                                        // Slimming Services
-                                        'diode-lipo-laser' => 'Diode Lipo Laser.jpg',
-                                        'lipo-cavitation-+-rf' => 'Lipo Cavitation + RF.jpg',
-                                        'lipo-cavitation' => 'Lipo-cavitation.jpg',
-                                        'radio-frequency-rf' => 'Radio frequency RF.jpg',
-                                        'trio-slim' => 'TRIO slim.jpg',
-                                    ];
-
-                                    // Get correct image or fallback to database image
-                                    $correctImage = isset($imageMap[$serviceSlug])
-                                        ? '/img/services/' . $imageMap[$serviceSlug]
-                                        : $service->image;
+                                    // Get image from database
+                                    $correctImage = $service->image;
                                 @endphp
                                 <div class="service-card" data-service="{{ $serviceSlug }}" style="width:320px;min-width:320px;max-width:320px;border-radius:16px;position:relative;">
                                     <div class="service-image"
