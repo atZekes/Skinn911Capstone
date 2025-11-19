@@ -1006,6 +1006,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to load chat history when connecting to a branch
     function loadChatHistory(branchId) {
+        // Clear existing messages before loading history to prevent stacking
+        messagesContainer.innerHTML = '';
+
+        // Reset last message ID
+        lastMessageId = 0;
+
         fetch('/api/chat/messages?branch_id=' + branchId, {
             method: 'GET',
             headers: {
@@ -1061,6 +1067,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         displayStaffMessage(message);
                     }
                 });
+                // Update lastMessageId to the highest ID in loaded messages
+                if (data.data.length > 0) {
+                    lastMessageId = Math.max(...data.data.map(m => m.id));
+                }
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         })
@@ -1159,6 +1169,11 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(pollingInterval);
             pollingInterval = null;
             console.log('Stopped message polling');
+        }
+        if (window.currentChatChannel) {
+            window.pusher.unsubscribe(window.currentChatChannel.name);
+            window.currentChatChannel = null;
+            console.log('Unsubscribed from chat channel');
         }
         originalCloseChat();
     };
