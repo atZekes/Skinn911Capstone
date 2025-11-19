@@ -33,6 +33,7 @@
         <th>Client Name</th>
         <th>Service</th>
         <th>Sessions Left</th>
+        <th>Last Complete Session Date</th>
         <th>Expiry Date</th>
         <th>Date</th>
         <th>Time</th>
@@ -57,6 +58,29 @@
       @endif
     </td>
         <td class="col-narrow-center">{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}</td>
+        <td>
+          @php
+            $lastCompletedDate = null;
+            $sessionsLeft = $sessionCreditsByBooking[$appointment->id] ?? 0;
+            if ($sessionsLeft > 0 || $sessionsLeft === 0) {
+              try {
+                $lastCompletedDate = \App\Models\ClientPackageSession::where('booking_id', $appointment->id)
+                  ->whereNotNull('last_completed_session_date')
+                  ->orderByDesc('last_completed_session_date')
+                  ->value('last_completed_session_date');
+              } catch (\Exception $e) { /* ignore */ }
+            }
+            // For walk-ins, use appointment's last_completed_session_date if available
+            if(($appointment->is_walkin ?? false) && empty($lastCompletedDate)) {
+              $lastCompletedDate = $appointment->last_completed_session_date ?? null;
+            }
+          @endphp
+          @if($lastCompletedDate)
+            <span class="badge badge-info">{{ \Carbon\Carbon::parse($lastCompletedDate)->format('M d, Y H:i') }}</span>
+          @else
+            <span class="text-muted">-</span>
+          @endif
+        </td>
         <td>
           @php
             $expiryDate = null;
@@ -713,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // Populate Add Walk-In modal time slots from branch.time_slot and server-side full slots
 document.addEventListener('DOMContentLoaded', function() {
-  function parseHHMMToMinutes(hhmm) { var parts = hhmm.split(':'); var h = parseInt(parts[0],10)||0; var m = parseInt(parts[1],10)||0; return h*60 + m; }
+  function parseHHMMToMinutes(hhmm) { var parts = hhmm.split(':'); var h = parseInt(parts[0],10)||0; var m = parts[1]||'00'; return h*60 + m; }
   function minutesToHHMM(mins) { var h = Math.floor(mins/60); var m = mins % 60; return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'); }
   function buildHourlySlotsFromRange(rangeStr) {
     if (!rangeStr) return [];
@@ -1136,6 +1160,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <th>User Name</th>
                   <th>Service</th>
                   <th>Sessions Left</th>
+                  <th>Last Complete Session</th>
                   <th>Date</th>
                     <th>Payment Method</th>
                     <th>Status</th>
@@ -1159,6 +1184,25 @@ document.addEventListener('DOMContentLoaded', function() {
             @endif
           </td>
                     <td class="col-narrow-center">{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}</td>
+                    <td>
+                      @php
+                        $lastCompletedDate = null;
+                        try {
+                          $lastCompletedDate = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
+                            ->whereNotNull('last_completed_session_date')
+                            ->orderByDesc('last_completed_session_date')
+                            ->value('last_completed_session_date');
+                        } catch (\Exception $e) { /* ignore */ }
+                        if (!$lastCompletedDate) {
+                          $lastCompletedDate = $booking->last_completed_session_date ?? null;
+                        }
+                      @endphp
+                      @if($lastCompletedDate)
+                        <span class="badge badge-info">{{ \Carbon\Carbon::parse($lastCompletedDate)->format('M d, Y H:i') }}</span>
+                      @else
+                        <span class="text-muted">-</span>
+                      @endif
+                    </td>
                     <td>{{ $booking->date }}</td>
                     <td class="col-payment">
                         @if($booking->payment_method === 'cash')
@@ -1289,6 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>Client Name</th>
             <th>Contact Number</th>
             <th>Sessions Left</th>
+            <th>Last Complete Session</th>
             <th>Expiry Date</th>
             <th>Service</th>
             <th>Date</th>
@@ -1307,6 +1352,25 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}</td>
               <td>{{ $w->walkin_phone ?? ($w->user->phone ?? '-') }}</td>
               <td class="col-narrow-center">{{ $sessionCreditsByBooking[$w->id] ?? 0 }}</td>
+              <td>
+                @php
+                  $lastCompletedDate = null;
+                  try {
+                    $lastCompletedDate = \App\Models\ClientPackageSession::where('booking_id', $w->id)
+                      ->whereNotNull('last_completed_session_date')
+                      ->orderByDesc('last_completed_session_date')
+                      ->value('last_completed_session_date');
+                  } catch (\Exception $e) { /* ignore */ }
+                  if (!$lastCompletedDate && ($w->is_walkin ?? false)) {
+                    $lastCompletedDate = $w->last_completed_session_date ?? null;
+                  }
+                @endphp
+                @if($lastCompletedDate)
+                  <span class="badge badge-info">{{ \Carbon\Carbon::parse($lastCompletedDate)->format('M d, Y H:i') }}</span>
+                @else
+                  <span class="text-muted">-</span>
+                @endif
+              </td>
               <td>
                 @php
                     $expiryDate = null;
@@ -1377,7 +1441,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="text-muted">-</span>
                 @endif
               </td>
-              <td>{{ ucfirst($w->status) }}</td>
               <td>
                 @if($w->status !== 'Cancelled' && $w->status !== 'cancelled' && $w->status !== 'completed')
                 <div class="gap-1 d-flex flex-column">
@@ -2442,4 +2505,43 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<script>
+// Global confirmation for all complete-session-form submits
+// This script ensures the warning appears for every session completion
+// regardless of table or booking type
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.complete-session-form').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+      var row = form.closest('tr');
+      var lastCompleted = '-';
+      if (row) {
+        row.querySelectorAll('td').forEach(function(cell) {
+          if (cell.innerText.match(/\d{4}-\d{2}-\d{2}|\d{2}:\d{2}/)) {
+            lastCompleted = cell.innerText.trim();
+          }
+        });
+      }
+      var msg = '⚠️ Please double check the LAST COMPLETED SESSION date before proceeding.\n\nLast Completed Session: ' + lastCompleted + '\n\nAre you sure you want to complete this session?';
+      e.preventDefault();
+      Swal.fire({
+        title: '⚠️ Double Check Last Completed Session',
+        html: 'Last Completed Session: <strong>' + lastCompleted + '</strong><br><br>Are you sure you want to complete this session?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e75480',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Complete Session',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+    });
+  });
+});
+</script>
+
 @endsection

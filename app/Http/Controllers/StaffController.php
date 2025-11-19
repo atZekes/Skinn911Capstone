@@ -1382,7 +1382,6 @@ class StaffController extends Controller
                     // All sessions used, mark booking as completed
                     $booking->status = 'completed';
                     $booking->save();
-
                     return back()->with('success', 'All sessions completed! Booking marked as complete.');
                 }
 
@@ -1393,8 +1392,7 @@ class StaffController extends Controller
                         ->first();
 
                     if ($session) {
-                        $session->sessions_remaining -= 1;
-                        $session->save();
+                        $session->deductSession();
                     }
                 } catch (\Exception $e) {
                     Log::error('Error completing session', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
@@ -1428,6 +1426,11 @@ class StaffController extends Controller
                 return back()->with('success', "Session completed! Client has {$newRemaining} session(s) remaining.");
 
             } else {
+                // Walk-in or single-session booking
+                $booking->last_completed_session_date = now();
+                $booking->status = 'completed';
+                $booking->save();
+                return back()->with('success', 'Walk-in session completed!');
                 // Single-session booking - mark as completed
                 $booking->status = 'completed';
                 $booking->save();

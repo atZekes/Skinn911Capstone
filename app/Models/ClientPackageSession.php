@@ -24,6 +24,7 @@ class ClientPackageSession extends Model
         'purchase_date',
         'expiry_date',
         'notes',
+        'last_completed_session_date',
     ];
 
     protected $casts = [
@@ -92,6 +93,7 @@ class ClientPackageSession extends Model
 
         $this->sessions_used++;
         $this->sessions_remaining--;
+        $this->last_completed_session_date = now();
 
         // Mark as completed if no credits left
         if ($this->sessions_remaining == 0) {
