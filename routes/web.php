@@ -199,6 +199,7 @@ Route::middleware('admin')->group(function () {
     Route::put('/admin/service/{service}/price', [App\Http\Controllers\Admincontroller::class, 'updateServicePrice'])->name('admin.updateServicePrice');
     Route::delete('/admin/service/{service}', [App\Http\Controllers\Admincontroller::class, 'deleteService'])->name('admin.deleteService');
     Route::get('/admin/user-manage', [App\Http\Controllers\Admincontroller::class, 'userManage'])->name('admin.usermanage');
+    Route::put('/admin/user-manage/{user}', [App\Http\Controllers\Admincontroller::class, 'updateUser'])->name('admin.updateUser');
     Route::get('/admin/branch-management', [App\Http\Controllers\Admincontroller::class, 'branchManagement'])->name('admin.branchmanagement');
     Route::post('/admin/logout', function (\Illuminate\Http\Request $request) {
         auth('admin')->logout();

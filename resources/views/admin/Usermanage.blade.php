@@ -78,7 +78,7 @@ div.user-mgmt-title {
                 <!-- Edit User Modal -->
                 <div class="modal fade" id="editUserModal{{ $user->id }}" tabindex="-1" aria-labelledby="editUserModalLabel{{ $user->id }}" aria-hidden="true">
                     <div class="modal-dialog">
-                        <form action="#" method="POST">
+                        <form action="{{ route('admin.updateUser', $user) }}" method="POST">
                             @csrf
                             @method('PUT')
                             <div class="modal-content">
