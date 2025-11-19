@@ -50,20 +50,28 @@
                         <th>Amount</th>
                         <th>Payment Method</th>
                         <th>Time</th>
+                        <th>Source</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($transactions as $transaction)
+                    @forelse($mergedTransactions as $transaction)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td>{{ $transaction->service->name ?? '-' }}</td>
-                        <td>{{ number_format($transaction->amount, 2) }}</td>
-                        <td>{{ $transaction->payment_method }}</td>
-                        <td>{{ $transaction->created_at->format('H:i') }}</td>
+                        <td>{{ $transaction['service'] }}</td>
+                        <td>{{ number_format($transaction['amount'], 2) }}</td>
+                        <td>{{ $transaction['payment_method'] }}</td>
+                        <td>{{ $transaction['time'] }}</td>
+                        <td>
+                            @if($transaction['type'] === 'manual')
+                                <span class="badge bg-info">POS Entry</span>
+                            @else
+                                <span class="badge bg-success">Completed Service</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center">No transactions found for today.</td>
+                        <td colspan="6" class="text-center">No transactions found for today.</td>
                     </tr>
                     @endforelse
                 </tbody>

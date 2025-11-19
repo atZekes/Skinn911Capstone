@@ -447,6 +447,8 @@ class StaffController extends Controller
             'status' => 'active',
             'is_walkin' => $isWalkin,
             'walkin_name' => isset($request->walkin_name) ? trim($request->walkin_name) ?: null : null,
+            'walkin_phone' => $request->walkin_phone ?? null,
+            'payment_method' => $request->walkin_payment_method ?? null,
         ]);
 
         // Create PurchasedService records for the booking
@@ -708,14 +710,16 @@ class StaffController extends Controller
     {
         $booking = \App\Models\Booking::findOrFail($id);
 
-        // Validate that the payment status is pending or unpaid
-        if (!in_array($booking->payment_status, ['pending', 'unpaid'])) {
+        // If already marked paid, don't re-confirm. Allow null/empty as unpaid for walk-ins.
+        if ($booking->payment_status === 'paid') {
             return redirect()->back()->with('error', 'This booking payment has already been confirmed.');
         }
 
-        // Update payment status to paid
+        // Update payment status to paid (treat null/empty as unpaid)
+        $oldStatus = $booking->payment_status;
         $booking->payment_status = 'paid';
         $booking->save();
+        \Illuminate\Support\Facades\Log::info('Staff.confirmPayment: payment_status updated', ['booking_id' => $booking->id, 'old_status' => $oldStatus, 'new_status' => $booking->payment_status]);
 
         // Log the confirmation with staff details
         $staff = auth('staff')->user();
@@ -760,12 +764,45 @@ class StaffController extends Controller
         $staffUser = auth()->guard('staff')->user();
         $staffBranchId = $staffUser->branch_id;
 
+
         // Get today's transactions for the staff's branch
         $transactions = \App\Models\Transaction::with('service')
             ->where('branch_id', $staffBranchId)
             ->whereDate('created_at', now()->toDateString())
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Get today's completed bookings/services for the staff's branch
+        $completedBookings = \App\Models\Booking::with(['service'])
+            ->where('branch_id', $staffBranchId)
+            ->where('status', 'completed')
+            ->whereDate('updated_at', now()->toDateString())
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        // Merge transactions and completed bookings into a single collection for POS
+        $mergedTransactions = collect();
+        foreach ($transactions as $t) {
+            $mergedTransactions->push([
+                'type' => 'manual',
+                'service' => $t->service->name ?? '-',
+                'amount' => $t->amount,
+                'payment_method' => $t->payment_method,
+                'time' => $t->created_at->format('H:i'),
+            ]);
+        }
+        foreach ($completedBookings as $b) {
+            $mergedTransactions->push([
+                'type' => 'completed',
+                'service' => $b->service->name ?? '-',
+                'amount' => $b->service->price ?? 0,
+                'payment_method' => $b->payment_method,
+                'time' => $b->updated_at ? $b->updated_at->format('H:i') : $b->date,
+            ]);
+        }
+
+        $staff = User::where('role', 'staff')->get();
+        return view('Staff.staffhome', compact('staff', 'mergedTransactions'));
 
         $staff = User::where('role', 'staff')->get();
         return view('Staff.staffhome', compact('staff', 'transactions'));

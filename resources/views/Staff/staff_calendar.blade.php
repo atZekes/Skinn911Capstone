@@ -40,7 +40,9 @@
     for ($i = 0; $i < 30; $i++) { $dates[] = \Carbon\Carbon::now()->addDays($i)->format('Y-m-d'); }
     $bookingQuery = \App\Models\Booking::whereIn('date', $dates)->where('status', 'active');
     if ($currentBranchId) $bookingQuery->where('branch_id', $currentBranchId);
-    $bookings = $bookingQuery->with(['user','service','package.services'])->get();
+    // Include both registered and walk-in bookings
+    $bookings = $bookingQuery->with(['user','service','package.services'])
+        ->get();
 
     // build branch-specific duration map (service_id => pivot.duration) when a branch is selected
     $branchDurations = [];
@@ -156,18 +158,17 @@
                             $bookedList = $occupyingBookings[$date][$slot] ?? [];
                             $startingBookings = $startBookings[$date][$slot] ?? [];
 
-                            // Build names for occupied slots
-                            $namesArr = [];
-                            foreach ($bookedList as $b) {
+                            // Build names for all bookings in the slot (registered and walk-in)
+                            $namesArr = collect($bookedList)->map(function($b) {
                                 if (isset($b->user) && $b->user) {
-                                    $namesArr[] = $b->user->name;
+                                    return $b->user->name;
                                 } elseif (!empty($b->walkin_name)) {
-                                    $namesArr[] = $b->walkin_name . ' (Walk-in)';
+                                    return $b->walkin_name . ' (Walk-in)';
                                 } else {
-                                    $namesArr[] = 'Walk-in';
+                                    return 'Walk-in';
                                 }
-                            }
-                            $names = collect($namesArr)->unique()->implode(', ');
+                            })->unique()->toArray();
+                            $names = implode(', ', $namesArr);
 
                             // Check if this slot has starting bookings vs continuation only
                             $hasStartingBookings = count($startingBookings) > 0;
@@ -397,22 +398,23 @@ $(document).ready(function(){
 
     // Helper function to generate action buttons based on booking status
     function getActionButtons(booking) {
-        var contactButtons = `
-            <div class="contact-buttons mb-3">
-                <button class="btn btn-info btn-sm mb-1 send-reminder-btn"
+        var contactButtons = `<div class="contact-buttons mb-3">`;
+        // Only show Send Reminder if not walk-in (has user or email)
+        if (booking.email && booking.email !== 'Not provided') {
+            contactButtons += `<button class="btn btn-info btn-sm mb-1 send-reminder-btn"
                         data-booking-id="${booking.id}"
                         style="background: #17a2b8; border: none; border-radius: 6px; width: 100%;">
                     🔔 Send Reminder
-                </button>
-
-                ${booking.phone !== 'Not provided' ?
-                    `<button class="btn btn-warning btn-sm call-customer-btn"
+                </button>`;
+        }
+        if (booking.phone !== 'Not provided') {
+            contactButtons += `<button class="btn btn-warning btn-sm call-customer-btn"
                             data-phone="${booking.phone}"
                             style="background: #ffc107; border: none; border-radius: 6px; color: #000; width: 100%;">
                         📞 Call: ${booking.phone}
-                    </button>` : ''}
-            </div>
-        `;
+                    </button>`;
+        }
+        contactButtons += `</div>`;
 
         switch(booking.status.toLowerCase()) {
             case 'pending':

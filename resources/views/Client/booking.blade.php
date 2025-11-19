@@ -119,14 +119,27 @@
                             </div>
                         </div>
 
-                        <div class="mb-3 form-group">
-                            <label for="service_id">Service</label>
-                            <select name="service_id" id="service_id" class="form-select" required>
-                                <option value="">Select Service</option>
-                            </select>
-                            @if($errors->has('service_id'))
-                                <div class="mt-1 text-danger"><small>{{ $errors->first('service_id') }}</small></div>
-                            @endif
+                        <div class="row mb-3">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="service_category">Filter by Category</label>
+                                    <select id="service_category" class="form-select">
+                                        <option value="">All Categories</option>
+                                        <!-- Categories will be populated dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="form-group">
+                                    <label for="service_id">Service</label>
+                                    <select name="service_id" id="service_id" class="form-select" required>
+                                        <option value="">Select Service</option>
+                                    </select>
+                                    @if($errors->has('service_id'))
+                                        <div class="mt-1 text-danger"><small>{{ $errors->first('service_id') }}</small></div>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Recommendations Button -->
@@ -911,6 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             'duration' => $s->pivot->duration ?? $s->duration ?? 1,
                             'default_sessions' => $s->pivot->default_sessions ?? $s->default_sessions ?? 1,
                             'is_package' => $s->pivot->is_package ?? $s->is_package ?? false,
+                            'category' => $s->category ?? '',
                         ]; })->values()->toArray();
                 } catch (\Exception $e) {
                     $servicesForBranch = [];
@@ -1201,6 +1215,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // populate services and packages for this branch
             var bid = selected.value;
             var binfo = branchData[bid] || {services:[], packages:[], time_slot:'', slot_capacity:5};
+            // Build category list
+            var categories = [];
+            binfo.services.forEach(function(s){
+                if (s.category && categories.indexOf(s.category) === -1) categories.push(s.category);
+            });
+            // Populate category dropdown
+            var categorySelect = document.getElementById('service_category');
+            if (categorySelect) {
+                categorySelect.innerHTML = '<option value="">All Categories</option>';
+                categories.forEach(function(cat){
+                    var opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    categorySelect.appendChild(opt);
+                });
+            }
             // services
             serviceSelect.innerHTML = '<option value="">Select Service</option>';
             binfo.services.forEach(function(s){
@@ -1210,8 +1240,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (s.price) o.setAttribute('data-price', s.price);
                 if (typeof s.default_sessions !== 'undefined') o.setAttribute('data-default-sessions', s.default_sessions);
                 if (typeof s.is_package !== 'undefined') o.setAttribute('data-is-package', s.is_package ? '1' : '0');
+                o.setAttribute('data-category', s.category || '');
                 serviceSelect.appendChild(o);
             });
+            // Trigger category filter after services are populated
+            if (categorySelect) {
+                categorySelect.dispatchEvent(new Event('change'));
+            }
             // packages
             if (binfo.packages && binfo.packages.length) {
                 packageContainer.style.display = '';
@@ -1300,6 +1335,28 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             priceEl.value = '';
         }
+    }
+    // Category filter logic
+    var categorySelect = document.getElementById('service_category');
+    if (categorySelect && serviceSelect) {
+        categorySelect.addEventListener('change', function() {
+            var selectedCategory = categorySelect.value;
+            for (var i = 0; i < serviceSelect.options.length; i++) {
+                var opt = serviceSelect.options[i];
+                if (!selectedCategory || opt.getAttribute('data-category') === selectedCategory || opt.value === '') {
+                    opt.style.display = '';
+                } else {
+                    opt.style.display = 'none';
+                }
+            }
+            // Reset service selection if filtered out
+            if (serviceSelect.selectedIndex > 0 && serviceSelect.options[serviceSelect.selectedIndex].style.display === 'none') {
+                serviceSelect.selectedIndex = 0;
+            }
+            // Update price and time slots when category changes
+            updatePriceDisplay();
+            updateTimeSlots();
+        });
     }
     serviceSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); });
     packageSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); });

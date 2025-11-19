@@ -46,7 +46,7 @@ class StaffAvailabilityController extends Controller
             // Get all bookings for this date that could occupy this slot
             $query = Booking::with(['user', 'service', 'package.services'])
                 ->where('date', $date)
-                ->where('status', '!=', 'cancelled');
+                ->where('status', 'active');
 
             if ($branchId) {
                 $query->where('branch_id', $branchId);
@@ -54,13 +54,12 @@ class StaffAvailabilityController extends Controller
 
             $allBookings = $query->get();
 
-            // Filter bookings that occupy the clicked slot
-            $occupyingBookings = $allBookings->filter(function ($booking) use ($clickedStartTime, $branchId) {
-                // Get service duration
+            // Filter bookings that occupy the clicked slot (not just those starting at that time)
+            $occupyingBookings = $allBookings->filter(function ($booking) use ($clickedStartTime, $slot, $branchId) {
+                // Get service/package duration
                 $duration = 1;
                 if ($booking->service) {
                     $duration = $booking->service->duration ?? 1;
-                    // Check for branch-specific duration override
                     $branchSpecific = $booking->service->branches()
                         ->where('branch_id', $branchId)
                         ->first();
@@ -71,7 +70,6 @@ class StaffAvailabilityController extends Controller
                     $duration = 0;
                     foreach ($booking->package->services as $service) {
                         $serviceDuration = $service->duration ?? 1;
-                        // Check for branch-specific duration
                         $branchSpecific = $service->branches()
                             ->where('branch_id', $branchId)
                             ->first();
@@ -83,26 +81,28 @@ class StaffAvailabilityController extends Controller
                     if ($duration <= 0) $duration = 1;
                 }
 
-                // Parse booking start time
+                // Parse booking start/end time
                 try {
                     [$bookingStart, $bookingEnd] = explode('-', $booking->time_slot, 2);
                     $bookingStartTime = \Carbon\Carbon::createFromFormat('H:i', trim($bookingStart));
+                    $bookingEndTime = $bookingStartTime->copy()->addHours($duration);
 
-                    // Check if the clicked slot falls within this booking's duration
-                    for ($hour = 0; $hour < $duration; $hour++) {
-                        $occupiedSlotStart = $bookingStartTime->copy()->addHours($hour);
-                        if ($occupiedSlotStart->equalTo($clickedStartTime)) {
-                            // Log for debugging
-                            \Log::info("Booking {$booking->id} occupies clicked slot", [
-                                'booking_id' => $booking->id,
-                                'booking_start' => $booking->time_slot,
-                                'duration' => $duration,
-                                'clicked_slot' => $clickedStartTime->format('H:i'),
-                                'occupied_slot' => $occupiedSlotStart->format('H:i'),
-                                'hour_offset' => $hour
-                            ]);
-                            return true;
-                        }
+                    // Parse clicked slot start/end
+                    [$slotStart, $slotEnd] = explode('-', $slot, 2);
+                    $slotStartTime = \Carbon\Carbon::createFromFormat('H:i', trim($slotStart));
+                    $slotEndTime = \Carbon\Carbon::createFromFormat('H:i', trim($slotEnd));
+
+                    // Check if the slot overlaps with the booking's occupied time
+                    $overlaps = $slotStartTime < $bookingEndTime && $slotEndTime > $bookingStartTime;
+                    if ($overlaps) {
+                        \Log::info("Booking {$booking->id} overlaps clicked slot", [
+                            'booking_id' => $booking->id,
+                            'booking_start' => $booking->time_slot,
+                            'duration' => $duration,
+                            'clicked_slot' => $slot,
+                            'booking_range' => $bookingStartTime->format('H:i') . '-' . $bookingEndTime->format('H:i'),
+                        ]);
+                        return true;
                     }
                 } catch (\Exception $e) {
                     \Log::error("Error parsing booking time slot: " . $e->getMessage(), [
@@ -111,7 +111,6 @@ class StaffAvailabilityController extends Controller
                     ]);
                     return false;
                 }
-
                 return false;
             });
 

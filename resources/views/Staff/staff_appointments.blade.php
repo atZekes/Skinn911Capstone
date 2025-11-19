@@ -1,6 +1,6 @@
 @extends('layouts.staffapp')
 @section('tab-content')
-<div class="container py-5">
+</script>
   <h2 class="mb-4" style="color:#e75480;">Appointment Management</h2>
 
   <div class="gap-2 mb-3 d-flex justify-content-between align-items-center">
@@ -31,10 +31,10 @@
         <th>Booking ID</th>
         <th>Client ID</th>
         <th>Client Name</th>
-                    <th>Service</th>
-                    <th>Sessions Left</th>
-                    <th>Expiry Date</th>
-                    <th>Date</th>
+        <th>Service</th>
+        <th>Sessions Left</th>
+        <th>Expiry Date</th>
+        <th>Date</th>
         <th>Time</th>
         <th>Status</th>
         <th>Actions</th>
@@ -44,7 +44,7 @@
   @forelse($appointments as $appointment)
   <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-id="{{ $appointment->user->id ?? 'Walk-in' }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}" data-date="{{ $appointment->date }}">
         <td>{{ $loop->iteration }}</td>
-        <td><span class="badge bg-primary">#{{ $appointment->id }}</span></td>
+        <td class="col-narrow"><span class="badge bg-primary">#{{ $appointment->id }}</span></td>
         <td>{{ $appointment->user->id ?? 'Walk-in' }}</td>
         <td>{{ $appointment->user->name ?? 'Walk-in' }}</td>
     <td>
@@ -56,21 +56,21 @@
       {{ $appointment->service->name ?? '-' }}
       @endif
     </td>
-        <td>{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}</td>
+        <td class="col-narrow-center">{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}</td>
         <td>
-            @php
-                $expiryDate = null;
-                try {
-                    $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $appointment->id)
-                        ->whereNotNull('expiry_date')
-                        ->first()?->expiry_date;
-                } catch (\Exception $e) { /* ignore */ }
-            @endphp
-            @if($expiryDate)
-                <span class="badge badge-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
-            @else
-                <span class="text-muted">-</span>
-            @endif
+          @php
+            $expiryDate = null;
+            try {
+              $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $appointment->id)
+                ->whereNotNull('expiry_date')
+                ->first()?->expiry_date;
+            } catch (\Exception $e) { /* ignore */ }
+          @endphp
+          @if($expiryDate)
+            <span class="badge badge-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
+          @else
+            <span class="text-muted">-</span>
+          @endif
         </td>
         <td>{{ $appointment->date }}</td>
         <td>
@@ -184,12 +184,14 @@
                   <i class="fas fa-check"></i> Complete Session
                 </button>
               </form>
-              <form action="{{ route('staff.sendPackageReminder', $appointment->id) }}" method="POST" style="display:inline-block;" class="send-package-reminder-form">
-                @csrf
-                <button type="submit" class="mb-1 btn btn-info btn-sm" title="Send reminder about remaining sessions">
-                  <i class="fa fa-bell"></i> Send Session Reminder
-                </button>
-              </form>
+              @if($appointment->user)
+                <form action="{{ route('staff.sendPackageReminder', $appointment->id) }}" method="POST" style="display:inline-block;" class="send-package-reminder-form">
+                  @csrf
+                  <button type="submit" class="mb-1 btn btn-info btn-sm" title="Send reminder about remaining sessions">
+                    <i class="fa fa-bell"></i> Send Session Reminder
+                  </button>
+                </form>
+              @endif
             @else
               <form action="{{ route('staff.completeAppointment', $appointment->id) }}" method="POST" style="display:inline-block;" class="complete-appointment-form">
                 @csrf
@@ -263,6 +265,14 @@
                 <input type="email" name="walkin_email" class="form-control" placeholder="Enter walk-in client email">
               </div>
               <div class="form-group">
+                <label for="walkin_payment_method" style="color:#e75480;">Payment Method</label>
+                <select name="walkin_payment_method" class="form-control" required>
+                  <option value="">Select Payment Method</option>
+                  <option value="cash">Cash</option>
+                  <option value="gcash">GCash</option>
+                </select>
+              </div>
+              <div class="form-group">
                 <label for="branch" style="color:#e75480;">Branch</label>
                 @php $staffBranchId = optional(auth('staff')->user())->branch_id; @endphp
                 @if($staffBranchId)
@@ -305,6 +315,7 @@
               <div class="form-group">
                 <label for="service" style="color:#e75480;">Service</label>
                 <select name="service_id" class="form-control" required>
+                  <option value="">Select Service</option>
                   @php
                     $availableServices = collect();
                     $staffBranchId = optional(auth('staff')->user())->branch_id;
@@ -1094,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
   <hr>
-  <div class="container py-4">
+  <div class="container-fluid py-4">
     <h2 class="mb-4" style="color:#e75480;">Booking Queue</h2>
 
     <div class="mb-2 d-flex justify-content-between align-items-center">
@@ -1115,10 +1126,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </select>
       </div>
     </div>
-    <div class="booking-queue-wrapper" style="max-height:380px;overflow-y:auto;padding-right:6px;">
-    <table class="table mb-0 table-bordered table-hover table-sm">
-            <thead>
-                <tr>
+    <div class="booking-queue-wrapper" style="max-height:600px;overflow-y:auto;padding-right:6px;">
+    <table class="table mb-0 bg-white table-bordered table-hover table-sm" style="min-width:1800px;">
+        <thead class="thead-light">
+          <tr>
                   <th>#</th>
                   <th>Booking ID</th>
                   <th>Client ID</th>
@@ -1135,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 @forelse($bookings as $booking)
                 <tr data-id="{{ $booking->id }}" data-booking-id="{{ $booking->id }}" data-client-id="{{ $booking->user->id ?? 'Walk-in' }}" data-client-name="{{ $booking->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}" data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}" data-date="{{ $booking->date }}">
                     <td>{{ $loop->iteration }}</td>
-                    <td><span class="badge bg-primary">#{{ $booking->id }}</span></td>
+                    <td class="col-narrow"><span class="badge bg-primary">#{{ $booking->id }}</span></td>
                     <td>{{ $booking->user->id ?? 'Walk-in' }}</td>
                     <td>{{ $booking->user->name ?? ($booking->walkin_name ?? 'Walk-in') }}</td>
           <td>
@@ -1147,9 +1158,9 @@ document.addEventListener('DOMContentLoaded', function() {
               {{ $booking->service->name ?? '-' }}
             @endif
           </td>
-                    <td>{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}</td>
+                    <td class="col-narrow-center">{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}</td>
                     <td>{{ $booking->date }}</td>
-                    <td>
+                    <td class="col-payment">
                         @if($booking->payment_method === 'cash')
                             <span class="badge bg-success"><i class="fas fa-money-bill-wave"></i> Cash</span>
                         @elseif($booking->payment_method === 'card')
@@ -1200,12 +1211,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                           <i class="fas fa-check"></i> Complete Session
                                       </button>
                                   </form>
-                                  <form action="{{ route('staff.sendPackageReminder', $booking->id) }}" method="POST" class="send-package-reminder-form d-inline">
+                                    @if($booking->user)
+                                    <form action="{{ route('staff.sendPackageReminder', $booking->id) }}" method="POST" class="send-package-reminder-form d-inline">
                                       @csrf
                                       <button type="submit" class="btn btn-info btn-sm" title="Send reminder about remaining sessions">
-                                          <i class="fa fa-bell"></i> Session Reminder
+                                        <i class="fa fa-bell"></i> Session Reminder
                                       </button>
-                                  </form>
+                                    </form>
+                                    @endif
                                 @else
                                   <form action="{{ route('staff.completeAppointment', $booking->id) }}" method="POST" class="complete-booking-form d-inline">
                                       @csrf
@@ -1245,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Walk-In Clients (scrollable, searchable) -->
-  <div class="container py-4">
+  <div class="container-fluid py-4">
     <h2 class="mb-4" style="color:#e75480;">Walk-In Clients</h2>
 
     <div class="mb-2 d-flex justify-content-between align-items-center">
@@ -1266,9 +1279,9 @@ document.addEventListener('DOMContentLoaded', function() {
         </select>
       </div>
     </div>
-    <div class="walkin-queue-wrapper" style="max-height:300px;overflow-y:auto;padding-right:6px;">
-      <table class="table mb-0 table-sm table-bordered table-hover">
-        <thead>
+    <div class="walkin-queue-wrapper" style="max-height:600px;overflow-y:auto;padding-right:6px;">
+      <table class="table mb-0 bg-white table-sm table-bordered table-hover" style="min-width:1800px;">
+        <thead class="thead-light">
           <tr>
             <th>#</th>
             <th>Booking ID</th>
@@ -1276,6 +1289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>Client Name</th>
             <th>Contact Number</th>
             <th>Sessions Left</th>
+            <th>Expiry Date</th>
             <th>Service</th>
             <th>Date</th>
             <th>Time</th>
@@ -1286,14 +1300,29 @@ document.addEventListener('DOMContentLoaded', function() {
         </thead>
         <tbody>
           @forelse($walkins as $w)
-            <tr data-id="walkin-{{ $w->id }}" data-booking-id="{{ $w->id }}" data-client-id="{{ $w->user->id ?? 'Walk-in' }}" data-client-name="{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}" data-session-credits="{{ $sessionCreditsByBooking[$w->id] ?? 0 }}">
+            <tr data-id="walkin-{{ $w->id }}" data-booking-id="{{ $w->id }}" data-client-id="{{ $w->user->id ?? 'Walk-in' }}" data-client-name="{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}" data-session-credits="{{ $sessionCreditsByBooking[$w->id] ?? 0 }}" data-status="{{ $w->status }}">
               <td>{{ $loop->iteration }}</td>
-              <td><span class="badge bg-success">#{{ $w->id }}</span></td>
+              <td class="col-narrow"><span class="badge bg-success">#{{ $w->id }}</span></td>
               <td>{{ $w->user->id ?? 'Walk-in' }}</td>
               <td>{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}</td>
               <td>{{ $w->walkin_phone ?? ($w->user->phone ?? '-') }}</td>
-              <td>{{ $sessionCreditsByBooking[$w->id] ?? 0 }}</td>
+              <td class="col-narrow-center">{{ $sessionCreditsByBooking[$w->id] ?? 0 }}</td>
               <td>
+                @php
+                    $expiryDate = null;
+                    try {
+                        $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $w->id)
+                            ->whereNotNull('expiry_date')
+                            ->first()?->expiry_date;
+                    } catch (\Exception $e) { /* ignore */ }
+                @endphp
+                @if($expiryDate)
+                    <span class="badge badge-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
+                @else
+                    <span class="text-muted">-</span>
+                @endif
+              </td>
+              <td class="col-payment">
                 @php $bpkg = $w->package ?? null; @endphp
                 @if($bpkg)
                   <div><strong>{{ $bpkg->name }}</strong></div>
@@ -1352,15 +1381,23 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>
                 @if($w->status !== 'Cancelled' && $w->status !== 'cancelled' && $w->status !== 'completed')
                 <div class="gap-1 d-flex flex-column">
-                  @if($w->payment_status !== 'paid' && in_array($w->payment_method, ['card', 'gcash']))
-                  <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#confirmPaymentModal{{ $w->id }}">
+                    @if($w->payment_status !== 'paid' && in_array($w->payment_method, ['gcash', 'cash']))
+                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#confirmPaymentModal{{ $w->id }}">
                       <i class="fas fa-check-circle"></i> Confirm Payment
-                  </button>
-                  @endif
-                  @if($w->payment_status === 'paid' && $w->status === 'active')
-                      @php
-                        $sessionsRemaining = $sessionCreditsByBooking[$w->id] ?? 0;
-                      @endphp
+                    </button>
+                    @endif
+                  @php
+                    $sessionsRemaining = $sessionCreditsByBooking[$w->id] ?? 0;
+                  @endphp
+                  @if($w->status === 'active')
+                    @if($w->payment_status === 'paid')
+                      <form action="{{ route('staff.completeAppointment', $w->id) }}" method="POST" class="complete-walkin-form d-inline">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="btn btn-success btn-sm">
+                          <i class="fas fa-check"></i> Mark as Complete
+                        </button>
+                      </form>
                       @if($sessionsRemaining > 0)
                         <form action="{{ route('staff.completeSession', $w->id) }}" method="POST" class="complete-session-form d-inline">
                             @csrf
@@ -1368,30 +1405,24 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="fas fa-check"></i> Complete Session
                             </button>
                         </form>
-                        <form action="{{ route('staff.sendPackageReminder', $w->id) }}" method="POST" class="send-package-reminder-form d-inline">
+                        @if($w->user)
+                          <form action="{{ route('staff.sendPackageReminder', $w->id) }}" method="POST" class="send-package-reminder-form d-inline">
                             @csrf
                             <button type="submit" class="btn btn-info btn-sm" title="Send reminder about remaining sessions">
-                                <i class="fa fa-bell"></i> Session Reminder
+                              <i class="fa fa-bell"></i> Session Reminder
                             </button>
-                        </form>
-                      @else
-                        <form action="{{ route('staff.completeAppointment', $w->id) }}" method="POST" class="complete-walkin-form d-inline">
-                          @csrf
-                          @method('PATCH')
-                          <button type="submit" class="btn btn-success btn-sm">
-                            <i class="fas fa-check"></i> Complete
-                          </button>
-                        </form>
+                          </form>
+                        @endif
                       @endif
+                    @endif
+                    <form action="{{ route('staff.cancelAppointment', $w->id) }}" method="POST" class="cancel-walkin-form d-inline">
+                      @csrf
+                      <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times"></i> Cancel
+                      </button>
+                    </form>
+                    <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#rescheduleModalWalkin{{ $w->id }}">Reschedule</button>
                   @endif
-                  <form action="{{ route('staff.cancelAppointment', $w->id) }}" method="POST" class="cancel-walkin-form d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-danger btn-sm">
-                      <i class="fas fa-times"></i> Cancel
-                    </button>
-                  </form>
-                  <!-- Reschedule walk-in (open a modal similar to rescheduleModal for registered users) -->
-                  <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#rescheduleModalWalkin{{ $w->id }}">Reschedule</button>
                 </div>
                 @elseif($w->status === 'completed')
                   <span class="badge bg-success">Completed</span>
@@ -1483,6 +1514,49 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
 <!-- Success toast -->
+<!-- Confirm Payment Modal (one per walk-in) -->
+@foreach($walkins as $w)
+@if($w->payment_status !== 'paid' && in_array($w->payment_method, ['gcash', 'cash']))
+<div class="modal fade" id="confirmPaymentModal{{ $w->id }}" tabindex="-1" role="dialog" aria-labelledby="confirmPaymentModalLabel{{ $w->id }}" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content" style="background:#fff;border-radius:16px;">
+      <div class="modal-header" style="background:linear-gradient(135deg, #e91e63 0%, #f06292 100%);color:#fff;border-top-left-radius:16px;border-top-right-radius:16px;">
+        <h5 class="modal-title" id="confirmPaymentModalLabel{{ $w->id }}">
+            <i class="fas fa-check-circle me-2"></i>Confirm Payment Received
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 text-center">
+            <i class="fas fa-money-check-alt" style="font-size:3rem;color:#e91e63;"></i>
+        </div>
+        <p class="text-center"><strong>Client:</strong> {{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}</p>
+        <p class="text-center"><strong>Payment Method:</strong>
+            @if($w->payment_method === 'gcash')
+                GCash
+            @elseif($w->payment_method === 'cash')
+                Cash
+            @endif
+        </p>
+        <p class="text-center text-muted">Are you sure you want to confirm that payment has been received for this booking?</p>
+      </div>
+      <form method="POST" action="{{ route('staff.confirmPayment', $w->id) }}">
+        @csrf
+        @method('PUT')
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success" style="background:#28a745;border-color:#28a745;">
+              <i class="fas fa-check me-2"></i>Confirm Payment Received
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+@endif
+@endforeach
 <div id="bookingSuccessToast" style="position:fixed;top:18px;right:18px;z-index:2000;display:none;">
   <div style="background:#28a745;color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.12);">Booking added</div>
 </div>
@@ -1956,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function filterWalkins() {
     var q = (search.value || '').trim().toLowerCase();
-    var statusVal = walkinStatusFilter ? walkinStatusFilter.value.toLowerCase() : '';
+    var statusVal = walkinStatusFilter ? walkinStatusFilter.value.trim().toLowerCase() : '';
     var dateVal = walkinDateFilter ? walkinDateFilter.value : '';
     var creditsVal = walkinCreditsFilter ? walkinCreditsFilter.value : '';
 
@@ -1976,19 +2050,19 @@ document.addEventListener('DOMContentLoaded', function() {
       // Combined search match (search in either booking ID or name)
       var searchMatch = q === '' || bookingIdMatch || nameMatch;
 
-      // Status filter (column 9)
-      var statusCell = r.cells[9];
-      var statusText = statusCell ? (statusCell.textContent || statusCell.innerText || '').toLowerCase() : '';
-      var statusMatch = statusVal === '' || statusText.indexOf(statusVal) !== -1;
+      // Status filter using data-status attribute for reliability
+      var statusAttr = r.getAttribute('data-status') ? r.getAttribute('data-status').toLowerCase() : '';
+      var statusMatch = statusVal === '' || statusAttr === statusVal;
       var creditsMatch = true;
 
-      // Date filter (column 6)
-      var dateCell = r.cells[6];
+      // Date filter (column 8: appointment date)
+      var dateCell = r.cells[8];
       var dateText = dateCell ? (dateCell.textContent || dateCell.innerText || '').trim() : '';
       var dateMatch = true;
 
       if (dateVal) {
         try {
+          // Expecting dateText in 'YYYY-MM-DD' or similar format
           var rowDate = new Date(dateText);
           var filterDate = new Date(dateVal);
           dateMatch = rowDate.toDateString() === filterDate.toDateString();
