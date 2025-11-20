@@ -83,13 +83,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.selectedBranchId) {
                 // Send disconnect notification to staff
                 sendDisconnectNotification();
-                
+
                 // Clear the branch connection
                 window.selectedBranchId = null;
-                
+
                 // Update placeholder back to default
                 messageInput.placeholder = "Type '/menu' to show preset buttons...";
-                
+
                 // Show disconnect message
                 var disconnectDiv = document.createElement('div');
                 disconnectDiv.className = 'chat-message system-message';

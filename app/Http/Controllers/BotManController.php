@@ -160,11 +160,11 @@ class BotManController extends Controller
         $botman->hears('/menu', function (BotMan $bot) {
             $userId = Auth::id();
             $userMessage = $bot->getMessage()->getText();
-            
+
             // Check if user is connected to staff
             if ($this->isUserConnectedToStaff($userId)) {
                 $branchId = $this->getUserConnectedBranch($userId);
-                
+
                 // Disconnect user from staff
                 try {
                     Message::create([
@@ -173,7 +173,7 @@ class BotManController extends Controller
                         'branch_id' => $branchId,
                         'message' => 'Staff connection ended. User requested menu.',
                     ]);
-                    
+
                     $disconnectMsg = 'You have been disconnected from staff. Here is the menu:';
                     Message::create([
                         'user_id' => $userId,
@@ -186,7 +186,7 @@ class BotManController extends Controller
                     Log::warning('BotMan: failed to disconnect from staff: '.$e->getMessage());
                 }
             }
-            
+
             // Show menu with buttons
             $question = \BotMan\BotMan\Messages\Outgoing\Question::create('How can I help you today?')
                 ->addButtons([
