@@ -151,12 +151,8 @@ class CEOController extends Controller
     private function getBranchPerformance()
     {
         try {
-            $branches = Branch::where('active', true)->get();
-            // Fallback: if no active branches found (different host schema/data), use all branches
-            if ($branches->isEmpty()) {
-                Log::warning('No active branches found for getBranchPerformance; falling back to all branches');
-                $branches = Branch::all();
-            }
+            // Show all branches regardless of active flag
+            $branches = Branch::all();
             $performance = [];
 
             foreach ($branches as $branch) {
