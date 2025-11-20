@@ -17,7 +17,7 @@ class BookingSessionSeeder extends Seeder
         // Configuration: Total 1000 bookings
         $totalBookings = 500;
         $packageBookingRatio = 0.4; // 40% packages, 60% services
-        $walkinCount = 25; // 100 walk-ins
+        $walkinCount = 0; // remove walk-ins - 0 walk-ins will be seeded
         $clientBookingCount = $totalBookings - $walkinCount; // 900 client bookings
 
         $packageBookingsCount = (int)($clientBookingCount * $packageBookingRatio); // ~360 package bookings
@@ -84,7 +84,8 @@ class BookingSessionSeeder extends Seeder
             $packageServiceRows = DB::table('package_service')->where('package_id', $packageId)->get();
             $totalPackagePrice = 0;
             foreach ($packageServiceRows as $ps) {
-                $totalPackagePrice += $defaultServicePrices[$ps->service_id] ?? 1000;
+                // Use capped service price for package components
+                $totalPackagePrice += $this->getServicePrice($ps->service_id, $defaultServicePrices);
             }
             if ($totalPackagePrice == 0) {
                 $totalPackagePrice = $package->price ?? 5000;
@@ -234,64 +235,9 @@ class BookingSessionSeeder extends Seeder
             }
         }
 
-        $this->command->info("Creating {$walkinCount} walk-in bookings...");
+        // Walk-ins are removed from seeding by setting $walkinCount = 0.
 
-        // Create walk-in bookings
-        $faker = Faker::create();
-        for ($i = 0; $i < $walkinCount; $i++) {
-            $branchId = $branchIds[array_rand($branchIds)];
-            $serviceId = $serviceIds[array_rand($serviceIds)];
-            $servicePrice = $this->getServicePrice($serviceId, $defaultServicePrices);
-
-            $walkinName = $faker->name();
-            $walkinEmail = 'walkin_' . Str::slug(strtolower($walkinName)) . '_' . time() . '_' . $i . '@example.test';
-            $walkinId = DB::table('users')->insertGetId([
-                'name' => $walkinName,
-                'email' => $walkinEmail,
-                'password' => Hash::make('password'),
-                'role' => 'client',
-                'created_at' => Carbon::now()->subDays(rand(1, 365)),
-                'updated_at' => Carbon::now()->subDays(rand(1, 365)),
-            ]);
-
-            // Randomly create walk-in bookings in past (180 days) OR future (30 days)
-            if (rand(0, 1)) {
-                // Future booking (next 30 days)
-                $daysAhead = rand(0, 30);
-                $bookingDate = Carbon::now()->addDays($daysAhead);
-                $walkinStatus = 'active';
-            } else {
-                // Past booking (last 180 days)
-                $daysAgo = rand(1, 180);
-                $bookingDate = Carbon::now()->subDays($daysAgo);
-                $walkinStatus = 'completed';
-            }
-
-            $bookingId = DB::table('bookings')->insertGetId([
-                'user_id' => $walkinId,
-                'service_id' => $serviceId,
-                'branch_id' => $branchId,
-                'date' => $bookingDate,
-                'time_slot' => $timeSlots[array_rand($timeSlots)],
-                'status' => $walkinStatus,
-                'payment_status' => 'paid',
-                'created_at' => $bookingDate,
-                'updated_at' => $bookingDate,
-            ]);
-
-            DB::table('transactions')->insert([
-                'booking_id' => $bookingId,
-                'service_id' => $serviceId,
-                'amount' => $servicePrice,
-                'payment_method' => 'cash',
-                'branch_id' => $branchId,
-                'staff_id' => null,
-                'created_at' => $bookingDate,
-                'updated_at' => $bookingDate,
-            ]);
-        }
-
-        $this->command->info("Successfully created 1000 bookings (360 packages, 540 services, 100 walk-ins)");
+        $this->command->info("Successfully created {$totalBookings} bookings ({$packageBookingsCount} packages, {$serviceBookingsCount} services, {$walkinCount} walk-ins)");
     }
 
     private function weightedRandom(array $values, array $weights): string
@@ -323,7 +269,7 @@ class BookingSessionSeeder extends Seeder
     private function getServicePrice($serviceId, $defaultServicePrices)
     {
         $price = $defaultServicePrices[$serviceId] ?? 1000;
-        // Cap the price at 12,000
-        return min($price, 12000);
+        // Cap the price at 10,000
+        return min($price, 10000);
     }
 }

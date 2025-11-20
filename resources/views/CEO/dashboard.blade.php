@@ -153,6 +153,10 @@
             <div class="executive-card">
                 <h5><i class="fas fa-building me-2"></i>Branch Performance Comparison</h5>
                 @if(isset($branchPerformance) && count($branchPerformance) > 0)
+                    <div class="mb-3">
+                        <strong>Grand Total Completed Bookings: </strong>
+                        <span class="text-muted">{{ number_format($totalCompletedBookings ?? 0) }}</span>
+                    </div>
                     @foreach($branchPerformance as $branch)
                         <div class="branch-item">
                             <div class="branch-name">{{ $branch['name'] }}</div>
