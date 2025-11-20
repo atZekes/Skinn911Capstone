@@ -104,24 +104,17 @@ class BookingSessionSeeder extends Seeder
                     ]);
                 }
 
-                // Create a transaction for each booking and link to booking (guard columns existing on the DB)
-                $txData = [
+                // Create a transaction for each booking and link to booking
+                DB::table('transactions')->insert([
+                    'booking_id' => $bookingId,
                     'service_id' => $serviceId,
                     'amount' => $servicePrice,
                     'payment_method' => ($paymentStatus === 'refunded') ? 'refund' : 'cash',
+                    'branch_id' => $branch_id,
+                    'staff_id' => null,
                     'created_at' => $bookingDate,
                     'updated_at' => $bookingDate,
-                ];
-                if (Schema::hasColumn('transactions', 'booking_id')) {
-                    $txData['booking_id'] = $bookingId;
-                }
-                if (Schema::hasColumn('transactions', 'branch_id')) {
-                    $txData['branch_id'] = $branch_id;
-                }
-                if (Schema::hasColumn('transactions', 'staff_id')) {
-                    $txData['staff_id'] = null;
-                }
-                DB::table('transactions')->insert($txData);
+                ]);
 
                 // If purchased_services table exists, add a purchased_services row for client bookings (not walk-ins)
                 if (Schema::hasTable('purchased_services')) {
@@ -196,23 +189,16 @@ class BookingSessionSeeder extends Seeder
                 'updated_at' => $bookingDate,
             ]);
 
-            $txData = [
+            DB::table('transactions')->insert([
+                'booking_id' => $bookingId,
                 'service_id' => $serviceId,
                 'amount' => $servicePrice,
                 'payment_method' => 'cash',
+                'branch_id' => $branch_id,
+                'staff_id' => null,
                 'created_at' => $bookingDate,
                 'updated_at' => $bookingDate,
-            ];
-            if (Schema::hasColumn('transactions', 'booking_id')) {
-                $txData['booking_id'] = $bookingId;
-            }
-            if (Schema::hasColumn('transactions', 'branch_id')) {
-                $txData['branch_id'] = $branch_id;
-            }
-            if (Schema::hasColumn('transactions', 'staff_id')) {
-                $txData['staff_id'] = null;
-            }
-            DB::table('transactions')->insert($txData);
+            ]);
 
             // purchased_services for these client bookings (only if table exists)
             if (Schema::hasTable('purchased_services')) {
@@ -276,24 +262,17 @@ class BookingSessionSeeder extends Seeder
 
             // For walk-ins: we created them as completed by default; skip creating client_package_sessions for these
 
-            // Create a transaction linked to the booking (guard columns)
-            $txData = [
+            // Create a transaction linked to the booking
+            DB::table('transactions')->insert([
+                'booking_id' => $bookingId,
                 'service_id' => $serviceId,
                 'amount' => $servicePrice,
                 'payment_method' => 'cash',
+                'branch_id' => $branch_id,
+                'staff_id' => null,
                 'created_at' => $bookingDate,
                 'updated_at' => $bookingDate,
-            ];
-            if (Schema::hasColumn('transactions', 'booking_id')) {
-                $txData['booking_id'] = $bookingId;
-            }
-            if (Schema::hasColumn('transactions', 'branch_id')) {
-                $txData['branch_id'] = $branch_id;
-            }
-            if (Schema::hasColumn('transactions', 'staff_id')) {
-                $txData['staff_id'] = null;
-            }
-            DB::table('transactions')->insert($txData);
+            ]);
         }
     }
 }
