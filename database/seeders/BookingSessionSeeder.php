@@ -83,6 +83,16 @@ class BookingSessionSeeder extends Seeder
 
             [$paymentStatus, $sessionStatus] = $this->getPaymentAndSessionStatus($status);
 
+            // Calculate total package price based on branch service prices
+            $packageServiceRows = DB::table('package_service')->where('package_id', $packageId)->get();
+            $totalPackagePrice = 0;
+            foreach ($packageServiceRows as $ps) {
+                $totalPackagePrice += $this->getServicePrice($ps->service_id, $branchId, $branchServicePrices, $defaultServicePrices);
+            }
+            if ($totalPackagePrice == 0) {
+                $totalPackagePrice = $package->price ?? 5000;
+            }
+
             $bookingId = DB::table('bookings')->insertGetId([
                 'user_id' => $userId,
                 'package_id' => $packageId,
@@ -113,7 +123,7 @@ class BookingSessionSeeder extends Seeder
                 'sessions_used' => $sessionsUsed,
                 'sessions_remaining' => $sessionsRemaining,
                 'status' => $sessionsRemaining > 0 ? 'active' : ($status === 'refunded' ? 'refunded' : 'completed'),
-                'total_price' => $package->price ?? 5000,
+                'total_price' => $totalPackagePrice,
                 'payment_status' => $paymentStatus,
                 'payment_method' => 'cash',
                 'purchase_date' => $bookingDate->copy()->subDays(rand(0, 30)),
@@ -126,7 +136,7 @@ class BookingSessionSeeder extends Seeder
             DB::table('transactions')->insert([
                 'booking_id' => $bookingId,
                 'package_id' => $packageId,
-                'amount' => $package->price ?? 5000,
+                'amount' => $totalPackagePrice,
                 'payment_method' => $paymentStatus === 'refunded' ? 'refund' : 'cash',
                 'branch_id' => $branchId,
                 'staff_id' => null,
