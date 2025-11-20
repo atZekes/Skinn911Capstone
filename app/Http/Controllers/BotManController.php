@@ -82,7 +82,7 @@ class BotManController extends Controller
             $userMessage = $bot->getMessage()->getText();
 
             // Skip if it's a bot command or staff connection request
-            if (preg_match('/^(help|menu|start|opening|book|prices|branches|connect_staff|connect to staff|staff|branch_hours|connect_branch:)/', strtolower($userMessage))) {
+            if (preg_match('/^(help|menu|start|opening|book|prices|branches|connect_staff|connect to staff|staff|branch_hours|connect_branch:|^\/menu)/', strtolower($userMessage))) {
                 return false; // Let other handlers process these
             }
 
@@ -156,7 +156,80 @@ class BotManController extends Controller
             return false; // Let other handlers process if not connected to staff
         });
 
-        // Quick menu with buttons (FAQ quick-replies)
+        // Handle /menu command - disconnects from staff and shows menu
+        $botman->hears('/menu', function (BotMan $bot) {
+            $userId = Auth::id();
+            $userMessage = $bot->getMessage()->getText();
+            
+            // Check if user is connected to staff
+            if ($this->isUserConnectedToStaff($userId)) {
+                $branchId = $this->getUserConnectedBranch($userId);
+                
+                // Disconnect user from staff
+                try {
+                    Message::create([
+                        'user_id' => $userId,
+                        'sender_type' => 'staff',
+                        'branch_id' => $branchId,
+                        'message' => 'Staff connection ended. User requested menu.',
+                    ]);
+                    
+                    $disconnectMsg = 'You have been disconnected from staff. Here is the menu:';
+                    Message::create([
+                        'user_id' => $userId,
+                        'sender_type' => 'bot',
+                        'branch_id' => null,
+                        'message' => $disconnectMsg,
+                    ]);
+                    $bot->reply($disconnectMsg);
+                } catch (\Exception $e) {
+                    Log::warning('BotMan: failed to disconnect from staff: '.$e->getMessage());
+                }
+            }
+            
+            // Show menu with buttons
+            $question = \BotMan\BotMan\Messages\Outgoing\Question::create('How can I help you today?')
+                ->addButtons([
+                    \BotMan\BotMan\Messages\Outgoing\Actions\Button::create('Opening Hours')->value('opening'),
+                    \BotMan\BotMan\Messages\Outgoing\Actions\Button::create('Book')->value('book'),
+                    \BotMan\BotMan\Messages\Outgoing\Actions\Button::create('Prices')->value('prices'),
+                    \BotMan\BotMan\Messages\Outgoing\Actions\Button::create('Connect to Staff')->value('connect_staff'),
+                ]);
+
+            // Persist the user trigger
+            try {
+                Message::create([
+                    'user_id' => $userId,
+                    'sender_type' => 'user',
+                    'branch_id' => null,
+                    'message' => $userMessage,
+                ]);
+            } catch (\Exception $e) { Log::warning('BotMan: failed to save /menu trigger: '.$e->getMessage()); }
+
+            $bot->ask($question, function ($answer, $conversation) use ($bot) {
+                $payload = method_exists($answer, 'getValue') ? $answer->getValue() : ($answer->getText() ?: '');
+
+                // Persist user's choice
+                try { Message::create(['user_id' => Auth::id(), 'sender_type' => 'user', 'branch_id' => null, 'message' => $payload]); } catch (\Exception $e) { Log::warning('BotMan: failed to save user choice: '.$e->getMessage()); }
+
+                if (strtolower($payload) === 'opening' || strtolower($payload) === 'opening hours' || strtolower($payload) === 'hours') {
+                    $reply = 'Our studio is open 10:00 AM to 10:00 PM daily.';
+                    $bot->reply($reply);
+                } elseif (strtolower($payload) === 'book' || strtolower($payload) === 'booking') {
+                    $reply = 'To book, please visit: /client/booking';
+                    $bot->reply($reply);
+                } elseif (strtolower($payload) === 'prices') {
+                    $reply = 'Prices vary by service. Visit /client/services for details.';
+                    $bot->reply($reply);
+                } else {
+                    $bot->reply('Sorry, I did not understand that selection. Try typing "/menu" to see options.');
+                }
+
+                try { Message::create(['user_id' => Auth::id(), 'sender_type' => 'bot', 'branch_id' => null, 'message' => $reply ?? 'Menu']); } catch (\Exception $e) { Log::warning('BotMan: failed to save bot reply: '.$e->getMessage()); }
+            });
+        });
+
+        // Quick menu with buttons (FAQ quick-replies) - kept for backwards compatibility
         $botman->hears('help|menu|start', function (BotMan $bot) {
             Log::info('BotMan: received help/menu/start trigger', ['text' => $bot->getMessage() ? $bot->getMessage()->getText() : null]);
             $question = \BotMan\BotMan\Messages\Outgoing\Question::create('How can I help you today?')
@@ -196,7 +269,7 @@ class BotManController extends Controller
                     $reply = 'Prices vary by service. Visit /client/services for details.';
                     $bot->reply($reply);
                 } else {
-                    $bot->reply('Sorry, I did not understand that selection. Try typing "help" to see options.');
+                    $bot->reply('Sorry, I did not understand that selection. Try typing "/menu" to see options.');
                 }
 
                 try { $mb = Message::create(['user_id' => null, 'sender_type' => 'bot', 'branch_id' => null, 'message' => $reply]); Log::info('BotMan: saved bot reply', ['id'=>$mb->id ?? null, 'reply'=>$reply]); } catch (\Exception $e) { Log::warning('BotMan: failed to save bot reply: '.$e->getMessage()); }

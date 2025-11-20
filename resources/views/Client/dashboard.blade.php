@@ -709,6 +709,7 @@
                                     <td data-label="Expiry Date">
                                         @php
                                             $expiryDate = null;
+                                            $isExpired = false;
                                             try {
                                                 if ($booking->payment_status === 'paid') {
                                                     $session = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
@@ -726,10 +727,13 @@
                                                         if ($session && $session->expiry_date) $expiryDate = $session->expiry_date;
                                                     }
                                                 }
+                                                if ($expiryDate) {
+                                                    $isExpired = \Carbon\Carbon::parse($expiryDate)->isPast();
+                                                }
                                             } catch (\Exception $e) { /* ignore */ }
                                         @endphp
                                         @if($expiryDate)
-                                            <span class="badge bg-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
+                                            <span class="badge {{ $isExpired ? 'bg-danger' : 'bg-info' }}">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}{{ $isExpired ? ' (EXPIRED)' : '' }}</span>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -777,12 +781,32 @@
                                                 </button>
 
                                                 @if($booking->payment_status === 'paid' && $booking->status !== 'pending_refund')
-                                                    <button type="button" class="btn btn-sm btn-success request-refund-btn"
-                                                        data-action="{{ route('client.booking.requestRefund', $booking->id) }}"
-                                                        data-booking-id="{{ $booking->id }}"
-                                                        style="border-radius: 8px;">
-                                                        <i class="fas fa-undo-alt me-1"></i>Request Refund
-                                                    </button>
+                                                    @php
+                                                        // Check if any sessions have been used
+                                                        $sessionsUsed = 0;
+                                                        $canRefund = true;
+                                                        try {
+                                                            $packageSession = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->first();
+                                                            if ($packageSession && $packageSession->sessions_used > 0) {
+                                                                $sessionsUsed = $packageSession->sessions_used;
+                                                                $canRefund = false;
+                                                            }
+                                                        } catch (\Exception $e) { /* ignore */ }
+                                                    @endphp
+                                                    @if($canRefund)
+                                                        <button type="button" class="btn btn-sm btn-success request-refund-btn"
+                                                            data-action="{{ route('client.booking.requestRefund', $booking->id) }}"
+                                                            data-booking-id="{{ $booking->id }}"
+                                                            style="border-radius: 8px;">
+                                                            <i class="fas fa-undo-alt me-1"></i>Request Refund
+                                                        </button>
+                                                    @else
+                                                        <button type="button" class="btn btn-sm btn-secondary" disabled
+                                                            title="Cannot request refund - {{ $sessionsUsed }} session(s) already used"
+                                                            style="border-radius: 8px;">
+                                                            <i class="fas fa-ban me-1"></i>Refund Not Available
+                                                        </button>
+                                                    @endif
                                                 @elseif($booking->payment_status !== 'paid')
                                                     <!-- Provide data-booking-id so JS can directly use it instead of parsing the route URL -->
                                                     <button type="button" class="btn btn-sm btn-danger cancel-booking-btn"

@@ -106,6 +106,14 @@ public function services()
     }
 public function submitBooking(Request $request)
 {
+    // Check if user's email is verified
+    $user = Auth::user();
+    if (!$user->hasVerifiedEmail()) {
+        return redirect()->back()
+            ->withErrors(['email' => 'You must verify your email address before making a booking. Please check your inbox for the verification link.'])
+            ->withInput();
+    }
+
     // Log the incoming request for debugging
     Log::info('Booking attempt', [
         'user_id' => Auth::id(),
@@ -385,6 +393,8 @@ public function submitBooking(Request $request)
                     'description' => $svc->description ?? '',
                 ]);
             }
+            // Ensure package sessions are created for this booking
+            $booking->ensurePackageSessionsExist();
         } else {
             // Single service booking
             $service = \App\Models\Service::find($request->service_id);
@@ -529,12 +539,16 @@ public function requestRefund($id)
         return redirect()->route('client.dashboard')->withErrors(['error' => 'This booking already has a refund request or has been refunded.']);
     }
 
-    // NOTE: We allow refund requests even if sessions were used
-    // Staff can deny the refund request if they see fit
-    // Check sessions used for information purposes only
+    // Check if any sessions have been used - prevent refund if sessions are used
     $sessionsUsed = 0;
     try {
-        $sessionsUsed = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->sum('sessions_used');
+        $packageSession = \App\Models\ClientPackageSession::where('booking_id', $booking->id)->first();
+        if ($packageSession && $packageSession->sessions_used > 0) {
+            $sessionsUsed = $packageSession->sessions_used;
+            return redirect()->route('client.dashboard')->withErrors([
+                'error' => "Cannot request refund. You have already used {$sessionsUsed} session(s) from this booking."
+            ]);
+        }
     } catch (\Exception $e) {
         Log::error('Error checking session usage for refund', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
     }

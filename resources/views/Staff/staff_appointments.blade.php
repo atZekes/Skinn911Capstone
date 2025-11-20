@@ -84,14 +84,18 @@
         <td>
           @php
             $expiryDate = null;
+            $isExpired = false;
             try {
               $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $appointment->id)
                 ->whereNotNull('expiry_date')
                 ->first()?->expiry_date;
+              if ($expiryDate) {
+                $isExpired = \Carbon\Carbon::parse($expiryDate)->isPast();
+              }
             } catch (\Exception $e) { /* ignore */ }
           @endphp
           @if($expiryDate)
-            <span class="badge badge-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
+            <span class="badge {{ $isExpired ? 'badge-danger' : 'badge-info' }}">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}{{ $isExpired ? ' (EXPIRED)' : '' }}</span>
           @else
             <span class="text-muted">-</span>
           @endif
@@ -480,12 +484,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btbody) {
           var tr = document.createElement('tr');
           tr.className = 'new-booking';
+          var csrfInput = '<input type="hidden" name="_token" value="'+ (b.csrf_token || '') +'">';
           tr.innerHTML = '<td>--</td>' +
             '<td>'+ (b.user_name || 'Walk-in') +'</td>' +
             '<td>'+ (b.service_name || '-') +'</td>' +
             '<td>'+ (b.date || '') +'</td>' +
             '<td>'+ (b.status || '') +'</td>' +
-            '<td><form action="'+ (b.cancel_url || '#') +'" method="POST" onsubmit="return confirm(\'Cancel this booking?\');">' + (b.csrf || '') + '<button class="btn btn-danger btn-sm" type="submit">Cancel</button></form></td>';
+            '<td><form action="'+ (b.cancel_url || '#') +'" method="POST" onsubmit="return confirm(\'Cancel this booking?\');">' + csrfInput + '<button class="btn btn-danger btn-sm" type="submit">Cancel</button></form></td>';
           btbody.insertBefore(tr, btbody.firstChild);
           // highlight and scroll into view
           tr.classList.add('new-booking-highlight');
@@ -526,13 +531,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            var csrfInput = '<input type="hidden" name="_token" value="'+ (b.csrf_token || '') +'">';
             wtr.innerHTML = '<td>--</td>' +
               '<td>'+ (b.user_name || 'Walk-in') +'</td>' +
               '<td>'+ (b.service_name || '-') +'</td>' +
               '<td>'+ (b.date || '') +'</td>' +
               '<td>'+ displayTime +'</td>' +
               '<td>'+ (b.status || '') +'</td>' +
-              '<td><form action="'+ (b.cancel_url || '#') +'" method="POST" onsubmit="return confirm(\'Cancel this booking?\');">' + (b.csrf || '') + '<button class="btn btn-danger btn-sm" type="submit">Cancel</button></form></td>';
+              '<td><form action="'+ (b.cancel_url || '#') +'" method="POST" onsubmit="return confirm(\'Cancel this booking?\');">' + csrfInput + '<button class="btn btn-danger btn-sm" type="submit">Cancel</button></form></td>';
             wtbody.insertBefore(wtr, wtbody.firstChild);
             wtr.classList.add('new-booking-highlight');
             var wwrap = document.querySelector('.walkin-queue-wrapper'); if (wwrap) wwrap.scrollTop = 0;
@@ -1479,14 +1485,18 @@ document.addEventListener('DOMContentLoaded', function() {
               <td>
                 @php
                     $expiryDate = null;
+                    $isExpired = false;
                     try {
                         $expiryDate = \App\Models\ClientPackageSession::where('booking_id', $w->id)
                             ->whereNotNull('expiry_date')
                             ->first()?->expiry_date;
+                        if ($expiryDate) {
+                            $isExpired = \Carbon\Carbon::parse($expiryDate)->isPast();
+                        }
                     } catch (\Exception $e) { /* ignore */ }
                 @endphp
                 @if($expiryDate)
-                    <span class="badge badge-info">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}</span>
+                    <span class="badge {{ $isExpired ? 'badge-danger' : 'badge-info' }}">{{ \Carbon\Carbon::parse($expiryDate)->format('M d, Y') }}{{ $isExpired ? ' (EXPIRED)' : '' }}</span>
                 @else
                     <span class="text-muted">-</span>
                 @endif

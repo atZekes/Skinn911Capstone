@@ -81,6 +81,30 @@
     .chart-container canvas {
         max-height: 340px !important;
     }
+
+    /* Peak hours specific sizing */
+    #peakHoursChart {
+        max-height: 380px !important;
+    }
+}
+
+/* Medium screens adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #peakBookingHoursChart,
+    #peakHoursChart {
+        height: 320px !important;
+        max-height: 320px !important;
+    }
+
+    #revenueChart {
+        height: 300px !important;
+        max-height: 300px !important;
+    }
+
+    #retentionChart {
+        height: 300px !important;
+        max-height: 300px !important;
+    }
 }
 
 .chart-title {
@@ -192,44 +216,48 @@
     }
 
     .stats-card {
-        padding: 20px 18px;
-        margin-bottom: 18px;
+        padding: 18px 15px;
+        margin-bottom: 15px;
         text-align: center;
         border-radius: 16px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     }
 
     .stats-number {
-        font-size: 2.2rem;
-        margin: 12px 0 8px 0;
+        font-size: 2rem;
+        margin: 10px 0 8px 0;
     }
 
     .stats-label {
-        font-size: 0.9rem;
-        margin-bottom: 15px;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+        line-height: 1.3;
     }
 
     .stats-icon {
-        width: 55px;
-        height: 55px;
-        font-size: 1.3rem;
-        margin: 0 auto 15px auto;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+        margin: 0 auto 12px auto;
         border-radius: 14px;
     }
 
     /* Mobile chart containers */
     .chart-container {
-        padding: 20px 15px;
-        margin-bottom: 20px;
+        padding: 18px 12px;
+        margin-bottom: 18px;
         border-radius: 16px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        height: auto !important;
+        min-height: 320px;
     }
 
     .chart-title {
-        font-size: 1.2rem;
-        margin-bottom: 20px;
+        font-size: 1.05rem;
+        margin-bottom: 15px;
         text-align: center;
         font-weight: 600;
+        line-height: 1.3;
     }
 
     /* Better mobile chart sizing */
@@ -245,48 +273,140 @@
 
     /* Mobile activity feed */
     .activity-item {
-        padding: 15px 0;
+        padding: 12px 0;
         border-bottom: 1px solid #f1f3f4;
     }
 
     .activity-icon {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         margin-right: 12px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         border-radius: 10px;
     }
 
     .activity-text h6 {
-        font-size: 0.95rem;
-        margin-bottom: 4px;
+        font-size: 0.9rem;
+        margin-bottom: 3px;
         font-weight: 600;
+        line-height: 1.3;
     }
 
     .activity-text small {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: #6c757d;
+        line-height: 1.2;
     }
 
     /* Mobile user breakdown styling */
-    .stats-card .d-flex {
-        flex-direction: column;
-        gap: 8px;
+    .stats-card .mt-3 {
+        margin-top: 12px !important;
     }
 
-    .stats-card .d-flex .d-flex {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
+    .stats-card .d-flex {
+        gap: 6px;
+    }
+
+    .stats-card .d-flex.justify-content-between {
+        padding: 7px 10px;
         background: #f8f9fa;
         border-radius: 8px;
-        margin: 0;
+        margin-bottom: 5px;
+        font-size: 0.82rem;
+    }
+
+    .stats-card .d-flex.justify-content-between span {
+        font-size: 0.82rem;
+    }
+
+    .stats-card .d-flex.justify-content-between strong {
+        font-size: 0.85rem;
+    }
+
+    /* Client Retention Analytics - Mobile Fix */
+    .row.g-2 {
+        gap: 0.5rem !important;
+        margin: 0 -0.25rem;
+    }
+
+    .row.g-2 > [class*="col-"] {
+        padding: 0 0.25rem;
+    }
+
+    /* Fix retention cards overflow */
+    .row.g-2 .card {
+        margin-bottom: 0;
+    }
+
+    .row.g-2 .card-body {
+        padding: 15px 10px !important;
+    }
+
+    .row.g-2 .card-body i {
+        font-size: 1.5rem !important;
+        margin-bottom: 8px !important;
+    }
+
+    .row.g-2 .card-body h6 {
+        font-size: 0.7rem !important;
+        margin-bottom: 8px !important;
+        line-height: 1.2;
+    }
+
+    .row.g-2 .card-body h2 {
+        font-size: 1.8rem !important;
+        line-height: 1;
+    }
+
+    .row.g-2 .card-body h2 small {
+        font-size: 0.5rem !important;
     }
 
     /* Better responsive grid */
     .row.mb-4 > [class*="col-"] {
         margin-bottom: 15px;
+    }
+
+    /* Executive cards mobile */
+    .executive-card {
+        padding: 18px 15px;
+        margin-bottom: 18px;
+    }
+
+    .executive-card h5 {
+        font-size: 1.05rem;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+    }
+
+    .service-item, .branch-item {
+        padding: 10px 0;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .service-name, .branch-name {
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+    }
+
+    .service-count, .branch-revenue {
+        font-size: 0.85rem;
+    }
+
+    .branch-item > div:last-child {
+        width: 100%;
+    }
+
+    .branch-item small {
+        font-size: 0.75rem;
+    }
+
+    /* Growth indicator mobile */
+    .growth-indicator {
+        font-size: 0.75rem;
+        margin-top: 6px;
     }
 }
 
@@ -388,115 +508,199 @@
     }
 
     .stats-card {
-        padding: 18px 15px;
+        padding: 15px 12px;
         text-align: center;
         border-radius: 14px;
-        margin-bottom: 15px;
-    }
-
-    .stats-number {
-        font-size: 2rem;
-        margin: 10px 0 8px 0;
-    }
-
-    .stats-label {
-        font-size: 0.85rem;
         margin-bottom: 12px;
     }
 
+    .stats-number {
+        font-size: 1.75rem;
+        margin: 8px 0 6px 0;
+    }
+
+    .stats-label {
+        font-size: 0.78rem;
+        margin-bottom: 10px;
+        line-height: 1.25;
+        padding: 0 5px;
+    }
+
     .stats-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-        margin: 0 auto 12px auto;
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+        margin: 0 auto 10px auto;
         border-radius: 12px;
     }
 
     /* Very small screen charts */
     .chart-container {
-        padding: 18px 12px;
-        height: 320px;
+        padding: 15px 10px;
+        height: auto !important;
+        min-height: 280px;
         border-radius: 14px;
-        margin-bottom: 18px;
+        margin-bottom: 15px;
     }
 
     .chart-container canvas {
-        max-height: 240px !important;
+        max-height: 220px !important;
     }
 
     .chart-wrapper {
-        height: 240px !important;
-        max-height: 240px !important;
+        height: 220px !important;
+        max-height: 220px !important;
     }
 
     .chart-title {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         font-weight: 600;
+        line-height: 1.3;
+        padding: 0 5px;
+    }
+
+    .chart-title i {
+        font-size: 0.9rem;
+        margin-right: 4px !important;
     }
 
     /* Compact activity feed for small screens */
     .executive-card {
-        padding: 15px 12px;
+        padding: 12px 10px;
         border-radius: 14px;
+        margin-bottom: 15px;
+    }
+
+    .executive-card h5 {
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+    }
+
+    .executive-card h5 i {
+        font-size: 0.9rem;
     }
 
     .activity-item {
-        padding: 10px 0;
+        padding: 8px 0;
         border-bottom: 1px solid #f1f3f4;
     }
 
     .activity-icon {
-        width: 35px;
-        height: 35px;
-        margin-right: 10px;
-        font-size: 0.9rem;
-        border-radius: 9px;
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+        font-size: 0.85rem;
+        border-radius: 8px;
     }
 
     .activity-text h6 {
-        font-size: 0.9rem;
-        margin-bottom: 3px;
-        line-height: 1.3;
+        font-size: 0.82rem;
+        margin-bottom: 2px;
+        line-height: 1.25;
     }
 
     .activity-text small {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         line-height: 1.2;
     }
 
     /* Stack user breakdown vertically on very small screens */
-    .stats-card .d-flex {
-        gap: 6px;
+    .stats-card .mt-3 {
+        margin-top: 10px !important;
     }
 
-    .stats-card .d-flex .d-flex {
-        padding: 6px 10px;
-        font-size: 0.85rem;
+    .stats-card .d-flex {
+        gap: 5px;
+    }
+
+    .stats-card .d-flex.justify-content-between {
+        padding: 6px 8px;
+        font-size: 0.75rem;
         border-radius: 6px;
+        margin-bottom: 4px;
+    }
+
+    .stats-card .d-flex.justify-content-between span {
+        font-size: 0.75rem;
+    }
+
+    .stats-card .d-flex.justify-content-between strong {
+        font-size: 0.78rem;
+    }
+
+    .stats-card .d-flex.justify-content-between i {
+        font-size: 0.7rem;
+        margin-right: 3px;
     }
 
     /* Better spacing for very small screens */
     .row.mb-4 > [class*="col-"] {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
 
-    /* Hide less important elements on very small screens */
-    .activity-text small {
-        display: none;
+    /* Client Retention Analytics - Very Small Screens */
+    .row.g-2 {
+        gap: 0.4rem !important;
+        margin: 0 -0.2rem;
     }
 
-    .executive-card h5 {
-        font-size: 1rem;
+    .row.g-2 > [class*="col-"] {
+        padding: 0 0.2rem;
+    }
+
+    .row.g-2 .card-body {
+        padding: 12px 8px !important;
+    }
+
+    .row.g-2 .card-body i {
+        font-size: 1.3rem !important;
+        margin-bottom: 6px !important;
+    }
+
+    .row.g-2 .card-body h6 {
+        font-size: 0.65rem !important;
+        margin-bottom: 6px !important;
+        line-height: 1.15;
+    }
+
+    .row.g-2 .card-body h2 {
+        font-size: 1.5rem !important;
+        line-height: 1;
+    }
+
+    .row.g-2 .card-body h2 small {
+        font-size: 0.45rem !important;
     }
 
     .service-item, .branch-item {
         padding: 8px 0;
+        font-size: 0.85rem;
     }
 
     .service-name, .branch-name {
-        font-size: 0.9rem;
+        font-size: 0.82rem;
+    }
+
+    .service-count, .branch-revenue {
+        font-size: 0.8rem;
+        margin-top: 3px;
+    }
+
+    .branch-item small {
+        font-size: 0.7rem;
+    }
+
+    /* Growth indicator */
+    .growth-indicator {
+        font-size: 0.7rem;
+        margin-top: 5px;
+    }
+
+    .growth-indicator i {
+        font-size: 0.65rem;
     }
 
     .service-count, .branch-revenue {
@@ -702,7 +906,7 @@
     padding: 6px 10px !important;
     height: auto !important;
     min-width: 120px !important;
-    max-width: 140px !important;
+    max-width: 150px !important;
     transition: all 0.3s ease !important;
 }
 
@@ -717,36 +921,82 @@
     color: #d13c6a !important;
 }
 
+/* Branch filter special styling */
+.branch-filter {
+    min-width: 140px !important;
+    max-width: 160px !important;
+}
+
+/* Flex wrapping for filter groups */
+.d-flex.gap-2 {
+    gap: 0.5rem !important;
+    flex-wrap: wrap;
+}
+
+.d-flex.flex-wrap.gap-2 {
+    gap: 0.5rem !important;
+}
+
 /* Responsive filter dropdowns */
 @media (max-width: 768px) {
     .filter-dropdown {
-        width: 100% !important;
+        width: 48% !important;
+        flex: 1;
     }
 
     .filter-dropdown .form-select {
         width: 100% !important;
         min-width: auto !important;
+        max-width: none !important;
+        font-size: 0.75rem !important;
+        padding: 6px 8px !important;
     }
 
     /* Adjust chart title and filter container layout */
-    .d-flex.justify-content-between.align-items-center {
-        flex-direction: column !important;
-        gap: 15px !important;
-        align-items: stretch !important;
+    .d-flex.flex-wrap.justify-content-between.align-items-center {
+        gap: 10px !important;
+    }
+
+    .d-flex.flex-wrap.gap-2 {
+        width: 100%;
+        justify-content: space-between !important;
+        gap: 8px !important;
     }
 
     .chart-title {
+        width: 100%;
         text-align: center !important;
         margin-bottom: 0 !important;
+    }
+
+    /* Peak Booking Hours chart adjustments */
+    #peakBookingHoursChart {
+        height: 280px !important;
+    }
+
+    /* Revenue Growth chart */
+    #revenueChart {
+        height: 280px !important;
+    }
+
+    /* Retention chart */
+    #retentionChart {
+        height: 280px !important;
     }
 }
 
 @media (max-width: 576px) {
     .filter-dropdown .form-select {
-        font-size: 0.8rem !important;
-        padding: 5px 8px !important;
-        min-width: 100px !important;
-        max-width: 120px !important;
+        font-size: 0.7rem !important;
+        padding: 5px 6px !important;
+    }
+
+    .d-flex.flex-wrap.gap-2 {
+        gap: 6px !important;
+    }
+
+    .chart-title {
+        font-size: 0.9rem !important;
     }
 }
 

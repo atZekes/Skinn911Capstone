@@ -46,8 +46,8 @@
                 <div class="stats-icon icon-bookings">
                     <i class="fas fa-calendar-check"></i>
                 </div>
-                <div class="stats-number" id="totalBookings">{{ $totalBookings ?? '0' }}</div>
-                <div class="stats-label">Total Bookings</div>
+                <div class="stats-number" id="totalBookings">{{ $totalCompletedBookings ?? '0' }}</div>
+                <div class="stats-label">Total Completed Bookings (All Branches)</div>
                 @if(isset($bookingGrowth) && $bookingGrowth != 0)
                     <div class="growth-indicator">
                         <i class="fas fa-arrow-{{ $bookingGrowth > 0 ? 'up' : 'down' }} me-1"></i>
@@ -65,8 +65,8 @@
                 <div class="stats-icon icon-revenue">
                     <i class="fas fa-chart-line"></i>
                 </div>
-                <div class="stats-number" id="monthlyRevenue">₱{{ number_format($monthlyRevenue ?? 0, 0) }}</div>
-                <div class="stats-label">Monthly Revenue</div>
+                <div class="stats-number" id="totalRevenue">₱{{ number_format($totalRevenue ?? 0, 0) }}</div>
+                <div class="stats-label">Total Revenue (All Time)</div>
                 @if(isset($revenueGrowthPercent) && $revenueGrowthPercent != 0)
                     <div class="growth-indicator">
                         <i class="fas fa-arrow-{{ $revenueGrowthPercent > 0 ? 'up' : 'down' }} me-1"></i>
@@ -75,59 +75,69 @@
                         </span>
                     </div>
                 @endif
+                <div class="mt-3" style="font-size: 0.85rem;">
+                    <div class="mb-1 d-flex justify-content-between text-muted">
+                        <span><i class="fas fa-concierge-bell text-primary me-1"></i>Services:</span>
+                        <strong class="text-primary">₱{{ number_format($serviceRevenue ?? 0, 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted">
+                        <span><i class="fas fa-box text-success me-1"></i>Packages:</span>
+                        <strong class="text-success">₱{{ number_format($packageRevenue ?? 0, 0) }}</strong>
+                    </div>
+                </div>
             </div>
         </div>
             </div>
 
-    <!-- Client Retention Analytics -->
-    <div class="mb-4">
+    <!-- Client Retention -->
+    <div class="mb-4 mt-5">
         <div class="chart-container">
             <h4 class="chart-title">
-                <i class="fas fa-chart-line me-2"></i>Client Retention Analytics
+                <i class="fas fa-chart-line me-2"></i>Client Retention
             </h4>
 
             <!-- Metrics Cards (Mobile Responsive) -->
-                <div class="row g-3 mb-4">
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-                            <div class="card-body text-white py-3 px-2">
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-users mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
-                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Total Clients</h6>
-                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ number_format($retentionSummary['total_clients'] ?? 0) }}</h2>
+                <div class="row g-2 mb-4 justify-content-center">
+                    <div class="col-6 col-lg-3 col-md-6">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                            <div class="card-body text-white py-4 px-3">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <i class="fas fa-users mb-3" style="font-size: 2rem; opacity: 0.9;"></i>
+                                    <h6 class="text-white mb-2" style="font-size: 0.8rem; font-weight: 600; opacity: 0.95;">Total Clients</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 2.5rem; line-height: 1;">{{ number_format($retentionSummary['total_clients'] ?? 0) }}</h2>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #F56289 0%, #e75480 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(245, 98, 137, 0.3);">
-                            <div class="card-body text-white py-3 px-2">
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-percentage mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
-                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Return Rate (30d)</h6>
-                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ $retentionSummary['average_return_rate'] ?? 0 }}%</h2>
+                    <div class="col-6 col-lg-3 col-md-6">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #F56289 0%, #e75480 100%); border: none; border-radius: 16px; box-shadow: 0 4px 15px rgba(245, 98, 137, 0.3);">
+                            <div class="card-body text-white py-4 px-3">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <i class="fas fa-percentage mb-3" style="font-size: 2rem; opacity: 0.9;"></i>
+                                    <h6 class="text-white mb-2" style="font-size: 0.8rem; font-weight: 600; opacity: 0.95;">Return Rate (30d)</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 2.5rem; line-height: 1;">{{ $retentionSummary['average_return_rate'] ?? 0 }}%</h2>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);">
-                            <div class="card-body text-white py-3 px-2">
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-clock mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
-                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Avg Days Between</h6>
-                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ $retentionSummary['average_days_between_bookings'] ?? 0 }}<small style="font-size: 0.6rem;">d</small></h2>
+                    <div class="col-6 col-lg-3 col-md-6">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border: none; border-radius: 16px; box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);">
+                            <div class="card-body text-white py-4 px-3">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <i class="fas fa-clock mb-3" style="font-size: 2rem; opacity: 0.9;"></i>
+                                    <h6 class="text-white mb-2" style="font-size: 0.8rem; font-weight: 600; opacity: 0.95;">Avg Days Between</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 2.5rem; line-height: 1;">{{ $retentionSummary['average_days_between_bookings'] ?? 0 }}<small style="font-size: 0.6rem;">d</small></h2>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(250, 112, 154, 0.3);">
-                            <div class="card-body text-white py-3 px-2">
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="fas fa-calendar-check mb-2" style="font-size: 1.5rem; opacity: 0.8;"></i>
-                                    <h6 class="text-white opacity-85 mb-2" style="font-size: 0.75rem; font-weight: 600;">Total Visits</h6>
-                                    <h2 class="mb-0 fw-bold" style="font-size: 1.8rem;">{{ number_format($retentionSummary['total_visits'] ?? 0) }}</h2>
+                    <div class="col-6 col-lg-3 col-md-6">
+                        <div class="card text-center h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border: none; border-radius: 16px; box-shadow: 0 4px 15px rgba(250, 112, 154, 0.3);">
+                            <div class="card-body text-white py-4 px-3">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <i class="fas fa-calendar-check mb-3" style="font-size: 2rem; opacity: 0.9;"></i>
+                                    <h6 class="text-white mb-2" style="font-size: 0.8rem; font-weight: 600; opacity: 0.95;">Total Visits</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size: 2.5rem; line-height: 1;">{{ number_format($retentionSummary['total_visits'] ?? 0) }}</h2>
                                 </div>
                             </div>
                         </div>
@@ -147,8 +157,8 @@
                         <div class="branch-item">
                             <div class="branch-name">{{ $branch['name'] }}</div>
                             <div>
-                                <div class="branch-revenue">₱{{ number_format($branch['revenue'], 0) }}</div>
-                                <small class="text-muted">{{ $branch['bookings'] }} bookings</small>
+                                <div class="branch-revenue">₱{{ number_format($branch['revenue_overall'] ?? 0) }}</div>
+                                <small class="text-muted">Total Completed Bookings: <strong>{{ number_format($branch['bookings_overall'] ?? 0) }}</strong></small>
                             </div>
                         </div>
                     @endforeach
@@ -392,7 +402,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ asset('js/CEO/dashboard.js') }}"></script>
+<script src="{{ asset('js/CEO/dashboard.js') }}?v={{ config('app.asset_version', '1.0.0') }}"></script>
 <script>
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {

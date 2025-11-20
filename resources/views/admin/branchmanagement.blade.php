@@ -665,6 +665,41 @@
                                                                 <div class="mb-3"><label>Name</label><input class="form-control" name="name" value="{{ $pkg->name }}" required></div>
                                                                 <div class="mb-3"><label>Price</label><input class="form-control" name="price" type="number" step="0.01" max="999999.99" value="{{ $pkg->price }}" required></div>
                                                                 <div class="mb-3"><label>Description</label><textarea class="form-control" name="description">{{ $pkg->description }}</textarea></div>
+
+                                                                <hr>
+                                                                <div class="mb-2"><strong>Edit Sessions for All Services in this Package</strong></div>
+                                                                <div class="mb-2 d-flex align-items-center">
+                                                                    @php
+                                                                        $firstSession = '';
+                                                                        foreach($pkg->services as $svc) {
+                                                                            if(isset($svc->pivot) && isset($svc->pivot->sessions)) {
+                                                                                $firstSession = $svc->pivot->sessions;
+                                                                                break;
+                                                                            }
+                                                                        }
+                                                                    @endphp
+                                                                    <input type="number" name="all_sessions" id="all_sessions_input_{{ $pkg->id }}" class="form-control form-control-sm" style="width:120px;" min="1" placeholder="{{ $firstSession ?: 'Sessions' }}">
+                                                                    <span class="ms-1 small text-muted">Sessions</span>
+                                                                </div>
+                                                                @foreach($pkg->services as $svc)
+                                                                    @php
+                                                                        $pivotQty = $svc->pivot->quantity ?? 1;
+                                                                    @endphp
+                                                                    <input type="hidden" name="quantities[{{ $svc->id }}]" value="{{ $pivotQty }}">
+                                                                @endforeach
+                                                                <script>
+                                                                document.addEventListener('DOMContentLoaded', function() {
+                                                                    var input = document.getElementById('all_sessions_input_{{ $pkg->id }}');
+                                                                    if (!input) return;
+                                                                    input.addEventListener('input', function() {
+                                                                        var val = input.value;
+                                                                        @foreach($pkg->services as $svc)
+                                                                            var svcInput = document.querySelector('input[name="sessions[{{ $svc->id }}]"]');
+                                                                            if (svcInput) svcInput.value = val;
+                                                                        @endforeach
+                                                                    });
+                                                                });
+                                                                </script>
                                                             </div>
                                                             <div class="modal-footer"><button class="btn btn-admin">Save</button><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
                                                         </div>
@@ -686,9 +721,8 @@
                                                                         @php
                                                                             $inPkg = $pkg->services->contains($s->id);
                                                                             $pivotQty = optional($pkg->services->firstWhere('id',$s->id))->pivot->quantity ?? 1;
-                                                                            // prefer pivot.duration (package-level) falling back to branch pivot or global service duration
+                                                                            $pivotSessions = optional($pkg->services->firstWhere('id',$s->id))->pivot->sessions ?? null;
                                                                             $svcDur = $s->pivot->duration ?? (
-                                                                                // check branch_service table for branch-specific duration if available
                                                                                 Illuminate\Support\Facades\DB::table('branch_service')->where('service_id',$s->id)->where('branch_id',$branchId)->value('duration') ?? $s->duration ?? 1
                                                                             );
                                                                         @endphp
@@ -696,6 +730,8 @@
                                                                             <input class="form-check-input me-2 pkg-svc-checkbox" type="checkbox" data-pkgid="{{ $pkg->id }}" data-duration="{{ $svcDur }}" name="service_ids[]" value="{{ $s->id }}" id="pkgsvc{{ $pkg->id }}_{{ $s->id }}" {{ $inPkg ? 'checked' : '' }}>
                                                                             <label for="pkgsvc{{ $pkg->id }}_{{ $s->id }}" class="me-3">{{ $s->name }} <small class="text-muted">({{ $s->category }})</small></label>
                                                                             <input type="number" name="quantities[{{ $s->id }}]" class="form-control form-control-sm ms-auto pkg-svc-qty" data-pkgid="{{ $pkg->id }}" data-duration="{{ $svcDur }}" style="width:120px;" min="1" value="{{ $inPkg ? $pivotQty : 1 }}">
+                                                                            <input type="number" name="sessions[{{ $s->id }}]" class="form-control form-control-sm ms-2 pkg-svc-sessions" style="width:120px;" min="1" value="{{ $inPkg && $pivotSessions !== null ? $pivotSessions : ($s->default_sessions ?? 1) }}" placeholder="Sessions">
+                                                                            <span class="ms-1 small text-muted">Sessions</span>
                                                                         </div>
                                                                     @endforeach
                                                                 </div>

@@ -74,21 +74,43 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the text from the input field
         var messageText = messageInput.value;
 
-        // Check if user typed "menu" command
-        if (messageText.trim().toLowerCase() === 'menu') {
+        // Check if user typed "/menu" command
+        if (messageText.trim().toLowerCase() === '/menu') {
             // Clear the input field first
             messageInput.value = '';
 
-            // Show menu command locally
-            var userMenuDiv = document.createElement('div');
-            userMenuDiv.className = 'chat-message user-message';
-            userMenuDiv.style.backgroundColor = '#e3f2fd';
-            userMenuDiv.style.marginLeft = 'auto';
-            userMenuDiv.style.marginRight = '0';
-            userMenuDiv.style.maxWidth = '80%';
-            userMenuDiv.textContent = messageText;
-            messagesContainer.appendChild(userMenuDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            // Check if connected to staff - disconnect first
+            if (window.selectedBranchId) {
+                // Send disconnect notification to staff
+                sendDisconnectNotification();
+                
+                // Clear the branch connection
+                window.selectedBranchId = null;
+                
+                // Update placeholder back to default
+                messageInput.placeholder = "Type '/menu' to show preset buttons...";
+                
+                // Show disconnect message
+                var disconnectDiv = document.createElement('div');
+                disconnectDiv.className = 'chat-message system-message';
+                disconnectDiv.style.backgroundColor = '#fff3cd';
+                disconnectDiv.style.borderLeft = '3px solid #ffc107';
+                disconnectDiv.style.padding = '10px';
+                disconnectDiv.textContent = 'You have been disconnected from staff. Showing menu...';
+                messagesContainer.appendChild(disconnectDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else {
+                // Show menu command locally
+                var userMenuDiv = document.createElement('div');
+                userMenuDiv.className = 'chat-message user-message';
+                userMenuDiv.style.backgroundColor = '#e3f2fd';
+                userMenuDiv.style.marginLeft = 'auto';
+                userMenuDiv.style.marginRight = '0';
+                userMenuDiv.style.maxWidth = '80%';
+                userMenuDiv.textContent = messageText;
+                messagesContainer.appendChild(userMenuDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
 
             // Show main menu after short delay
             setTimeout(function() {
@@ -661,8 +683,59 @@ document.addEventListener('DOMContentLoaded', function() {
         loadChatHistory(branchId);
 
         // Enable the message input for live chat
-        messageInput.placeholder = 'Type "menu" to show preset buttons...';
+        messageInput.placeholder = "Type '/menu' to show preset buttons...";
         messageInput.focus();
+    }
+
+    // Function to send disconnect notification to staff
+    function sendDisconnectNotification() {
+        if (!window.selectedBranchId) return;
+
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            return;
+        }
+
+        var tokenValue = csrfToken.getAttribute('content');
+
+        // Send disconnect notification to server
+        fetch('/api/chat/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': tokenValue,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                branch_id: window.selectedBranchId,
+                message: 'Client requested menu and disconnected from staff.',
+                sender_type: 'system'
+            })
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                console.error('Failed to send disconnect notification');
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            console.log('Disconnect notification sent:', data);
+        })
+        .catch(function(error) {
+            console.error('Error sending disconnect notification:', error);
+        });
+
+        // Stop polling and unsubscribe from Pusher
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+        if (window.currentChatChannel) {
+            window.pusher.unsubscribe(window.currentChatChannel.name);
+            window.currentChatChannel = null;
+        }
     }
 
     // Expose handleBranchClick globally so it can be called from messages page

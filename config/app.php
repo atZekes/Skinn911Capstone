@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Asset Versioning
+    |--------------------------------------------------------------------------
+    |
+    | This version string is appended to asset URLs to bust browser cache.
+    | Update this value whenever you deploy new CSS/JS files to force
+    | browsers to reload the assets. Format: YYYYMMDD.HHMM or semantic versioning.
+    |
+    */
+
+    'asset_version' => env('ASSET_VERSION', date('YmdHi')),
+
 ];

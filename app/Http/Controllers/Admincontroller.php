@@ -630,6 +630,24 @@ class Admincontroller extends Controller{
             'price' => 'required|numeric|min:0|max:999999.99',
         ]);
         $pkg->update($request->only(['name','description','price']));
+
+        // Update sessions for each service in the package
+        $allSessions = $request->input('all_sessions');
+        $sessions = $request->input('sessions', []);
+        $quantities = $request->input('quantities', []);
+        $sync = [];
+        foreach ($pkg->services as $svc) {
+            $sid = $svc->id;
+            $sessionVal = $allSessions ?: (isset($sessions[$sid]) ? $sessions[$sid] : ($svc->pivot->sessions ?? null));
+            $sync[$sid] = [
+                'quantity' => isset($quantities[$sid]) ? $quantities[$sid] : ($svc->pivot->quantity ?? 1),
+                'sessions' => $sessionVal
+            ];
+        }
+        if (!empty($sync)) {
+            $pkg->services()->sync($sync);
+        }
+
         return redirect()->back()->with('success', 'Package updated.');
     }
 
@@ -652,9 +670,13 @@ class Admincontroller extends Controller{
         ]);
         $services = $request->input('service_ids', []);
         $quantities = $request->input('quantities', []);
+        $sessions = $request->input('sessions', []);
         $sync = [];
         foreach ($services as $sid) {
-            $sync[$sid] = ['quantity' => isset($quantities[$sid]) ? $quantities[$sid] : 1];
+            $sync[$sid] = [
+                'quantity' => isset($quantities[$sid]) ? $quantities[$sid] : 1,
+                'sessions' => isset($sessions[$sid]) ? $sessions[$sid] : null
+            ];
         }
         $pkg->services()->sync($sync);
         return redirect()->back()->with('success', 'Package services updated.');

@@ -12,8 +12,8 @@ class Package extends Model
     public function services()
     {
         return $this->belongsToMany(Service::class, 'package_service')
-                    ->withPivot('quantity')
-                    ->withTimestamps();
+                ->withPivot('quantity', 'sessions')
+                ->withTimestamps();
     }
 
     public function branch()

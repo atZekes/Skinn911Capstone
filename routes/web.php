@@ -101,10 +101,10 @@ Route::get('/api/booking/slots', [App\Http\Controllers\ClientController::class, 
 // API endpoint to fetch authoritative service details (duration, price), optional branch scoping
 Route::get('/api/service/{id}', [App\Http\Controllers\ClientController::class, 'serviceDetail'])->name('api.service.detail');
 
-// BotMan endpoint (web widget) - exclude from CSRF so the widget can POST without a session token
-Route::match(['get','post'], '/botman', [App\Http\Controllers\BotManController::class, 'handle'])
-    ->name('botman.handle')
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+// BotMan endpoint (web widget) - DISABLED: Using custom chat system instead
+// Route::match(['get','post'], '/botman', [App\Http\Controllers\BotManController::class, 'handle'])
+//     ->name('botman.handle')
+//     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Two-Factor Authentication Routes
 Route::middleware(['auth'])->group(function () {

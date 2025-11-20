@@ -3,6 +3,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class Booking extends Model
 {
@@ -20,6 +21,7 @@ class Booking extends Model
     public function package() { return $this->belongsTo(\App\Models\Package::class); }
     public function branch() { return $this->belongsTo(Branch::class); }
     public function purchasedServices() { return $this->hasMany(\App\Models\PurchasedService::class); }
+    public function transactions() { return $this->hasMany(\App\Models\Transaction::class); }
 
     // Link to multi-session package (if this booking is part of a package)
     public function packageBooking() {
@@ -138,17 +140,21 @@ class Booking extends Model
         if ($this->package_id) {
             $pkg = \App\Models\Package::with('services')->find($this->package_id);
             if ($pkg) {
-                // Compute total credits as sum of per-service default_sessions * quantity
+                // Compute total credits as sum of per-service sessions * quantity
                 $totalCredits = 0;
                 foreach ($pkg->services as $svc) {
                     $qty = $svc->pivot->quantity ?? 1;
-                    // Branch-specific default sessions override
-                    $branchDefault = \Illuminate\Support\Facades\DB::table('branch_service')
-                        ->where('branch_id', $this->branch_id)
-                        ->where('service_id', $svc->id)
-                        ->value('default_sessions');
-                    $svcDefault = $branchDefault ?? ($svc->default_sessions ?? 1);
-                    $totalCredits += ($svcDefault * $qty);
+                    $pkgSessions = $svc->pivot->sessions ?? null;
+                    if ($pkgSessions !== null) {
+                        $sessionCount = $pkgSessions;
+                    } else {
+                        $branchDefault = \Illuminate\Support\Facades\DB::table('branch_service')
+                            ->where('branch_id', $this->branch_id)
+                            ->where('service_id', $svc->id)
+                            ->value('default_sessions');
+                        $sessionCount = $branchDefault ?? ($svc->default_sessions ?? 1);
+                    }
+                    $totalCredits += ($sessionCount * $qty);
                 }
 
                 // Create a PackageBooking for the client
@@ -176,12 +182,26 @@ class Booking extends Model
                 // Create per-service client package sessions
                 foreach ($pkg->services as $svc) {
                     $qty = $svc->pivot->quantity ?? 1;
-                    $branchDefault = \Illuminate\Support\Facades\DB::table('branch_service')
-                        ->where('branch_id', $this->branch_id)
-                        ->where('service_id', $svc->id)
-                        ->value('default_sessions');
-                    $svcDefault = $branchDefault ?? ($svc->default_sessions ?? 1);
-                    $total = $svcDefault * $qty;
+                    $pkgSessions = $svc->pivot->sessions ?? null;
+                    if ($pkgSessions !== null) {
+                        $sessionCount = $pkgSessions;
+                    } else {
+                        $branchDefault = \Illuminate\Support\Facades\DB::table('branch_service')
+                            ->where('branch_id', $this->branch_id)
+                            ->where('service_id', $svc->id)
+                            ->value('default_sessions');
+                        $sessionCount = $branchDefault ?? ($svc->default_sessions ?? 1);
+                    }
+                    $total = $sessionCount * $qty;
+                    Log::info('Booking package session debug', [
+                        'booking_id' => $this->id,
+                        'service_id' => $svc->id,
+                        'package_id' => $this->package_id,
+                        'sessions_from_pivot' => $pkgSessions,
+                        'sessions_used' => $sessionCount,
+                        'quantity' => $qty,
+                        'total_sessions_created' => $total
+                    ]);
                     if ($total <= 0) continue;
                     try {
                         \App\Models\ClientPackageSession::create([

@@ -61,7 +61,13 @@
                     @forelse($transactions as $transaction)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td>{{ $transaction->service->name ?? '-' }}</td>
+                        <td>
+                            @if($transaction->package_id && $transaction->package)
+                                <span class="badge bg-info">{{ $transaction->package->name }}</span>
+                            @else
+                                {{ $transaction->service->name ?? '-' }}
+                            @endif
+                        </td>
                         <td>{{ number_format($transaction->amount, 2) }}</td>
                         <td>{{ $transaction->payment_method }}</td>
                         <td>{{ $transaction->created_at->format('H:i') }}</td>

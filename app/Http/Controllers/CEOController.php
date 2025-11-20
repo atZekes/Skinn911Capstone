@@ -57,31 +57,36 @@ class CEOController extends Controller
             $lastMonth = now()->subMonth()->month;
             $lastMonthYear = now()->subMonth()->year;
 
-            // Monthly bookings and revenue with error handling
+            // Total completed bookings and revenue with error handling
             try {
-                $totalBookings = \App\Models\Booking::whereMonth('created_at', $currentMonth)
-                                              ->whereYear('created_at', $currentYear)
-                                              ->count();
+                $totalCompletedBookings = \App\Models\Booking::where('status', 'completed')->count();
 
                 $lastMonthBookings = \App\Models\Booking::whereMonth('created_at', $lastMonth)
                                                        ->whereYear('created_at', $lastMonthYear)
+                                                       ->where('status', 'completed')
                                                        ->count();
             } catch (\Exception $e) {
-                $totalBookings = 0;
+                $totalCompletedBookings = 0;
                 $lastMonthBookings = 0;
             }
 
             try {
-                $monthlyRevenue = \App\Models\Transaction::whereMonth('created_at', $currentMonth)
-                                                        ->whereYear('created_at', $currentYear)
-                                                        ->sum('amount') ?? 0;
+                $totalRevenue = \App\Models\Transaction::sum('amount') ?? 0;
+                $monthlyRevenue = $totalRevenue;
+                $lastMonthRevenue = 0;
 
-                $lastMonthRevenue = \App\Models\Transaction::whereMonth('created_at', $lastMonth)
-                                                          ->whereYear('created_at', $lastMonthYear)
-                                                          ->sum('amount') ?? 0;
+                // Separate service and package revenue
+                $serviceRevenue = \App\Models\Transaction::whereNull('package_id')
+                    ->whereNotNull('service_id')
+                    ->sum('amount') ?? 0;
+                $packageRevenue = \App\Models\Transaction::whereNotNull('package_id')
+                    ->sum('amount') ?? 0;
             } catch (\Exception $e) {
+                $totalRevenue = 0;
                 $monthlyRevenue = 0;
                 $lastMonthRevenue = 0;
+                $serviceRevenue = 0;
+                $packageRevenue = 0;
             }
 
             // Branch Performance Comparison
@@ -101,7 +106,7 @@ class CEOController extends Controller
 
             // Calculate growth percentages
             $bookingGrowth = $lastMonthBookings > 0 ?
-                round((($totalBookings - $lastMonthBookings) / $lastMonthBookings) * 100, 1) : 0;
+                round((($totalCompletedBookings - $lastMonthBookings) / $lastMonthBookings) * 100, 1) : 0;
 
             $revenueGrowthPercent = $lastMonthRevenue > 0 ?
                 round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1) : 0;
@@ -118,6 +123,8 @@ class CEOController extends Controller
             $clientAcquisition = [];
             $bookingGrowth = 0;
             $revenueGrowthPercent = 0;
+            $serviceRevenue = 0;
+            $packageRevenue = 0;
         }
 
         // Get branches for the comparison dropdown
@@ -133,8 +140,10 @@ class CEOController extends Controller
             'totalStaff',
             'totalAdmins',
             'activeBranches',
-            'totalBookings',
-            'monthlyRevenue',
+            'totalCompletedBookings',
+            'totalRevenue',
+            'serviceRevenue',
+            'packageRevenue',
             'branchPerformance',
             'revenueGrowth',
             'topServices',
@@ -156,14 +165,10 @@ class CEOController extends Controller
             $performance = [];
 
             foreach ($branches as $branch) {
-                // Bookings this month (current month)
-                $bookings_month = \App\Models\Booking::where('branch_id', $branch->id)
-                                               ->whereMonth('created_at', now()->month)
-                                               ->whereYear('created_at', now()->year)
-                                               ->count();
-
-                // Overall bookings (all time)
+                // Overall completed bookings (all time)
+                $bookings_month = null;
                 $bookings_overall = \App\Models\Booking::where('branch_id', $branch->id)
+                                               ->where('status', 'completed')
                                                ->count();
 
                 // Revenue for this branch this month
@@ -234,11 +239,9 @@ class CEOController extends Controller
         try {
             $services = \App\Models\Service::join('bookings', 'services.id', '=', 'bookings.service_id')
                                            ->selectRaw('services.name, COUNT(bookings.id) as booking_count')
-                                           ->whereMonth('bookings.created_at', now()->month)
-                                           ->whereYear('bookings.created_at', now()->year)
                                            ->groupBy('services.id', 'services.name')
                                            ->orderByDesc('booking_count')
-                                           ->limit(5)
+                                           ->limit(10)
                                            ->get()
                                            ->map(function($service) {
                                                return [

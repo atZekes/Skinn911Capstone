@@ -428,8 +428,11 @@ class StaffController extends Controller
                         ->where('status', 'active')
                         ->count();
                     if ($count >= $max) {
-                        // Slot is full - skip validation, frontend should handle this
-                        continue;
+                        // Slot is full - prevent booking
+                        if ($request->ajax()) {
+                            return response()->json(['success' => false, 'message' => 'The selected time slot is already full. Please choose another time.'], 422);
+                        }
+                        return back()->withErrors(['time_slot' => 'The selected time slot is already full. Please choose another time.'])->withInput();
                     }
                 }
             }
@@ -505,7 +508,7 @@ class StaffController extends Controller
                     'is_walkin' => $booking->is_walkin,
                     'walkin_name' => $booking->walkin_name ?? $request->walkin_name ?? null,
                     'cancel_url' => route('staff.cancelAppointment', $booking->id),
-                    'csrf' => csrf_field(),
+                    'csrf_token' => csrf_token(),
                     'duration' => $totalDuration,
                 ],
                 // authoritative list of required hourly slots this booking occupies
@@ -766,7 +769,7 @@ class StaffController extends Controller
 
 
         // Get today's transactions for the staff's branch
-        $transactions = \App\Models\Transaction::with('service')
+        $transactions = \App\Models\Transaction::with(['service', 'package'])
             ->where('branch_id', $staffBranchId)
             ->whereDate('created_at', now()->toDateString())
             ->orderBy('created_at', 'desc')
@@ -906,19 +909,15 @@ class StaffController extends Controller
             return redirect()->route('staff.appointments')->with('info', 'This appointment is already marked as completed.');
         }
 
-        // Prevent completion if client still has session credits for this service
+        // Prevent completion if there are sessions remaining for this booking (service or package)
         try {
-            $credits = \App\Models\ClientPackageSession::where('user_id', $appointment->user_id)
-                        ->where('branch_id', $appointment->branch_id)
-                        ->where('service_id', $appointment->service_id)
-                        ->active()
-                        ->sum('sessions_remaining');
+            $credits = \App\Models\ClientPackageSession::where('booking_id', $appointment->id)
+                ->sum('sessions_remaining');
         } catch (\Exception $e) {
             $credits = 0;
         }
-
         if ($credits > 0) {
-            return redirect()->route('staff.appointments')->with('error', 'Cannot complete appointment: client still has session credits remaining.');
+            return redirect()->route('staff.appointments')->with('error', 'Cannot complete appointment: There are still sessions remaining for this booking.');
         }
 
         // If payment method is cash and not yet paid, mark payment as paid when completing
@@ -942,16 +941,19 @@ class StaffController extends Controller
                 'payment_method' => $appointment->payment_method ?? 'cash',
             ]);
         } elseif ($appointment->package_id) {
-            // Package - create for each service
-            $package = \App\Models\Package::with('services')->find($appointment->package_id);
+            // Package - record only package price, prevent duplicate
+            $package = \App\Models\Package::find($appointment->package_id);
             if ($package) {
-                foreach ($package->services as $service) {
+                $existing = \App\Models\Transaction::where('booking_id', $appointment->id)
+                    ->where('package_id', $package->id)
+                    ->first();
+                if (! $existing) {
                     \App\Models\Transaction::create([
                         'booking_id' => $appointment->id,
-                        'service_id' => $service->id,
+                        'package_id' => $package->id,
                         'branch_id' => $appointment->branch_id,
                         'staff_id' => auth('staff')->id(),
-                        'amount' => $service->price ?? 0,
+                        'amount' => $package->price ?? 0,
                         'payment_method' => $appointment->payment_method ?? 'cash',
                     ]);
                 }
@@ -1330,9 +1332,9 @@ class StaffController extends Controller
 
             // Send Email about remaining sessions
             try {
-                \Mail::to($client->email)->send(new \App\Mail\SessionReminder($booking, $sessionCredit));
+                Mail::to($client->email)->send(new \App\Mail\SessionReminder($booking, $sessionCredit));
             } catch (\Exception $e) {
-                \Log::warning('Failed to send session reminder email: ' . $e->getMessage());
+                Log::warning('Failed to send session reminder email: ' . $e->getMessage());
             }
 
             // Send Push Notification
@@ -1360,7 +1362,7 @@ class StaffController extends Controller
             return back()->with('success', 'Reminder sent to ' . $client->name . ' via email and push notification.');
 
         } catch (\Exception $e) {
-            \Log::error('Error sending package reminder: ' . $e->getMessage());
+            Log::error('Error sending package reminder: ' . $e->getMessage());
             return back()->with('error', 'Error sending reminder: ' . $e->getMessage());
         }
     }
@@ -1403,33 +1405,26 @@ class StaffController extends Controller
 
                     if ($session) {
                         $session->deductSession();
-                        // Record transaction for this session completion (package session)
-                        try {
-                            $amount = 0;
-                            if (isset($session->total_price) && $session->total_sessions) {
-                                $amount = round($session->total_price / max(1, $session->total_sessions), 2);
-                            } else {
-                                // fallback to service price
-                                $amount = $booking->service ? ($booking->service->price ?? 0) : 0;
+                        // Only record a transaction for the package price when all sessions are completed
+                        $remainingSessions = $booking->getRemainingSessionsCount();
+                        if ($remainingSessions === 0 && $booking->package_id) {
+                            $package = \App\Models\Package::find($booking->package_id);
+                            if ($package) {
+                                // Prevent duplicate transaction for this booking/package
+                                $existing = \App\Models\Transaction::where('booking_id', $booking->id)
+                                    ->where('package_id', $package->id)
+                                    ->first();
+                                if (! $existing) {
+                                    \App\Models\Transaction::create([
+                                        'booking_id' => $booking->id,
+                                        'package_id' => $package->id,
+                                        'branch_id' => $booking->branch_id,
+                                        'staff_id' => auth('staff')->id(),
+                                        'amount' => $package->price ?? 0,
+                                        'payment_method' => $booking->payment_method ?? 'package',
+                                    ]);
+                                }
                             }
-                            // prevent duplicate transaction for same booking/service within short window
-                            $recent = \App\Models\Transaction::where('booking_id', $booking->id)
-                                ->where('service_id', $session->service_id)
-                                ->where('amount', $amount)
-                                ->where('created_at', '>=', now()->subMinutes(5))
-                                ->first();
-                            if (! $recent) {
-                                \App\Models\Transaction::create([
-                                    'booking_id' => $booking->id,
-                                    'service_id' => $session->service_id,
-                                    'branch_id' => $booking->branch_id,
-                                    'staff_id' => auth('staff')->id(),
-                                    'amount' => $amount,
-                                    'payment_method' => $booking->payment_method ?? 'package',
-                                ]);
-                            }
-                        } catch (\Exception $e) {
-                            Log::warning('Failed to record transaction for package session completion', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
                         }
                     }
                 } catch (\Exception $e) {

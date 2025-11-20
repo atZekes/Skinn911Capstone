@@ -12,6 +12,9 @@ return new class extends Migration {
             $table->unsignedBigInteger('staff_id')->nullable();
             $table->decimal('amount', 10, 2);
             $table->string('payment_method');
+            $table->unsignedBigInteger('booking_id')->nullable();
+            $table->unsignedBigInteger('package_id')->nullable();
+            $table->string('package_name')->nullable();
             $table->timestamps();
             $table->foreign('service_id')->references('id')->on('services')->onDelete('cascade');
             $table->foreign('branch_id')->references('id')->on('branches')->onDelete('set null');

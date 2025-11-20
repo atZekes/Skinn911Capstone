@@ -21,10 +21,10 @@
 
 
     <!-- CEO specific stylesheets -->
-    <link rel="stylesheet" href="{{ asset('css/CEO/layout.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/CEO/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/CEO/adduseradmin.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/CEO/usermanage.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/CEO/layout.css') }}?v={{ config('app.asset_version', '1.0.0') }}">
+    <link rel="stylesheet" href="{{ asset('css/CEO/dashboard.css') }}?v={{ config('app.asset_version', '1.0.0') }}">
+    <link rel="stylesheet" href="{{ asset('css/CEO/adduseradmin.css') }}?v={{ config('app.asset_version', '1.0.0') }}">
+    <link rel="stylesheet" href="{{ asset('css/CEO/usermanage.css') }}?v={{ config('app.asset_version', '1.0.0') }}">
 
     <!-- Page specific styles (loaded after base styles) -->
     @yield('styles')
@@ -100,12 +100,12 @@
 
     <!-- Mobile menu functionality -->
     <!-- CEO specific JavaScript -->
-    <script src="{{ asset('js/CEO/layout.js') }}"></script>
+    <script src="{{ asset('js/CEO/layout.js') }}?v={{ config('app.asset_version', '1.0.0') }}"></script>
 
     @if(request()->routeIs('ceo.usermanage'))
-        <script src="{{ asset('js/CEO/usermanage.js') }}"></script>
+        <script src="{{ asset('js/CEO/usermanage.js') }}?v={{ config('app.asset_version', '1.0.0') }}"></script>
     @elseif(request()->routeIs('ceo.branchmanagement'))
-        <script src="{{ asset('js/CEO/branchmanagement.js') }}"></script>
+        <script src="{{ asset('js/CEO/branchmanagement.js') }}?v={{ config('app.asset_version', '1.0.0') }}"></script>
     @endif
 
     @yield('scripts')
