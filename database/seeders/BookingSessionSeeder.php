@@ -322,6 +322,8 @@ class BookingSessionSeeder extends Seeder
 
     private function getServicePrice($serviceId, $defaultServicePrices)
     {
-        return $defaultServicePrices[$serviceId] ?? 1000;
+        $price = $defaultServicePrices[$serviceId] ?? 1000;
+        // Cap the price at 12,000
+        return min($price, 12000);
     }
 }
