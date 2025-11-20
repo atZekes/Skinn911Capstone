@@ -18,14 +18,25 @@ class BookingSessionSeeder extends Seeder
         $branchIdList = $branchIds->toArray();
         $branchCount = count($branchIdList);
 
-        $serviceData = DB::table('services')->select('id', 'price')->get()->keyBy('id');
+        // Get all branch-service prices as a lookup: [branch_id][service_id] => price
+        $branchServicePrices = DB::table('branch_service')->get()->groupBy('branch_id')->map(function($group) {
+            return $group->keyBy('service_id');
+        });
+        // Get default service prices as a lookup: [service_id] => price
+        $defaultServicePrices = DB::table('services')->pluck('price', 'id');
         $timeSlots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
 
         foreach ($userIds as $userId) {
             foreach ($serviceIds as $serviceId) {
                 $branch_id = $branchIdList[array_rand($branchIdList)];
                 $randomTimeSlot = $timeSlots[array_rand($timeSlots)];
-                $servicePrice = $serviceData[$serviceId]->price ?? 1000;
+                if (isset($branchServicePrices[$branch_id][$serviceId]) && $branchServicePrices[$branch_id][$serviceId]->price !== null) {
+                    $servicePrice = $branchServicePrices[$branch_id][$serviceId]->price;
+                } elseif (isset($defaultServicePrices[$serviceId]) && $defaultServicePrices[$serviceId] !== null) {
+                    $servicePrice = $defaultServicePrices[$serviceId];
+                } else {
+                    $servicePrice = 1000;
+                }
                 // Generate a random date in the past year
                 $daysAgo = rand(1, 365);
                 $bookingDate = Carbon::now()->subDays($daysAgo);
