@@ -44,9 +44,6 @@ class BookingSessionSeeder extends Seeder
         }
 
         // Get branch-service prices
-        $branchServicePrices = DB::table('branch_service')->get()->groupBy('branch_id')->map(function($group) {
-            return $group->keyBy('service_id');
-        });
         $defaultServicePrices = DB::table('services')->pluck('price', 'id');
         $serviceDefaultSessions = DB::table('services')->pluck('default_sessions', 'id');
 
@@ -83,11 +80,11 @@ class BookingSessionSeeder extends Seeder
 
             [$paymentStatus, $sessionStatus] = $this->getPaymentAndSessionStatus($status);
 
-            // Calculate total package price based on branch service prices
+            // Calculate total package price based on service table prices only
             $packageServiceRows = DB::table('package_service')->where('package_id', $packageId)->get();
             $totalPackagePrice = 0;
             foreach ($packageServiceRows as $ps) {
-                $totalPackagePrice += $this->getServicePrice($ps->service_id, $branchId, $branchServicePrices, $defaultServicePrices);
+                $totalPackagePrice += $defaultServicePrices[$ps->service_id] ?? 1000;
             }
             if ($totalPackagePrice == 0) {
                 $totalPackagePrice = $package->price ?? 5000;
@@ -155,7 +152,7 @@ class BookingSessionSeeder extends Seeder
             $serviceId = $serviceIds[array_rand($serviceIds)];
             $branchId = $branchIds[array_rand($branchIds)];
 
-            $servicePrice = $this->getServicePrice($serviceId, $branchId, $branchServicePrices, $defaultServicePrices);
+            $servicePrice = $this->getServicePrice($serviceId, $defaultServicePrices);
             // Randomly create bookings in past (365 days) OR future (30 days)
             if (rand(0, 1)) {
                 // Future booking (next 30 days)
@@ -244,7 +241,7 @@ class BookingSessionSeeder extends Seeder
         for ($i = 0; $i < $walkinCount; $i++) {
             $branchId = $branchIds[array_rand($branchIds)];
             $serviceId = $serviceIds[array_rand($serviceIds)];
-            $servicePrice = $this->getServicePrice($serviceId, $branchId, $branchServicePrices, $defaultServicePrices);
+            $servicePrice = $this->getServicePrice($serviceId, $defaultServicePrices);
 
             $walkinName = $faker->name();
             $walkinEmail = 'walkin_' . Str::slug(strtolower($walkinName)) . '_' . time() . '_' . $i . '@example.test';
@@ -323,11 +320,8 @@ class BookingSessionSeeder extends Seeder
         }
     }
 
-    private function getServicePrice($serviceId, $branchId, $branchServicePrices, $defaultServicePrices)
+    private function getServicePrice($serviceId, $defaultServicePrices)
     {
-        if (isset($branchServicePrices[$branchId][$serviceId]) && $branchServicePrices[$branchId][$serviceId]->price !== null) {
-            return $branchServicePrices[$branchId][$serviceId]->price;
-        }
         return $defaultServicePrices[$serviceId] ?? 1000;
     }
 }
