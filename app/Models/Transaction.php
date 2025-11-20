@@ -8,7 +8,7 @@ class Transaction extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'service_id', 'amount', 'payment_method', 'branch_id', 'staff_id'
+        'service_id', 'amount', 'payment_method', 'branch_id', 'staff_id', 'booking_id'
     ];
     public function service() { return $this->belongsTo(Service::class); }
     public function branch() { return $this->belongsTo(Branch::class); }

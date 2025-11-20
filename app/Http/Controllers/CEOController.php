@@ -155,23 +155,39 @@ class CEOController extends Controller
             $performance = [];
 
             foreach ($branches as $branch) {
-                // Get bookings count for this branch this month
-                $bookings = \App\Models\Booking::where('branch_id', $branch->id)
+                // Bookings this month (current month)
+                $bookings_month = \App\Models\Booking::where('branch_id', $branch->id)
                                                ->whereMonth('created_at', now()->month)
                                                ->whereYear('created_at', now()->year)
                                                ->count();
 
-                // Get revenue for this branch this month
-                $revenue = \App\Models\Transaction::join('bookings', 'transactions.service_id', '=', 'bookings.service_id')
+                // Overall bookings (all time)
+                $bookings_overall = \App\Models\Booking::where('branch_id', $branch->id)
+                                               ->count();
+
+                // Revenue for this branch this month
+                // Use transactions.booking_id -> bookings.id to accurately attribute revenue
+                $revenue_month = \App\Models\Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
                                                   ->where('bookings.branch_id', $branch->id)
                                                   ->whereMonth('transactions.created_at', now()->month)
                                                   ->whereYear('transactions.created_at', now()->year)
                                                   ->sum('transactions.amount') ?? 0;
 
+                // Overall revenue (all time) for branch
+                $revenue_overall = \App\Models\Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+                                                  ->where('bookings.branch_id', $branch->id)
+                                                  ->sum('transactions.amount') ?? 0;
+
+                // Include legacy keys 'bookings' and 'revenue' for backward compatibility
                 $performance[] = [
                     'name' => $branch->name,
-                    'bookings' => $bookings,
-                    'revenue' => $revenue
+                    'bookings_month' => $bookings_month,
+                    'bookings_overall' => $bookings_overall,
+                    'revenue_month' => floatval($revenue_month),
+                    'revenue_overall' => floatval($revenue_overall),
+                    // legacy aliases expected by older views / JS
+                    'bookings' => $bookings_month,
+                    'revenue' => floatval($revenue_month),
                 ];
             }
 

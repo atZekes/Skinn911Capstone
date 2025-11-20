@@ -772,38 +772,6 @@ class StaffController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get today's completed bookings/services for the staff's branch
-        $completedBookings = \App\Models\Booking::with(['service'])
-            ->where('branch_id', $staffBranchId)
-            ->where('status', 'completed')
-            ->whereDate('updated_at', now()->toDateString())
-            ->orderBy('updated_at', 'desc')
-            ->get();
-
-        // Merge transactions and completed bookings into a single collection for POS
-        $mergedTransactions = collect();
-        foreach ($transactions as $t) {
-            $mergedTransactions->push([
-                'type' => 'manual',
-                'service' => $t->service->name ?? '-',
-                'amount' => $t->amount,
-                'payment_method' => $t->payment_method,
-                'time' => $t->created_at->format('H:i'),
-            ]);
-        }
-        foreach ($completedBookings as $b) {
-            $mergedTransactions->push([
-                'type' => 'completed',
-                'service' => $b->service->name ?? '-',
-                'amount' => $b->service->price ?? 0,
-                'payment_method' => $b->payment_method,
-                'time' => $b->updated_at ? $b->updated_at->format('H:i') : $b->date,
-            ]);
-        }
-
-        $staff = User::where('role', 'staff')->get();
-        return view('Staff.staffhome', compact('staff', 'mergedTransactions'));
-
         $staff = User::where('role', 'staff')->get();
         return view('Staff.staffhome', compact('staff', 'transactions'));
     }
@@ -961,6 +929,34 @@ class StaffController extends Controller
         // Mark as completed
         $appointment->status = 'completed';
         $appointment->save();
+
+        // Record transaction for completed booking
+        if ($appointment->service_id) {
+            // Single service
+            \App\Models\Transaction::create([
+                'booking_id' => $appointment->id,
+                'service_id' => $appointment->service_id,
+                'branch_id' => $appointment->branch_id,
+                'staff_id' => auth('staff')->id(),
+                'amount' => $appointment->service ? $appointment->service->price : 0,
+                'payment_method' => $appointment->payment_method ?? 'cash',
+            ]);
+        } elseif ($appointment->package_id) {
+            // Package - create for each service
+            $package = \App\Models\Package::with('services')->find($appointment->package_id);
+            if ($package) {
+                foreach ($package->services as $service) {
+                    \App\Models\Transaction::create([
+                        'booking_id' => $appointment->id,
+                        'service_id' => $service->id,
+                        'branch_id' => $appointment->branch_id,
+                        'staff_id' => auth('staff')->id(),
+                        'amount' => $service->price ?? 0,
+                        'payment_method' => $appointment->payment_method ?? 'cash',
+                    ]);
+                }
+            }
+        }
 
         // Send push notification to client with booking ID
         if ($appointment->user_id) {
@@ -1177,13 +1173,27 @@ class StaffController extends Controller
             'service_id' => 'required|exists:services,id',
             'amount' => 'required|numeric|min:0',
             'payment_method' => 'required|string',
+            'booking_id' => 'nullable|integer|exists:bookings,id',
         ]);
+
+        // Prevent double recording for the same booking
+        if ($request->booking_id) {
+            $existingTransaction = \App\Models\Transaction::where('booking_id', $request->booking_id)->first();
+            if ($existingTransaction) {
+                if ($request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'A transaction already exists for this booking.'], 422);
+                }
+                return redirect()->back()->withErrors(['booking_id' => 'A transaction already exists for this booking.']);
+            }
+        }
+
         $transaction = \App\Models\Transaction::create([
             'service_id' => $request->service_id,
             'amount' => $request->amount,
             'payment_method' => $request->payment_method,
             'branch_id' => auth('staff')->user()->branch_id ?? null,
             'staff_id' => auth('staff')->id(),
+            'booking_id' => $request->booking_id,
         ]);
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Transaction recorded successfully.']);
@@ -1393,6 +1403,34 @@ class StaffController extends Controller
 
                     if ($session) {
                         $session->deductSession();
+                        // Record transaction for this session completion (package session)
+                        try {
+                            $amount = 0;
+                            if (isset($session->total_price) && $session->total_sessions) {
+                                $amount = round($session->total_price / max(1, $session->total_sessions), 2);
+                            } else {
+                                // fallback to service price
+                                $amount = $booking->service ? ($booking->service->price ?? 0) : 0;
+                            }
+                            // prevent duplicate transaction for same booking/service within short window
+                            $recent = \App\Models\Transaction::where('booking_id', $booking->id)
+                                ->where('service_id', $session->service_id)
+                                ->where('amount', $amount)
+                                ->where('created_at', '>=', now()->subMinutes(5))
+                                ->first();
+                            if (! $recent) {
+                                \App\Models\Transaction::create([
+                                    'booking_id' => $booking->id,
+                                    'service_id' => $session->service_id,
+                                    'branch_id' => $booking->branch_id,
+                                    'staff_id' => auth('staff')->id(),
+                                    'amount' => $amount,
+                                    'payment_method' => $booking->payment_method ?? 'package',
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning('Failed to record transaction for package session completion', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                        }
                     }
                 } catch (\Exception $e) {
                     Log::error('Error completing session', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
@@ -1430,23 +1468,28 @@ class StaffController extends Controller
                 $booking->last_completed_session_date = now();
                 $booking->status = 'completed';
                 $booking->save();
-                return back()->with('success', 'Walk-in session completed!');
-                // Single-session booking - mark as completed
-                $booking->status = 'completed';
-                $booking->save();
-
-                // Notify client
-                if ($booking->user_id) {
-                    $this->sendPushNotification(
-                        $booking->user_id,
-                        'Service Completed',
-                        'Your service has been completed. Thank you for choosing Skin911!',
-                        'success',
-                        $booking->id
-                    );
+                // Record transaction for walk-in / single-session booking
+                try {
+                    $amount = $booking->service ? ($booking->service->price ?? 0) : 0;
+                    $recent = \App\Models\Transaction::where('booking_id', $booking->id)
+                        ->where('service_id', $booking->service_id)
+                        ->where('amount', $amount)
+                        ->where('created_at', '>=', now()->subMinutes(5))
+                        ->first();
+                    if (! $recent) {
+                        \App\Models\Transaction::create([
+                            'booking_id' => $booking->id,
+                            'service_id' => $booking->service_id,
+                            'branch_id' => $booking->branch_id,
+                            'staff_id' => auth('staff')->id(),
+                            'amount' => $amount,
+                            'payment_method' => $booking->payment_method ?? 'cash',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Failed to record transaction for single/walkin completion', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
                 }
-
-                return back()->with('success', 'Booking marked as completed!');
+                return back()->with('success', 'Walk-in session completed!');
             }
 
         } catch (\Exception $e) {

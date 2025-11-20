@@ -297,43 +297,29 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="branch" style="color:#e75480;">Branch</label>
                 @php $staffBranchId = optional(auth('staff')->user())->branch_id; @endphp
-                @if($staffBranchId)
-                  @php
-                    $onlyBranch = \App\Models\Branch::find($staffBranchId);
-                    try {
-                      $svcQuery = $onlyBranch ? $onlyBranch->services()->get() : collect();
-                      $servicesForBranch = $svcQuery->filter(function($s){
-                        $globActive = (\Illuminate\Support\Facades\Schema::hasColumn('services', 'active')) ? (bool)($s->active ?? 1) : true;
-                        $pivotActive = isset($s->pivot) && isset($s->pivot->active) ? (bool)$s->pivot->active : true;
-                        return $globActive && $pivotActive;
-                      })->map(function($s){ return ['id'=>$s->id,'name'=>$s->name,'price'=> $s->pivot->price ?? $s->price ?? null, 'duration' => $s->pivot->duration ?? $s->duration ?? 1]; })->values();
-                    } catch (\Exception $e) { $servicesForBranch = collect(); }
-                  @endphp
-                  <select name="branch_id" class="form-control" required disabled>
-                    <option value="{{ $onlyBranch->id ?? '' }}" data-services='@json($servicesForBranch)' selected>{{ $onlyBranch->name ?? 'Assigned Branch' }}</option>
-                  </select>
-                  <input type="hidden" name="branch_id" value="{{ $onlyBranch->id ?? '' }}">
+                @if(!$staffBranchId)
+                <label for="branch" style="color:#e75480;">Branch</label>
+                <select name="branch_id" class="form-control" required>
+                  @foreach(App\Models\Branch::all() as $branch)
+                    @php
+                      // compute services allowed for this branch (respect global active column if present, and pivot active if present)
+                      try {
+                        $svcQuery = $branch->services()->get();
+                        $servicesForBranch = $svcQuery->filter(function($s){
+                          $globActive = (\Illuminate\Support\Facades\Schema::hasColumn('services', 'active')) ? (bool)($s->active ?? 1) : true;
+                          $pivotActive = isset($s->pivot) && isset($s->pivot->active) ? (bool)$s->pivot->active : true;
+                          return $globActive && $pivotActive;
+                        })->map(function($s){ return ['id'=>$s->id,'name'=>$s->name,'price'=> $s->pivot->price ?? $s->price ?? null, 'duration' => $s->pivot->duration ?? $s->duration ?? 1]; })->values();
+                      } catch (\Exception $e) {
+                        $servicesForBranch = collect();
+                      }
+                    @endphp
+                    <option value="{{ $branch->id }}" data-services='@json($servicesForBranch)' @if(optional(auth('staff')->user())->branch_id == $branch->id) selected @endif>{{ $branch->name }}</option>
+                  @endforeach
+                </select>
                 @else
-                  <select name="branch_id" class="form-control" required>
-                    @foreach(App\Models\Branch::all() as $branch)
-                      @php
-                        // compute services allowed for this branch (respect global active column if present, and pivot active if present)
-                        try {
-                          $svcQuery = $branch->services()->get();
-                          $servicesForBranch = $svcQuery->filter(function($s){
-                            $globActive = (\Illuminate\Support\Facades\Schema::hasColumn('services', 'active')) ? (bool)($s->active ?? 1) : true;
-                            $pivotActive = isset($s->pivot) && isset($s->pivot->active) ? (bool)$s->pivot->active : true;
-                            return $globActive && $pivotActive;
-                          })->map(function($s){ return ['id'=>$s->id,'name'=>$s->name,'price'=> $s->pivot->price ?? $s->price ?? null, 'duration' => $s->pivot->duration ?? $s->duration ?? 1]; })->values();
-                        } catch (\Exception $e) {
-                          $servicesForBranch = collect();
-                        }
-                      @endphp
-                      <option value="{{ $branch->id }}" data-services='@json($servicesForBranch)' @if(optional(auth('staff')->user())->branch_id == $branch->id) selected @endif>{{ $branch->name }}</option>
-                    @endforeach
-                  </select>
+                <input type="hidden" name="branch_id" value="{{ $staffBranchId }}">
                 @endif
               </div>
               <div class="form-group">
@@ -625,9 +611,21 @@ document.addEventListener('DOMContentLoaded', function() {
           });
 
         } catch (e) { console.warn('Failed to update calendar badge names', e); }
-                // close modal
+                // close modal (use jQuery if present, otherwise fallback)
                 var modalEl = document.getElementById('addBookingModal');
-                if (modalEl) $(modalEl).modal('hide');
+                try {
+                  if (modalEl) {
+                    if (window.jQuery && typeof window.jQuery === 'function' && typeof window.jQuery(modalEl).modal === 'function') {
+                      window.jQuery(modalEl).modal('hide');
+                    } else if (modalEl.classList.contains('fade')) {
+                      // ensure Bootstrap-style closing doesn't throw — try to remove 'show' class
+                      modalEl.classList.remove('show');
+                      modalEl.style.display = 'none';
+                    } else {
+                      modalEl.style.display = 'none';
+                    }
+                  }
+                } catch(e) { /* ignore close error */ }
                 addForm.reset();
                 // show toast
                 var toast = document.getElementById('bookingSuccessToast');
@@ -721,7 +719,15 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch(e){}
 
         // close modal
-        try { if (modal) { if (window.jQuery) $(modal).modal('hide'); else modal.style.display='none'; } } catch(e){}
+        try {
+          if (modal) {
+            if (window.jQuery && typeof window.jQuery === 'function' && typeof window.jQuery(modal).modal === 'function') {
+              window.jQuery(modal).modal('hide');
+            } else {
+              modal.style.display = 'none';
+            }
+          }
+        } catch(e){}
 
         // show success toast
         try { var toast = document.getElementById('bookingSuccessToast'); if (toast) { toast.style.display='block'; setTimeout(function(){ toast.style.display='none'; }, 2200); } } catch(e){}
@@ -737,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // Populate Add Walk-In modal time slots from branch.time_slot and server-side full slots
 document.addEventListener('DOMContentLoaded', function() {
-  function parseHHMMToMinutes(hhmm) { var parts = hhmm.split(':'); var h = parseInt(parts[0],10)||0; var m = parts[1]||'00'; return h*60 + m; }
+  function parseHHMMToMinutes(hhmm) { var parts = hhmm.split(':'); var h = parseInt(parts[0],10)||0; var m = parseInt((parts[1]||'00').trim(),10)||0; return h*60 + m; }
   function minutesToHHMM(mins) { var h = Math.floor(mins/60); var m = mins % 60; return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'); }
   function buildHourlySlotsFromRange(rangeStr) {
     if (!rangeStr) return [];
@@ -771,21 +777,32 @@ document.addEventListener('DOMContentLoaded', function() {
   @endforeach
 
   function refreshSlotsInModal() {
-  var modal = document.getElementById('addBookingModal'); if (!modal) return;
+  console.log('refreshSlotsInModal called');
+  var modal = document.getElementById('addBookingModal'); if (!modal) { console.log('modal not found'); return; }
     var branchSelect = modal.querySelector('select[name="branch_id"]');
+    var branchInput = modal.querySelector('input[name="branch_id"]');
     var dateInput = modal.querySelector('input[name="date"]');
     var timeSelect = modal.querySelector('select[name="time_slot"]');
-    if (!branchSelect || !timeSelect) return;
-    var bid = branchSelect.value;
+    if (!timeSelect) { console.log('timeSelect not found'); return; }
+    var bid = (branchSelect && branchSelect.value) || (branchInput && branchInput.value) || '';
     var dateVal = dateInput ? dateInput.value : '';
+    console.log('branchSelect found:', !!branchSelect, 'branchInput found:', !!branchInput, 'bid:', bid, 'dateVal:', dateVal);
+    // If no branch selected, auto-select the first one (only if select exists)
+    if (!bid && branchSelect && branchSelect.options.length > 0) {
+      branchSelect.selectedIndex = 0;
+      bid = branchSelect.value;
+      console.log('auto-selected first branch, bid:', bid);
+    }
     timeSelect.innerHTML = '';
     var slots = [];
     if (bid && branchMap[bid] && branchMap[bid].time_slot) {
       slots = buildHourlySlotsFromRange(branchMap[bid].time_slot);
+      console.log('using branch slots, length:', slots.length);
     }
     if (!slots.length) {
       // fallback
       slots = ["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"];
+      console.log('using fallback slots, length:', slots.length);
     }
     // placeholder
     var ph = document.createElement('option'); ph.value=''; ph.textContent='Select Time Slot'; timeSelect.appendChild(ph);
@@ -811,11 +828,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch(e) { /* ignore */ }
       } else if (modalSvcSel && modalSvcSel.value) {
         // Service selected
-        var bOpt = branchSelect.options[branchSelect.selectedIndex];
-        var list = [];
-        try { list = JSON.parse(bOpt.getAttribute('data-services') || '[]'); } catch(e) { list = []; }
-        var sObj = list.find(function(x){ return String(x.id) === String(modalSvcSel.value); });
-        if (sObj && sObj.duration) selectedSvcDur = Number(sObj.duration) || 1;
+        if (branchSelect) {
+          var bOpt = branchSelect.options[branchSelect.selectedIndex];
+          var list = [];
+          try { list = JSON.parse(bOpt.getAttribute('data-services') || '[]'); } catch(e) { list = []; }
+          var sObj = list.find(function(x){ return String(x.id) === String(modalSvcSel.value); });
+          if (sObj && sObj.duration) selectedSvcDur = Number(sObj.duration) || 1;
+        } // else selectedSvcDur = 1
       }
     } catch (e) { selectedSvcDur = 1; }
 
@@ -847,27 +866,79 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     var durationStarts = buildDurationStarts(slots, selectedSvcDur);
-    // render duration-sized options
-    durationStarts.forEach(function(ds){
-      var o = document.createElement('option');
-      o.value = ds.value; // first hourly slot
-      o.textContent = formatSlotLabel(ds.labelStart + '-' + ds.labelEnd);
-      // check breaks across required subslots
-      try {
-        if (branchMap[bid] && branchMap[bid].break_start && branchMap[bid].break_end) {
-          for (var ii = 0; ii < ds.required.length; ii++) {
-            var sslot = ds.required[ii];
+    console.log('selectedSvcDur:', selectedSvcDur, 'durationStarts length:', durationStarts.length);
+    // render options: for 1-hour services, prefer hourly slots (more predictable). For multi-hour, use durationStarts.
+    if (selectedSvcDur === 1) {
+      slots.forEach(function(sslot){
+        var o = document.createElement('option');
+        o.value = sslot;
+        o.textContent = formatSlotLabel(sslot);
+        // mark break if intersects
+        try {
+          if (branchMap[bid] && branchMap[bid].break_start && branchMap[bid].break_end) {
             var p = sslot.split('-');
             var sMin = parseHHMMToMinutes(p[0]);
             var eMin = parseHHMMToMinutes(p[1]);
             var bsMin = parseHHMMToMinutes(branchMap[bid].break_start);
             var beMin = parseHHMMToMinutes(branchMap[bid].break_end);
-            if (sMin < beMin && eMin > bsMin) { o.disabled = true; o.textContent = o.textContent + ' (Break)'; break; }
+            if (sMin < beMin && eMin > bsMin) { o.disabled = true; o.textContent = o.textContent + ' (Break)'; }
           }
-        }
-      } catch (ex) { /* ignore */ }
-      timeSelect.appendChild(o);
-    });
+        } catch (ex) { /* ignore */ }
+        timeSelect.appendChild(o);
+      });
+    } else {
+      // multi-hour services: render combined starts
+      durationStarts.forEach(function(ds){
+        var o = document.createElement('option');
+        o.value = ds.value; // first hourly slot
+        o.textContent = formatSlotLabel(ds.labelStart + '-' + ds.labelEnd);
+        // check breaks across required subslots
+        try {
+          if (branchMap[bid] && branchMap[bid].break_start && branchMap[bid].break_end) {
+            for (var ii = 0; ii < ds.required.length; ii++) {
+              var sslot = ds.required[ii];
+              var p = sslot.split('-');
+              var sMin = parseHHMMToMinutes(p[0]);
+              var eMin = parseHHMMToMinutes(p[1]);
+              var bsMin = parseHHMMToMinutes(branchMap[bid].break_start);
+              var beMin = parseHHMMToMinutes(branchMap[bid].break_end);
+              if (sMin < beMin && eMin > bsMin) { o.disabled = true; o.textContent = o.textContent + ' (Break)'; break; }
+            }
+          }
+        } catch (ex) { /* ignore */ }
+        timeSelect.appendChild(o);
+      });
+    }
+    console.log('options added to timeSelect, total options:', timeSelect.options.length);
+
+    // If durationStarts produced no options (possible when branch slots exist but algorithm failed),
+    // build options directly from hourly `slots` so user sees choices.
+    if ((!durationStarts || durationStarts.length === 0) && slots && slots.length) {
+      console.log('durationStarts empty — building options from hourly slots');
+      slots.forEach(function(sslot){
+        try {
+          var opt = document.createElement('option');
+          opt.value = sslot;
+          opt.textContent = formatSlotLabel(sslot);
+          // mark break if intersects
+          try {
+            if (branchMap[bid] && branchMap[bid].break_start && branchMap[bid].break_end) {
+              var p = sslot.split('-');
+              var sMin = parseHHMMToMinutes(p[0]);
+              var eMin = parseHHMMToMinutes(p[1]);
+              var bsMin = parseHHMMToMinutes(branchMap[bid].break_start);
+              var beMin = parseHHMMToMinutes(branchMap[bid].break_end);
+              if (sMin < beMin && eMin > bsMin) { opt.disabled = true; opt.textContent = opt.textContent + ' (Break)'; }
+            }
+          } catch (e) { /* ignore break check */ }
+          // mark unavailable/full if reported
+          if (full.indexOf(opt.value) !== -1) { opt.disabled = true; opt.textContent = opt.textContent + ' (Full)'; }
+          else if (unavailable.indexOf(opt.value) !== -1) { opt.disabled = true; opt.textContent = opt.textContent + ' (Unavailable)'; }
+          timeSelect.appendChild(opt);
+        } catch (e) { /* ignore per-option errors */ }
+      });
+      console.log('built options from hourly slots, total options now:', timeSelect.options.length);
+    }
 
     // then ask server which are full for this branch/date and disable them
     if (bid && dateVal) {
@@ -876,11 +947,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var selectedDur = 1;
       try {
         if (modalSvc && modalSvc.value) {
-          var bOpt = document.querySelector('select[name="branch_id"]').options[document.querySelector('select[name="branch_id"]').selectedIndex];
-          var list = [];
-          try { list = JSON.parse(bOpt.getAttribute('data-services') || '[]'); } catch(e) { list = []; }
-          var sObj = list.find(function(x){ return String(x.id) === String(modalSvc.value); });
-          if (sObj && sObj.duration) selectedDur = Number(sObj.duration) || 1;
+          var branchSel = document.querySelector('select[name="branch_id"]');
+          if (branchSel) {
+            var bOpt = branchSel.options[branchSel.selectedIndex];
+            var list = [];
+            try { list = JSON.parse(bOpt.getAttribute('data-services') || '[]'); } catch(e) { list = []; }
+            var sObj = list.find(function(x){ return String(x.id) === String(modalSvc.value); });
+            if (sObj && sObj.duration) selectedDur = Number(sObj.duration) || 1;
+          } // else selectedDur = 1
         }
       } catch (e) { selectedDur = 1; }
 
@@ -904,6 +978,32 @@ document.addEventListener('DOMContentLoaded', function() {
             opt.textContent = opt.textContent + ' (Unavailable)';
           }
         });
+
+        // If server reported everything as full/unavailable and the select ended up with only the placeholder,
+        // rebuild options from the branch-derived durationStarts so users still see the available ranges (disabled
+        // where necessary) instead of an empty dropdown. This is a safe UI fallback in case the API result is
+        // overly aggressive or there's a timing mismatch.
+        try {
+          var nonEmptyOptions = Array.from(timeSelect.options).filter(function(o){ return o.value && !o.disabled; });
+          if (timeSelect.options.length <= 1 || nonEmptyOptions.length === 0) {
+            // clear current (keep placeholder at index 0)
+            var placeholder = timeSelect.options[0] ? timeSelect.options[0].value === '' ? timeSelect.options[0] : null : null;
+            timeSelect.innerHTML = '';
+            if (placeholder) timeSelect.appendChild(placeholder);
+
+            // durationStarts is available in outer scope - rebuild from that
+            if (typeof durationStarts !== 'undefined' && durationStarts && durationStarts.length) {
+              durationStarts.forEach(function(ds){
+                var opt = document.createElement('option');
+                opt.value = ds.value;
+                opt.textContent = formatSlotLabel(ds.labelStart + '-' + ds.labelEnd);
+                if (full.indexOf(opt.value) !== -1) { opt.disabled = true; opt.textContent = opt.textContent + ' (Full)'; }
+                else if (unavailable.indexOf(opt.value) !== -1) { opt.disabled = true; opt.textContent = opt.textContent + ' (Unavailable)'; }
+                timeSelect.appendChild(opt);
+              });
+            }
+          }
+        } catch (e) { console.warn('fallback rebuild failed', e); }
       }).catch(function(){ /* ignore */ });
     }
 
@@ -919,6 +1019,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Bind modal open via data-target click to be resilient and also on branch/date changes
   var trigger = document.querySelector('button[data-target="#addBookingModal"]'); if (trigger) trigger.addEventListener('click', function(){ setTimeout(refreshSlotsInModal, 50); });
+  // Prefer Bootstrap/jQuery shown event if jQuery exists, otherwise rely on the click handler above
+  if (window.jQuery && typeof window.jQuery === 'function') {
+    try { window.jQuery('#addBookingModal').on('shown.bs.modal', function () { refreshSlotsInModal(); }); } catch(e) { /* ignore */ }
+  }
   document.addEventListener('change', function(e){ if (!e.target) return; if (e.target.name === 'branch_id' || e.target.name === 'date') { refreshSlotsInModal(); } });
 
   // populate service select in Add Walk-In modal based on branch's data-services
@@ -1003,10 +1107,11 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
               var modal = document.getElementById('addBookingModal');
               var branchSelect = modal.querySelector('select[name="branch_id"]');
+              var branchInput = modal.querySelector('input[name="branch_id"]');
               var dateInput = modal.querySelector('input[name="date"]');
               // Ask server for authoritative service duration/price
               var svcId = el.value;
-              var bid = (branchSelect && branchSelect.value) ? branchSelect.value : '';
+              var bid = (branchSelect && branchSelect.value) || (branchInput && branchInput.value) || '';
               if (!svcId) {
                 // no selection -> clear force-duration and rebuild
                 if (modal) { modal.removeAttribute('data-force-duration'); }
@@ -1838,56 +1943,64 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
-$(function() {
+if (window.jQuery && typeof window.jQuery === 'function') {
+  (function($){
+  $(function() {
     function filterTimeSlots() {
-        var selectedDate = $('input[name="date"]').val();
-        var now = new Date();
-        var today = now.toISOString().slice(0,10);
-        var currentHour = now.getHours();
-        var currentMinute = now.getMinutes();
-        var currentTime = currentHour * 60 + currentMinute;
-        var slotMap = {
-            '09:00-10:00': 9 * 60,
-            '10:00-11:00': 10 * 60,
-            '11:00-12:00': 11 * 60,
-            '12:00-13:00': 12 * 60,
-            '13:00-14:00': 13 * 60,
-            '14:00-15:00': 14 * 60,
-            '15:00-16:00': 15 * 60,
-            '16:00-17:00': 16 * 60,
-            '17:00-18:00': 17 * 60
-        };
-        var select = $('select[name="time_slot"]');
-        select.find('option').each(function() {
-            var slot = $(this).val();
-            if(selectedDate === today && slotMap[slot] < currentTime) {
-                $(this).prop('disabled', true).text(slot + ' (Past)');
-            } else {
-                $(this).prop('disabled', false).text(slot);
-            }
-        });
+      var selectedDate = $('input[name="date"]').val();
+      var now = new Date();
+      var today = now.toISOString().slice(0,10);
+      var currentHour = now.getHours();
+      var currentMinute = now.getMinutes();
+      var currentTime = currentHour * 60 + currentMinute;
+      var slotMap = {
+        '09:00-10:00': 9 * 60,
+        '10:00-11:00': 10 * 60,
+        '11:00-12:00': 11 * 60,
+        '12:00-13:00': 12 * 60,
+        '13:00-14:00': 13 * 60,
+        '14:00-15:00': 14 * 60,
+        '15:00-16:00': 15 * 60,
+        '16:00-17:00': 16 * 60,
+        '17:00-18:00': 17 * 60
+      };
+      var select = $('select[name="time_slot"]');
+      select.find('option').each(function() {
+        var slot = $(this).val();
+        if(selectedDate === today && slotMap[slot] < currentTime) {
+          $(this).prop('disabled', true).text(slot + ' (Past)');
+        } else {
+          $(this).prop('disabled', false).text(slot);
+        }
+      });
     }
     $('input[name="date"]').on('change', filterTimeSlots);
     $(document).ready(filterTimeSlots);
-});
+  });
+  })(window.jQuery);
+}
 </script>
 
 <script>
-$(function() {
+if (window.jQuery && typeof window.jQuery === 'function') {
+  (function($){
+  $(function() {
     var cancelForm = null;
     $(document).on('click', 'form[action*="cancelAppointment"] button[type="submit"]', function(e) {
-        e.preventDefault();
-        cancelForm = $(this).closest('form');
-        $('#cancelConfirmModal').modal('show');
+      e.preventDefault();
+      cancelForm = $(this).closest('form');
+      $('#cancelConfirmModal').modal('show');
     });
     $(document).on('click', '#confirmCancelBtn', function() {
-        if(cancelForm) {
-            // Submit the form normally (no AJAX)
-            cancelForm.off('submit'); // Remove previous event handler
-            cancelForm.submit();
-        }
+      if(cancelForm) {
+        // Submit the form normally (no AJAX)
+        cancelForm.off('submit'); // Remove previous event handler
+        cancelForm.submit();
+      }
     });
-});
+  });
+  })(window.jQuery);
+}
 </script>
 <!-- package modal removed: package services are shown inline now -->
 <script>

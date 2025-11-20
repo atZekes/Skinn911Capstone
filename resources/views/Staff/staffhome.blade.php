@@ -8,7 +8,7 @@
             <form id="transaction-form" method="POST" action="{{ route('staff.pos.record') }}">
                 @csrf
                 <div class="form-row">
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-3">
                         <label for="service_id" style="color:#e75480;">Service</label>
                         <select name="service_id" class="form-control" required>
                             @foreach(App\Models\Service::all() as $service)
@@ -16,17 +16,21 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-3">
                         <label for="amount" style="color:#e75480;">Amount</label>
                         <input type="number" name="amount" class="form-control" required min="0" step="0.01">
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-3">
                         <label for="payment_method" style="color:#e75480;">Payment Method</label>
                         <select name="payment_method" class="form-control" required>
                             <option value="Cash">Cash</option>
                             <option value="Card">Card</option>
                             <option value="E-wallet">E-wallet</option>
                         </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="booking_id" style="color:#e75480;">Booking ID (optional)</label>
+                        <input type="number" name="booking_id" class="form-control" min="1" placeholder="Enter Booking ID">
                     </div>
                 </div>
                 <button type="submit" class="btn btn-pink" style="background:#e75480;color:#fff;">Record Transaction</button>
@@ -50,22 +54,22 @@
                         <th>Amount</th>
                         <th>Payment Method</th>
                         <th>Time</th>
-                        <th>Source</th>
+                        <th>Booking ID</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($mergedTransactions as $transaction)
+                    @forelse($transactions as $transaction)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td>{{ $transaction['service'] }}</td>
-                        <td>{{ number_format($transaction['amount'], 2) }}</td>
-                        <td>{{ $transaction['payment_method'] }}</td>
-                        <td>{{ $transaction['time'] }}</td>
+                        <td>{{ $transaction->service->name ?? '-' }}</td>
+                        <td>{{ number_format($transaction->amount, 2) }}</td>
+                        <td>{{ $transaction->payment_method }}</td>
+                        <td>{{ $transaction->created_at->format('H:i') }}</td>
                         <td>
-                            @if($transaction['type'] === 'manual')
-                                <span class="badge bg-info">POS Entry</span>
+                            @if($transaction['booking_id'])
+                                <span class="badge bg-primary">#{{ $transaction['booking_id'] }}</span>
                             @else
-                                <span class="badge bg-success">Completed Service</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                     </tr>
@@ -102,53 +106,42 @@ $(function() {
     $serviceSelect.trigger('change');
 
     // AJAX submit for transaction form
+        let isSubmitting = false;
+        let originalBtnText = '';
         $('#transaction-form').on('submit', function(e) {
             e.preventDefault();
-            console.log('AJAX submit triggered');
+            if (isSubmitting) return;
+            isSubmitting = true;
+            var submitBtn = $(this).find('button[type="submit"]');
+            originalBtnText = submitBtn.html();
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Recording...');
             var form = $(this);
             $.ajax({
                 url: form.attr('action'),
                 method: 'POST',
                 data: form.serialize(),
                 success: function(response) {
+                    isSubmitting = false;
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html(originalBtnText);
                     if (response.success) {
                         $('#transaction-success').show();
+                        form[0].reset();
+                        $('select[name="service_id"]').trigger('change');
+                        // reload to update table
+                        location.reload();
                     } else {
                         alert('Unexpected response.');
                     }
-                    form[0].reset();
-                    $('select[name="service_id"]').trigger('change');
                 },
                 error: function(xhr) {
-                    alert('Error recording transaction. Please try again.');
-                    // Re-enable submit button on error
+                    isSubmitting = false;
                     submitBtn.prop('disabled', false);
                     submitBtn.html(originalBtnText);
+                    alert('Error recording transaction. Please try again.');
                 }
             });
-            return false;
-        });
-
-        // Double-submit prevention
-        let isSubmitting = false;
-        let originalBtnText = '';
-        $('#transaction-form').on('submit', function(e) {
-            var submitBtn = $(this).find('button[type="submit"]');
-            if (isSubmitting) {
-                e.preventDefault();
-                return false;
-            }
-            isSubmitting = true;
-            originalBtnText = submitBtn.html();
-            submitBtn.prop('disabled', true);
-            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Recording...');
-
-            // Re-enable after 3 seconds as fallback
-            setTimeout(function() {
-                isSubmitting = false;
-                submitBtn.prop('disabled', false);
-                submitBtn.html(originalBtnText);
-            }, 3000);
         });
 });
 </script>
