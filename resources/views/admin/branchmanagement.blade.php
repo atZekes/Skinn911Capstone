@@ -432,7 +432,7 @@
                                     <!-- Contact Information -->
                                     <div class="mb-3">
                                         <label>Contact Number</label>
-                                        <input type="text" name="contact_number" class="form-control" value="{{ $branch->contact_number ?? '' }}" placeholder="09XX XXX XXXX">
+                                        <input type="tel" name="contact_number" class="form-control" value="{{ $branch->contact_number ?? '' }}" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" placeholder="Enter 11-digit number starting with 09">
                                     </div>
 
                                     <div class="mb-3">

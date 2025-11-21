@@ -279,11 +279,13 @@
                     </div>
                     <input
                         type="password"
-                        id="password"
+                        id="reset-password"
                         name="password"
                         class="form-control"
                         placeholder="Enter new password"
-                        required>
+                        required
+                        style="padding-right:40px;">
+                    <i class="fa fa-eye password-toggle-icon" id="toggleResetPassword" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;"></i>
                     <span class="password-toggle" onclick="togglePassword('password')">
                         <i class="fas fa-eye" id="password-icon"></i>
                     </span>
@@ -302,11 +304,13 @@
                     </div>
                     <input
                         type="password"
-                        id="password_confirmation"
+                        id="reset-password-confirm"
                         name="password_confirmation"
                         class="form-control"
                         placeholder="Confirm new password"
-                        required>
+                        required
+                        style="padding-right:40px;">
+                    <i class="fa fa-eye password-toggle-icon" id="toggleResetPasswordConfirm" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;"></i>
                     <span class="password-toggle" onclick="togglePassword('password_confirmation')">
                         <i class="fas fa-eye" id="password_confirmation-icon"></i>
                     </span>
@@ -324,25 +328,28 @@
     </div>
 
     <script>
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            const icon = document.getElementById(fieldId + '-icon');
-
-            if (field.type === 'password') {
-                field.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                field.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleResetPassword = document.getElementById('toggleResetPassword');
+            const resetPassword = document.getElementById('reset-password');
+            if (toggleResetPassword && resetPassword) {
+                toggleResetPassword.addEventListener('click', function() {
+                    const type = resetPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                    resetPassword.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
             }
-        }
-
-        // Form submission handling
-        document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('.btn-reset');
-            submitBtn.disabled = true;
+            const toggleResetPasswordConfirm = document.getElementById('toggleResetPasswordConfirm');
+            const resetPasswordConfirm = document.getElementById('reset-password-confirm');
+            if (toggleResetPasswordConfirm && resetPasswordConfirm) {
+                toggleResetPasswordConfirm.addEventListener('click', function() {
+                    const type = resetPasswordConfirm.getAttribute('type') === 'password' ? 'text' : 'password';
+                    resetPasswordConfirm.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+            }
+        });
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Resetting Password...';
         });
     </script>

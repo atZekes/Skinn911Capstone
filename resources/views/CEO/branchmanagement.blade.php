@@ -273,9 +273,11 @@
                                name="contact_number"
                                id="addContactNumber"
                                class="form-control"
-                               placeholder="09171234567"
-                               pattern="09[0-9]{9}"
+                               type="tel"
+                               inputmode="numeric"
                                maxlength="11"
+                               pattern="09[0-9]{9}"
+                               placeholder="Enter 11-digit number starting with 09"
                                title="Must be 11 digits starting with 09">
                         <small class="form-text text-muted">Format: 09XXXXXXXXX (11 digits, optional)</small>
                     </div>
@@ -369,9 +371,11 @@
                                id="editBranchContactNumber"
                                name="contact_number"
                                class="form-control"
-                               placeholder="09171234567"
-                               pattern="09[0-9]{9}"
+                               type="tel"
+                               inputmode="numeric"
                                maxlength="11"
+                               pattern="09[0-9]{9}"
+                               placeholder="Enter 11-digit number starting with 09"
                                title="Must be 11 digits starting with 09">
                         <small class="form-text text-muted">Format: 09XXXXXXXXX (11 digits, optional)</small>
                     </div>

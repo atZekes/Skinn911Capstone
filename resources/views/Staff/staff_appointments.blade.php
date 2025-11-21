@@ -285,7 +285,7 @@
               </div>
               <div class="form-group">
                 <label for="walkin_phone" style="color:#e75480;">Contact Number <span class="text-danger">*</span></label>
-                <input type="tel" id="walkin_phone_input" name="walkin_phone" class="form-control" required placeholder="Enter contact number (e.g., 09123456789)">
+                <input type="tel" id="walkin_phone_input" name="walkin_phone" class="form-control" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" required placeholder="Enter 11-digit number starting with 09">
                 <div id="walkinPhoneError" class="mt-1 text-danger small" style="display:none;">Please enter a valid contact number.</div>
               </div>
               <div class="form-group">

@@ -631,7 +631,7 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="billing_phone" class="form-label">Phone Number</label>
-                                    <input type="text" class="form-control" id="billing_phone" name="billing_phone" placeholder="09XX XXX XXXX" pattern="^\d{11}$"  inputmode="numeric" maxlength="11" required>
+                                    <input type="tel" class="form-control" id="billing_phone" name="billing_phone" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" placeholder="Enter 11-digit number starting with 09" required>
                                 </div>
                             </div>
 

@@ -40,7 +40,7 @@
                 </div>
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
                     <i class="fa fa-phone" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#F56289;opacity:.6;"></i>
-                    <input name="mobile_phone" type="tel" placeholder="PHONE NUMBER" class="input" required value="{{ old('mobile_phone') }}" pattern="[0-9]{10,11}" title="Please enter a valid 10-11 digit phone number" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    <input name="mobile_phone" type="tel" class="input" required value="{{ old('mobile_phone') }}" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" placeholder="Enter 11-digit number starting with 09" title="Must be 11 digits starting with 09" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
                     @if($errors->has('mobile_phone'))
                         <div class="text-danger small mt-1">{{ $errors->first('mobile_phone') }}</div>
                     @endif

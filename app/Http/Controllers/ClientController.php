@@ -374,6 +374,47 @@ public function submitBooking(Request $request)
         $booking->save();
         $user = Auth::user();
 
+        // --- Record transaction with promo discount if applicable ---
+        $finalAmount = null;
+        $promoCode = null;
+        if ($request->filled('promo_code')) {
+            $promo = \App\Models\Promo::where('code', $request->promo_code)->where('active', 1)->first();
+            if ($promo) {
+                // Determine base price
+                if ($request->filled('package_id')) {
+                    $pkg = \App\Models\Package::find($request->package_id);
+                    $basePrice = $pkg ? $pkg->price : 0;
+                } else {
+                    $service = \App\Models\Service::find($request->service_id);
+                    $basePrice = $service ? $service->price : 0;
+                }
+                $discountPct = floatval($promo->discount ?? 0);
+                $discountAmount = round(($basePrice * $discountPct) / 100, 2);
+                $finalAmount = max(0, round($basePrice - $discountAmount, 2));
+                $promoCode = $promo->code;
+            }
+        }
+        // Fallback to normal price if no promo
+        if ($finalAmount === null) {
+            if ($request->filled('package_id')) {
+                $pkg = \App\Models\Package::find($request->package_id);
+                $finalAmount = $pkg ? $pkg->price : 0;
+            } else {
+                $service = \App\Models\Service::find($request->service_id);
+                $finalAmount = $service ? $service->price : 0;
+            }
+        }
+
+        \App\Models\Transaction::create([
+            'service_id' => $request->service_id ?? null,
+            'branch_id' => $request->branch_id ?? null,
+            'booking_id' => $booking->id,
+            'package_id' => $request->package_id ?? null,
+            'amount' => $finalAmount,
+            'payment_method' => $request->payment_method ?? 'cash',
+            'promo_code' => $promoCode,
+        ]);
+
         // If a package is selected, create PurchasedService rows for each service in the package
         if ($request->filled('package_id')) {
             $pkg = \App\Models\Package::with('services')->find($request->package_id);

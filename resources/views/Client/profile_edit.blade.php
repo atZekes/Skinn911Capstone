@@ -34,7 +34,7 @@
         <!-- Mobile phone -->
         <div class="mb-3">
             <label for="mobile_phone">Mobile phone</label>
-            <input id="mobile_phone" name="mobile_phone" class="form-control" value="{{ old('mobile_phone', $user->mobile_phone ?? '') }}" placeholder="09XXXXXXXXX"pattern="^\d{11}$" inputmode="numeric" maxlength="11" required>
+            <input id="mobile_phone" name="mobile_phone" class="form-control" value="{{ old('mobile_phone', $user->mobile_phone ?? '') }}" type="tel" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" placeholder="Enter 11-digit number starting with 09" required>
             @error('mobile_phone') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 

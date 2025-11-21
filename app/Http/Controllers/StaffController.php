@@ -944,7 +944,8 @@ class StaffController extends Controller
                     'branch_id' => $appointment->branch_id,
                     'amount' => $appointment->service ? $appointment->service->price : 0,
                     'payment_method' => $appointment->payment_method ?? 'cash',
-                    'notes' => $isWalkin ? 'Walk-in service transaction' : null,
+                    // Always set notes for walk-in and client
+                    'notes' => $isWalkin ? 'Walk-in service transaction' : 'Client service transaction',
                 ]);
             }
         }
@@ -1476,6 +1477,11 @@ class StaffController extends Controller
                 // Record transaction for walk-in / single-session booking
                 try {
                     $amount = $booking->service ? ($booking->service->price ?? 0) : 0;
+                    \Log::info('Attempting service transaction', [
+                        'booking_id' => $booking->id,
+                        'service_id' => $booking->service_id,
+                        'amount' => $amount,
+                    ]);
                     $recent = \App\Models\Transaction::where('booking_id', $booking->id)
                         ->where('service_id', $booking->service_id)
                         ->where('amount', $amount)
