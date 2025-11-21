@@ -27,11 +27,11 @@
   <table class="table mb-0 bg-white table-bordered table-hover table-sm">
     <thead class="thead-light">
       <tr>
-        <th>#</th>
         <th>Booking ID</th>
         <th>Client ID</th>
         <th>Client Name</th>
         <th>Service</th>
+        <th>Price</th>
         <th>Sessions Left</th>
         <th>Last Complete Session Date</th>
         <th>Expiry Date</th>
@@ -44,7 +44,6 @@
     <tbody>
   @forelse($appointments as $appointment)
   <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-id="{{ $appointment->user->id ?? 'Walk-in' }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}" data-date="{{ $appointment->date }}">
-        <td>{{ $loop->iteration }}</td>
         <td class="col-narrow"><span class="badge bg-primary">#{{ $appointment->id }}</span></td>
         <td>{{ $appointment->user->id ?? 'Walk-in' }}</td>
         <td>{{ $appointment->user->name ?? 'Walk-in' }}</td>
@@ -56,7 +55,16 @@
       @else
       {{ $appointment->service->name ?? '-' }}
       @endif
-    </td>
+    <  <td>
+            @php
+              $transaction = \App\Models\Transaction::where('booking_id', $appointment->id)->latest()->first();
+            @endphp
+            @if($transaction)
+              ₱{{ number_format($transaction->amount, 2) }}
+            @else
+              <span class="text-muted">-</span>
+            @endif
+          </td>
         <td class="col-narrow-center">{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}</td>
         <td>
           @php
@@ -250,10 +258,10 @@
       </tr>
       @empty
       <tr class="text-center no-results" style="display:none;">
-        <td colspan="10" class="text-center">No matching appointments.</td>
+        <td colspan="12" class="text-center">No matching appointments.</td>
       </tr>
       <tr>
-        <td colspan="10" class="text-center">No appointments found.</td>
+        <td colspan="12" class="text-center">No appointments found.</td>
       </tr>
       @endforelse
     </tbody>

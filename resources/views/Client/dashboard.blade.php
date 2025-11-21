@@ -371,7 +371,7 @@
                             @php
                                 use Carbon\Carbon;
                                 $purchasedServices = \App\Models\PurchasedService::where('user_id', Auth::id())
-                                    ->with(['service', 'booking.branch', 'booking.package.services'])
+                                    ->with(['service', 'booking.branch', 'booking.package.services', 'booking.transactions'])
                                     ->get();
                             @endphp
                             @forelse($purchasedServices as $service)
@@ -430,7 +430,7 @@
                                             @endif
                                         @endif
                                     </td>
-                                    <td data-label="Price">{{ $service->price ?? '' }}</td>
+                                    <td data-label="Price">₱{{ number_format($service->booking->transactions->first()->amount ?? $service->price ?? 0, 2) }}</td>
                                     <td data-label="Date Purchased">{{ $service->created_at }}</td>
                                     <td data-label="Location">
                                         @if($booking && $booking->branch)
