@@ -1424,13 +1424,14 @@ class StaffController extends Controller
                                     ->where('package_id', $package->id)
                                     ->first();
                                 if (! $existing) {
-                                    \App\Models\Transaction::create([
+                                    $transaction = \App\Models\Transaction::create([
                                         'booking_id' => $booking->id,
                                         'package_id' => $package->id,
                                         'branch_id' => $booking->branch_id,
                                         'amount' => $package->price ?? 0,
                                         'payment_method' => $booking->payment_method ?? 'package',
                                     ]);
+                                    \Log::info('Transaction created (package)', ['transaction' => $transaction]);
                                 }
                             }
                         }
@@ -1480,13 +1481,14 @@ class StaffController extends Controller
                         ->where('created_at', '>=', now()->subMinutes(5))
                         ->first();
                     if (! $recent) {
-                        \App\Models\Transaction::create([
+                        $transaction = \App\Models\Transaction::create([
                             'booking_id' => $booking->id,
                             'service_id' => $booking->service_id,
                             'branch_id' => $booking->branch_id,
                             'amount' => $amount,
                             'payment_method' => $booking->payment_method ?? 'cash',
                         ]);
+                        \Log::info('Transaction created (service)', ['transaction' => $transaction]);
                     }
                 } catch (\Exception $e) {
                     Log::warning('Failed to record transaction for single/walkin completion', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
