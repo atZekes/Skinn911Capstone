@@ -373,10 +373,37 @@
                                 $purchasedServices = \App\Models\PurchasedService::where('user_id', Auth::id())
                                     ->with(['service', 'booking.branch', 'booking.package.services', 'booking.transactions'])
                                     ->get();
+                                $shownBookings = [];
                             @endphp
                             @forelse($purchasedServices as $service)
                                 @php
                                     $booking = $service->booking;
+                                    // Determine if this is a package booking
+                                    $pkgToShow = $booking->package ?? null;
+                                    if (!$pkgToShow && $booking) {
+                                        $bId = $booking->id;
+                                        $purchasedIds = \App\Models\PurchasedService::where('booking_id', $bId)->pluck('service_id')->toArray();
+                                        if (count($purchasedIds) > 1) {
+                                            $candidates = \App\Models\Package::where(function($q) use ($service) {
+                                                $branchId = $service->booking->branch->id ?? null;
+                                                if ($branchId) {
+                                                    $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                                                }
+                                            })->get();
+                                            foreach ($candidates as $c) {
+                                                $pkgServiceIds = $c->services->pluck('id')->toArray();
+                                                if (!array_diff($purchasedIds, $pkgServiceIds)) {
+                                                    $pkgToShow = $c;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // Skip if package booking already shown
+                                    if ($pkgToShow && in_array($booking->id, $shownBookings)) {
+                                        continue;
+                                    }
+                                    $shownBookings[] = $booking->id;
                                     $status = 'completed';
                                     if ($service->status === 'cancelled') {
                                         $status = 'cancelled';
@@ -395,30 +422,6 @@
                                 @endphp
                                 <tr>
                                     <td data-label="Service">
-                                        @php
-                                            // Determine if this purchased service is actually part of a multi-service package
-                                            $pkgToShow = $service->booking->package ?? null;
-                                            if (!$pkgToShow && $service->booking) {
-                                                $bId = $service->booking->id;
-                                                $purchasedIds = \App\Models\PurchasedService::where('booking_id', $bId)->pluck('service_id')->toArray();
-                                                // only infer a package when more than one purchased service exists for the booking
-                                                if (count($purchasedIds) > 1) {
-                                                    $candidates = \App\Models\Package::where(function($q) use ($service) {
-                                                        $branchId = $service->booking->branch->id ?? null;
-                                                        if ($branchId) {
-                                                            $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
-                                                        }
-                                                    })->get();
-                                                    foreach ($candidates as $c) {
-                                                        $pkgServiceIds = $c->services->pluck('id')->toArray();
-                                                        if (!array_diff($purchasedIds, $pkgServiceIds)) {
-                                                            $pkgToShow = $c;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        @endphp
                                         @if($pkgToShow)
                                             <div><strong>{{ $pkgToShow->name }}</strong></div>
                                             <div class="text-muted small">{{ $pkgToShow->services->pluck('name')->implode(', ') }}</div>
