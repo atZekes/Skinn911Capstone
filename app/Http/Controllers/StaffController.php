@@ -929,9 +929,11 @@ class StaffController extends Controller
         $appointment->status = 'completed';
         $appointment->save();
 
-        // Record transaction for completed service (including walk-in)
+        // Always record both service and package transactions for any completed booking
+        $isWalkin = $appointment->is_walkin || is_null($appointment->user_id);
+
+        // Record service transaction if service_id exists
         if ($appointment->service_id) {
-            $isWalkin = $appointment->is_walkin || is_null($appointment->user_id);
             $existingService = \App\Models\Transaction::where('booking_id', $appointment->id)
                 ->where('service_id', $appointment->service_id)
                 ->first();
@@ -948,7 +950,7 @@ class StaffController extends Controller
             }
         }
 
-        // Record transaction for completed package (including walk-in)
+        // Record package transaction if package_id exists
         if ($appointment->package_id) {
             $package = \App\Models\Package::find($appointment->package_id);
             if ($package) {
@@ -963,7 +965,7 @@ class StaffController extends Controller
                         'staff_id' => auth('staff')->id(),
                         'amount' => $package->price ?? 0,
                         'payment_method' => $appointment->payment_method ?? 'cash',
-                        'notes' => ($appointment->is_walkin || is_null($appointment->user_id)) ? 'Walk-in package transaction' : null,
+                        'notes' => $isWalkin ? 'Walk-in package transaction' : null,
                     ]);
                 }
             }
