@@ -50,7 +50,7 @@ try {
         'service_id' => null,
         'package_id' => null,
         'branch_id' => null,
-        'staff_id' => null,
+            // staff_id removed
         'amount' => 0,
         'payment_method' => 'test',
         'created_at' => now(),

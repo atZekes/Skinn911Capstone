@@ -19,7 +19,7 @@ try {
         'service_id' => 1,
         'package_id' => 1,
         'branch_id' => 1,
-        'staff_id' => 1,
+        // staff_id removed
         'amount' => 123.45,
         'payment_method' => 'test',
         'created_at' => now(),

@@ -942,7 +942,6 @@ class StaffController extends Controller
                     'booking_id' => $appointment->id,
                     'service_id' => $appointment->service_id,
                     'branch_id' => $appointment->branch_id,
-                    'staff_id' => auth('staff')->id(),
                     'amount' => $appointment->service ? $appointment->service->price : 0,
                     'payment_method' => $appointment->payment_method ?? 'cash',
                     'notes' => $isWalkin ? 'Walk-in service transaction' : null,
@@ -962,7 +961,6 @@ class StaffController extends Controller
                         'booking_id' => $appointment->id,
                         'package_id' => $package->id,
                         'branch_id' => $appointment->branch_id,
-                        'staff_id' => auth('staff')->id(),
                         'amount' => $package->price ?? 0,
                         'payment_method' => $appointment->payment_method ?? 'cash',
                         'notes' => $isWalkin ? 'Walk-in package transaction' : null,
@@ -1206,7 +1204,6 @@ class StaffController extends Controller
             'amount' => $request->amount,
             'payment_method' => $request->payment_method,
             'branch_id' => auth('staff')->user()->branch_id ?? null,
-            'staff_id' => auth('staff')->id(),
             'booking_id' => $request->booking_id,
         ]);
         if ($request->ajax()) {
