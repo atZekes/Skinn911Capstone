@@ -1381,6 +1381,7 @@ class StaffController extends Controller
      */
     public function completeSession($bookingId)
     {
+        Log::info('completeSession called', ['bookingId' => $bookingId]);
         try {
             $booking = \App\Models\Booking::with(['user', 'clientPackageSessions'])->findOrFail($bookingId);
 
