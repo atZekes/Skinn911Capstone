@@ -929,14 +929,13 @@ class StaffController extends Controller
         $appointment->status = 'completed';
         $appointment->save();
 
-        // Record transaction for completed booking (service, package, or walk-in)
+        // Record transaction for completed service (including walk-in)
         if ($appointment->service_id) {
-            // Single service or walk-in
             $isWalkin = $appointment->is_walkin || is_null($appointment->user_id);
-            $existing = \App\Models\Transaction::where('booking_id', $appointment->id)
+            $existingService = \App\Models\Transaction::where('booking_id', $appointment->id)
                 ->where('service_id', $appointment->service_id)
                 ->first();
-            if (! $existing) {
+            if (! $existingService) {
                 \App\Models\Transaction::create([
                     'booking_id' => $appointment->id,
                     'service_id' => $appointment->service_id,
@@ -944,18 +943,19 @@ class StaffController extends Controller
                     'staff_id' => auth('staff')->id(),
                     'amount' => $appointment->service ? $appointment->service->price : 0,
                     'payment_method' => $appointment->payment_method ?? 'cash',
-                    // Optionally, you can add a flag or note for walk-ins
-                    'notes' => $isWalkin ? 'Walk-in transaction' : null,
+                    'notes' => $isWalkin ? 'Walk-in service transaction' : null,
                 ]);
             }
-        } elseif ($appointment->package_id) {
-            // Package - record only package price, prevent duplicate
+        }
+
+        // Record transaction for completed package (including walk-in)
+        if ($appointment->package_id) {
             $package = \App\Models\Package::find($appointment->package_id);
             if ($package) {
-                $existing = \App\Models\Transaction::where('booking_id', $appointment->id)
+                $existingPackage = \App\Models\Transaction::where('booking_id', $appointment->id)
                     ->where('package_id', $package->id)
                     ->first();
-                if (! $existing) {
+                if (! $existingPackage) {
                     \App\Models\Transaction::create([
                         'booking_id' => $appointment->id,
                         'package_id' => $package->id,
@@ -963,7 +963,6 @@ class StaffController extends Controller
                         'staff_id' => auth('staff')->id(),
                         'amount' => $package->price ?? 0,
                         'payment_method' => $appointment->payment_method ?? 'cash',
-                        // Optionally, you can add a flag or note for walk-ins
                         'notes' => ($appointment->is_walkin || is_null($appointment->user_id)) ? 'Walk-in package transaction' : null,
                     ]);
                 }
