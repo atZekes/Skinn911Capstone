@@ -1428,7 +1428,6 @@ class StaffController extends Controller
                                         'booking_id' => $booking->id,
                                         'package_id' => $package->id,
                                         'branch_id' => $booking->branch_id,
-                                        'staff_id' => auth('staff')->id(),
                                         'amount' => $package->price ?? 0,
                                         'payment_method' => $booking->payment_method ?? 'package',
                                     ]);
@@ -1485,7 +1484,6 @@ class StaffController extends Controller
                             'booking_id' => $booking->id,
                             'service_id' => $booking->service_id,
                             'branch_id' => $booking->branch_id,
-                            'staff_id' => auth('staff')->id(),
                             'amount' => $amount,
                             'payment_method' => $booking->payment_method ?? 'cash',
                         ]);
