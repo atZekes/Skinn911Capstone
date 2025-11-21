@@ -89,6 +89,24 @@
         </div>
     </div>
 </div>
+<div id="transactionError" class="floating-alert" style="display:none;">
+  Error: Transaction is already recorded for this booking.
+</div>
+<style>
+.floating-alert {
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  background: #ffdddd;
+  color: #b30000;
+  border: 1px solid #b30000;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 9999;
+  font-size: 1.1em;
+}
+</style>
 @endsection
 @section('scripts')
 <script>
@@ -145,10 +163,20 @@ $(function() {
                     isSubmitting = false;
                     submitBtn.prop('disabled', false);
                     submitBtn.html(originalBtnText);
-                    alert('Error recording transaction. Please try again.');
+                    let msg = 'Error recording transaction. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    showTransactionError(msg);
                 }
             });
         });
 });
+function showTransactionError(msg) {
+  var el = document.getElementById('transactionError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display = 'none'; }, 4000);
+}
 </script>
 @endsection
