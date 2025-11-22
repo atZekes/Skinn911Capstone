@@ -1,7 +1,7 @@
 @extends('layouts.adminapp')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="py-4 container-fluid">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card" style="border: 2px solid #F56289; border-radius: 15px; box-shadow: 0 8px 25px rgba(245,98,137,0.15);">
@@ -17,10 +17,10 @@
                     </p>
                 </div>
 
-                <div class="card-body p-4">
+                <div class="p-4 card-body">
                     @if($branch)
-                        <div class="alert alert-info mb-4" style="background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
-                            <h6 class="fw-bold mb-2" style="color: #1976d2;">
+                        <div class="mb-4 alert alert-info" style="background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
+                            <h6 class="mb-2 fw-bold" style="color: #1976d2;">
                                 <i class="fas fa-building me-2"></i>Branch Information
                             </h6>
                             <p class="mb-0" style="color: #1565c0;">
@@ -70,7 +70,7 @@
                         </div>
 
                         <!-- Staff Override -->
-                        <div class="mb-4">
+                        <!-- <div class="mb-4">
                             <div class="form-check form-switch">
                                 <input class="form-check-input"
                                        type="checkbox"
@@ -86,24 +86,24 @@
                             <div class="form-text">
                                 Staff can bypass booking restrictions when creating appointments
                             </div>
-                        </div>
+                        </div> -->
 
                         <!-- Current Status -->
                         <div class="alert alert-success" style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 8px;">
-                            <h6 class="fw-bold mb-2" style="color: #2e7d32;">
+                            <h6 class="mb-2 fw-bold" style="color: #2e7d32;">
                                 <i class="fas fa-info-circle me-2"></i>Current Status
                             </h6>
                             <ul class="mb-0" style="color: #1b5e20;">
                                 <li>Clients must book <strong>{{ $currentSettings['minimum_advance_days'] }} days</strong> in advance</li>
                                 <li>Maximum booking window: <strong>{{ $currentSettings['maximum_advance_days'] }} days</strong></li>
-                                <li>Staff override: <strong>{{ $currentSettings['allow_staff_override'] ? 'Enabled' : 'Disabled' }}</strong></li>
+                               <!-- <li>Staff override: <strong>{{ $currentSettings['allow_staff_override'] ? 'Enabled' : 'Disabled' }}</strong></li>-->
                             </ul>
                         </div>
 
                         <!-- Save Button -->
                         <div class="text-center">
                             <button type="submit"
-                                    class="btn btn-lg px-5"
+                                    class="px-5 btn btn-lg"
                                     style="background: linear-gradient(135deg, #F56289 0%, #e75480 100%);
                                            border: none; border-radius: 25px; color: white; font-weight: 600;">
                                 <i class="fas fa-save me-2"></i>Save Settings
