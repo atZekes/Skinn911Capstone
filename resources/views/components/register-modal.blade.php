@@ -46,6 +46,13 @@
                     @endif
                 </div>
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
+                    <i class="fa fa-calendar" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#F56289;opacity:.6;"></i>
+                    <input name="birthday" type="date" class="input" required value="{{ old('birthday') }}" max="{{ \Carbon\Carbon::now()->subYears(18)->format('Y-m-d') }}" placeholder="BIRTHDAY" title="You must be 18 years or older to register" style="width:100%;padding:12px 14px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
+                    @if($errors->has('birthday'))
+                        <div class="text-danger small mt-1">{{ $errors->first('birthday') }}</div>
+                    @endif
+                </div>
+                <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:18px;">
                     <img src="{{ asset('img/lock.png') }}" class="input-icon" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;opacity:.6;">
                     <input id="register-password" name="password" type="password" placeholder="PASSWORD" class="input" required autocomplete="new-password" style="width:100%;padding:12px 44px 12px 44px;border:1.5px solid #F56289;border-radius:8px;font-size:1rem;">
                     <i class="fa fa-eye password-toggle-icon" id="toggleRegisterPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#F56289;opacity:.6;"></i>

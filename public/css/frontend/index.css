@@ -214,3 +214,162 @@
     box-shadow: 0 6px 16px rgba(245,98,137,0.4);
 }
 
+/* Promo Carousel Styles */
+.promo-carousel-container {
+    position: relative;
+    padding: 0 15px;
+}
+
+.promo-carousel .promo-slide {
+    padding: 0 10px;
+    display: flex;
+}
+
+.promo-carousel .promo-slide .single_offers {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 500px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(231,84,128,0.10);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.promo-carousel .promo-slide .single_offers:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 32px rgba(231,84,128,0.20);
+}
+
+.promo-carousel .promo-slide .about_thumb {
+    flex-shrink: 0;
+}
+
+.promo-carousel .promo-slide .single_offers > *:not(.about_thumb) {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.promo-carousel .promo-slide .single_offers > *:not(.about_thumb):not(.offer-buttons) {
+    flex-grow: 1;
+}
+
+.promo-carousel .promo-slide .single_offers h3 {
+    margin: 20px 20px 10px 20px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.promo-carousel .promo-slide .single_offers p {
+    margin: 0 20px 15px 20px;
+    color: #666;
+    line-height: 1.5;
+}
+
+.promo-carousel .promo-slide .single_offers .promo-code,
+.promo-carousel .promo-slide .single_offers .discount-badge,
+.promo-carousel .promo-slide .single_offers .services-list,
+.promo-carousel .promo-slide .single_offers .branch-info,
+.promo-carousel .promo-slide .single_offers .expiration-message {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.promo-carousel .owl-nav {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.promo-carousel .owl-nav button {
+    pointer-events: all;
+    background: rgba(245,98,137,0.9) !important;
+    color: white !important;
+    border: none !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 16px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 8px rgba(245,98,137,0.3) !important;
+}
+
+.promo-carousel .owl-nav button:hover {
+    background: #e75480 !important;
+    transform: scale(1.1);
+}
+
+.promo-carousel .owl-nav button.owl-prev {
+    left: -20px;
+}
+
+.promo-carousel .owl-nav button.owl-next {
+    right: -20px;
+}
+
+.promo-carousel .owl-dots {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.promo-carousel .owl-dots .owl-dot {
+    display: inline-block;
+    margin: 0 5px;
+}
+
+.promo-carousel .owl-dots .owl-dot span {
+    width: 12px;
+    height: 12px;
+    background: #ddd;
+    border-radius: 50%;
+    display: block;
+    transition: all 0.3s ease;
+}
+
+.promo-carousel .owl-dots .owl-dot.active span {
+    background: #F56289;
+    transform: scale(1.2);
+}
+
+/* Hide navigation and dots when disabled */
+.promo-carousel .owl-nav.disabled,
+.promo-carousel .owl-dots.disabled {
+    display: none !important;
+}
+
+.promo-carousel .owl-stage {
+    display: flex;
+    align-items: stretch;
+}
+
+.promo-carousel .owl-item {
+    display: flex;
+    align-items: stretch;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .promo-carousel .owl-nav button.owl-prev {
+        left: -15px;
+    }
+
+    .promo-carousel .owl-nav button.owl-next {
+        right: -15px;
+    }
+
+    .promo-carousel .owl-nav button {
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 14px !important;
+    }
+}

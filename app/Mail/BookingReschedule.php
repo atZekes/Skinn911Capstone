@@ -15,13 +15,17 @@ class BookingReschedule extends Mailable
     use Queueable, SerializesModels;
 
     public $booking;
+    public $previousDate;
+    public $previousTime;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Booking $booking)
+    public function __construct(Booking $booking, $previousDate = null, $previousTime = null)
     {
         $this->booking = $booking;
+        $this->previousDate = $previousDate;
+        $this->previousTime = $previousTime;
     }
 
     /**

@@ -78,6 +78,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birthday' => 'date',
             'saved_card_data' => 'array',
             'preferences' => 'array',
             'google2fa_enabled' => 'boolean',
@@ -129,6 +130,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function notifications()
     {
         return $this->hasMany(\App\Models\Notification::class);
+    }
+
+    public function promoClaims()
+    {
+        return $this->hasMany(\App\Models\PromoClaim::class);
     }
 
     /**

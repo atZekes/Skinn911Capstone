@@ -45,8 +45,26 @@ class ClientController extends Controller
         } else {
             Log::warning('User is NOT authenticated');
         }
+
+        $promos = \App\Models\Promo::where('active', true)
+            ->where(function($query) {
+                $query->whereNull('start_date')
+                      ->orWhere('start_date', '<=', now());
+            })
+            ->where(function($query) {
+                $query->whereNull('end_date')
+                      ->orWhere('end_date', '>=', now());
+            })
+            ->with(['services', 'branch'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(function($promo) {
+                return $promo->is_available;
+            });
+
         return view('Client.home', [
-            'user' => Auth::user()
+            'user' => Auth::user(),
+            'promos' => $promos
         ]);
     }
 
@@ -86,7 +104,32 @@ class ClientController extends Controller
             }
         }
 
-        return view('Client.booking', compact('branches', 'services', 'packages', 'savedCardData', 'userPreferences'));
+        // Get claimed promos for the user
+        $claimedPromos = \App\Models\PromoClaim::where('user_id', Auth::id())
+            ->with('promo')
+            ->whereHas('promo', function($q) {
+                $q->where('active', true);
+            })
+            ->get();
+
+        // Get available promos for the user (not expired, available, not used)
+        $availablePromos = \App\Models\Promo::where('active', true)
+            ->where(function($query) {
+                $query->whereNull('start_date')
+                      ->orWhere('start_date', '<=', now());
+            })
+            ->where(function($query) {
+                $query->whereNull('end_date')
+                      ->orWhere('end_date', '>=', now());
+            })
+            ->with(['services', 'branch'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(function($promo) {
+                return $promo->is_available && !\App\Models\PromoUsage::where('user_id', Auth::id())->where('promo_id', $promo->id)->exists();
+            });
+
+        return view('Client.booking', compact('branches', 'services', 'packages', 'savedCardData', 'userPreferences', 'claimedPromos', 'availablePromos'));
     }
 
 public function services()
@@ -130,9 +173,27 @@ public function submitBooking(Request $request)
             // service is required unless a package is selected
             'service_id' => 'nullable|exists:services,id|required_without:package_id',
             'package_id' => 'nullable|exists:packages,id',
+            'staff_id' => 'nullable|exists:users,id',
             'date' => 'required|date|after_or_equal:' . $minDate,
             'time_slot' => 'required',
+            'payment_method' => 'required|in:cash,card,gcash',
+            'gcash_receipt' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:2048',
         ]);
+
+        // Custom validation for staff_id
+        if ($request->filled('staff_id')) {
+            $staff = \App\Models\User::where('id', $request->staff_id)
+                ->where('role', 'staff')
+                ->where('branch_id', $request->branch_id)
+                ->where('active', true)
+                ->first();
+
+            if (!$staff) {
+                return redirect()->back()
+                    ->withErrors(['staff_id' => 'Selected staff is not available for this branch.'])
+                    ->withInput();
+            }
+        }
 
         Log::info('Booking validation passed', ['user_id' => Auth::id()]);
 
@@ -272,6 +333,24 @@ public function submitBooking(Request $request)
         }
     }
 
+    // Check for cross-branch conflicts - prevent booking same service/package at same time across different branches
+    $userId = Auth::id();
+    $conflictQuery = \App\Models\Booking::where('user_id', $userId)
+        ->where('date', $request->date)
+        ->where('time_slot', $request->time_slot)
+        ->where('status', 'active');
+
+    // Check if user already has ANY booking at this date and time
+    $existingBooking = $conflictQuery->first();
+    if ($existingBooking) {
+        $branchName = $existingBooking->branch ? $existingBooking->branch->name : 'another branch';
+        $serviceName = $existingBooking->service ? $existingBooking->service->name : ($existingBooking->package ? $existingBooking->package->name : 'another service');
+
+        return redirect()->back()->withErrors([
+            'time_slot' => "You already have a booking for {$serviceName} at this date and time at {$branchName}. You cannot book multiple services at the same time."
+        ])->withInput();
+    }
+
     // Use database transaction to prevent race conditions
     $result = DB::transaction(function () use ($request, $requiredSlots, $max) {
         // Final capacity check within transaction to prevent race conditions
@@ -294,6 +373,7 @@ public function submitBooking(Request $request)
         $booking->service_id = $request->service_id ?? null;
         // persist chosen package on booking when provided
         $booking->package_id = $request->package_id ?? null;
+        $booking->staff_id = $request->staff_id ?? null;
         $booking->date = $request->date;
         $booking->time_slot = $request->time_slot;
         $booking->status = 'active';
@@ -380,6 +460,24 @@ public function submitBooking(Request $request)
         if ($request->filled('promo_code')) {
             $promo = \App\Models\Promo::where('code', $request->promo_code)->where('active', 1)->first();
             if ($promo) {
+                // Check if user has claimed this promo
+                $hasClaimed = \App\Models\PromoClaim::where('user_id', $user->id)
+                    ->where('promo_id', $promo->id)
+                    ->exists();
+
+                if (!$hasClaimed) {
+                    return redirect()->back()->withErrors(['promo_code' => 'You must claim this promo code before using it.'])->withInput();
+                }
+
+                // Check if user has already used this promo
+                $hasUsed = \App\Models\PromoUsage::where('user_id', $user->id)
+                    ->where('promo_id', $promo->id)
+                    ->exists();
+
+                if ($hasUsed) {
+                    return redirect()->back()->withErrors(['promo_code' => 'This promo code has already been used.'])->withInput();
+                }
+
                 // Determine base price
                 if ($request->filled('package_id')) {
                     $pkg = \App\Models\Package::find($request->package_id);
@@ -415,6 +513,54 @@ public function submitBooking(Request $request)
             'promo_code' => $promoCode,
         ]);
 
+        // Record promo usage(s) for this booking if a promo code was applied
+        if (!empty($promoCode)) {
+            try {
+                $promo = \App\Models\Promo::where('code', $promoCode)->first();
+                if ($promo) {
+                    // For package bookings, record a usage per purchased service
+                    if ($request->filled('package_id')) {
+                        $pkg = \App\Models\Package::with('services')->find($request->package_id);
+                        if ($pkg) {
+                            foreach ($pkg->services as $svc) {
+                                if ($svc && $svc->id) {
+                                    \App\Models\PromoUsage::create([
+                                        'user_id' => $user->id,
+                                        'promo_id' => $promo->id,
+                                        'service_id' => $svc->id,
+                                        'package_id' => $request->package_id,
+                                        'booking_id' => $booking->id,
+                                        'used_at' => now(),
+                                    ]);
+                                }
+                            }
+                        }
+                    } elseif ($request->filled('service_id')) {
+                        // Single service booking
+                        \App\Models\PromoUsage::create([
+                            'user_id' => $user->id,
+                            'promo_id' => $promo->id,
+                            'service_id' => $request->service_id,
+                            'package_id' => null,
+                            'booking_id' => $booking->id,
+                            'used_at' => now(),
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to record promo usage', ['err' => $e->getMessage()]);
+            }
+        }
+
+        // Handle GCash receipt upload
+        if ($request->payment_method === 'gcash' && $request->hasFile('gcash_receipt')) {
+            $file = $request->file('gcash_receipt');
+            $filename = 'gcash_receipt_' . $booking->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('gcash_receipts', $filename); // local disk, private
+            $booking->gcash_receipt = $path;
+            $booking->save();
+        }
+
         // If a package is selected, create PurchasedService rows for each service in the package
         if ($request->filled('package_id')) {
             $pkg = \App\Models\Package::with('services')->find($request->package_id);
@@ -426,13 +572,15 @@ public function submitBooking(Request $request)
                 throw new \Exception('Selected package is not available for the chosen branch.');
             }
             foreach ($pkg->services as $svc) {
-                \App\Models\PurchasedService::create([
-                    'user_id' => $user->id,
-                    'service_id' => $svc->id,
-                    'booking_id' => $booking->id,
-                    'price' => $svc->price ?? 0,
-                    'description' => $svc->description ?? '',
-                ]);
+                if ($svc && $svc->id) {
+                    \App\Models\PurchasedService::create([
+                        'user_id' => $user->id,
+                        'service_id' => $svc->id,
+                        'booking_id' => $booking->id,
+                        'price' => $svc->price ?? 0,
+                        'description' => $svc->description ?? '',
+                    ]);
+                }
             }
             // Ensure package sessions are created for this booking
             $booking->ensurePackageSessionsExist();
@@ -712,6 +860,10 @@ public function rescheduleBooking(Request $request, $id)
     // Find the booking and ensure it belongs to the current user
     $booking = \App\Models\Booking::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
 
+    // Capture previous schedule before any updates
+    $previousDate = $booking->date;
+    $previousTime = $booking->time_slot;
+
     // Get the branch for capacity checks
     $branch = $booking->branch;
 
@@ -812,7 +964,7 @@ public function rescheduleBooking(Request $request, $id)
 
     // Send reschedule confirmation email
     try {
-        Mail::to($booking->user->email)->send(new BookingReschedule($booking));
+        Mail::to($booking->user->email)->send(new BookingReschedule($booking, $previousDate, $previousTime));
     } catch (\Exception $e) {
         Log::error('Failed to send booking reschedule email', [
             'booking_id' => $booking->id,
@@ -982,10 +1134,29 @@ public function rescheduleBooking(Request $request, $id)
             return response()->json(['valid' => false, 'message' => 'Promo code not found or inactive.'], 404);
         }
 
+        // Ensure user is authenticated and has claimed this promo
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['valid' => false, 'message' => 'You must be logged in to use a promo code.'], 401);
+        }
+
+        $hasClaimed = \App\Models\PromoClaim::where('user_id', $user->id)
+            ->where('promo_id', $promo->id)
+            ->exists();
+
+        if (! $hasClaimed) {
+            return response()->json(['valid' => false, 'message' => 'You must claim this promo code before using it.'], 400);
+        }
+
         // Branch restriction - STRICT: Promo must belong to the selected branch
         // If no branch_id in request, reject promo
         if (!$branchId) {
             return response()->json(['valid' => false, 'message' => 'Please select a branch first.'], 400);
+        }
+
+        // Require a service or package to be selected before applying a promo
+        if (! $serviceId && ! $packageId) {
+            return response()->json(['valid' => false, 'message' => 'Please select a service or package first before applying a promo.'], 400);
         }
 
         // Promo MUST have a branch_id and it MUST match the selected branch
@@ -1033,13 +1204,27 @@ public function rescheduleBooking(Request $request, $id)
                 if ($pkg) {
                     $matches = false;
                     foreach ($pkg->services as $s) {
-                        if ($promo->services->contains($s->id)) { $matches = true; break; }
+                        if ($s && $s->id && $promo->services->contains($s->id)) { $matches = true; break; }
                     }
                     if (! $matches) {
                         return response()->json(['valid' => false, 'message' => 'Promo does not apply to selected package.'], 400);
                     }
                 }
             }
+        }
+
+        // Prevent reuse: check if this user already used this promo
+        try {
+            $userId = $user->id;
+            $used = \App\Models\PromoUsage::where('user_id', $userId)
+                ->where('promo_id', $promo->id)
+                ->exists();
+            if ($used) {
+                return response()->json(['valid' => false, 'message' => 'You have already used this promo.'], 400);
+            }
+        } catch (\Exception $e) {
+            // if anything goes wrong checking usage, log but continue validation (fail-safe)
+            \Illuminate\Support\Facades\Log::warning('Promo usage check failed', ['err' => $e->getMessage()]);
         }
 
         // compute discount
@@ -1057,6 +1242,52 @@ public function rescheduleBooking(Request $request, $id)
             'promo_title' => $promo->title,
         ]);
     }
+
+    // Claim a promo for the authenticated user
+    public function claimPromo(Request $request, $promoId)
+    {
+        $user = Auth::user();
+        $promo = \App\Models\Promo::find($promoId);
+
+        if (!$promo) {
+            return response()->json(['success' => false, 'message' => 'Promo not found.'], 404);
+        }
+
+        if (!$promo->is_available) {
+            return response()->json(['success' => false, 'message' => 'This promo is no longer available.'], 400);
+        }
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'You must be logged in to claim promos.'], 401);
+        }
+
+        // Prevent duplicate claims: ensure the user has not already claimed this promo
+        $alreadyClaimed = \App\Models\PromoClaim::where('user_id', $user->id)
+            ->where('promo_id', $promo->id)
+            ->exists();
+
+        if ($alreadyClaimed) {
+            return response()->json(['success' => false, 'message' => 'You have already claimed this promo.'], 400);
+        }
+
+        // Final availability check
+        if (!$promo->canUserClaim($user->id)) {
+            return response()->json(['success' => false, 'message' => 'This promo is not available for claiming.'], 400);
+        }
+
+        // Create promo claim record
+        \App\Models\PromoClaim::create([
+            'user_id' => $user->id,
+            'promo_id' => $promo->id,
+            'claimed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Promo claimed successfully! Use code: ' . $promo->code
+        ]);
+    }
+
 public function calendarViewer()
 {
     return view('Client.calendar_viewer');
@@ -1539,5 +1770,61 @@ public function calendarViewer()
         } catch (\Exception $e) {
             Log::error('Push notification failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Check for booking conflicts across different branches
+     */
+    public function checkBookingConflicts(Request $request)
+    {
+        $userId = Auth::id();
+
+        $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'service_id' => 'nullable|exists:services,id',
+            'package_id' => 'nullable|exists:packages,id',
+            'date' => 'required|date',
+            'time_slot' => 'required',
+        ]);
+
+        // Check if user already has ANY booking at this date and time
+        $existingBooking = \App\Models\Booking::where('user_id', $userId)
+            ->where('date', $request->date)
+            ->where('time_slot', $request->time_slot)
+            ->where('status', 'active')
+            ->first();
+
+        if ($existingBooking) {
+            $branchName = $existingBooking->branch ? $existingBooking->branch->name : 'another branch';
+            $serviceName = $existingBooking->service ? $existingBooking->service->name : ($existingBooking->package ? $existingBooking->package->name : 'another service');
+
+            return response()->json([
+                'conflict' => true,
+                'message' => "You already have a booking for {$serviceName} at this date and time at {$branchName}. You cannot book multiple services at the same time."
+            ]);
+        }
+
+        return response()->json([
+            'conflict' => false,
+            'message' => 'No conflicts found'
+        ]);
+    }
+
+    public function getStaffForBranch(Request $request)
+    {
+        $branchId = $request->query('branch_id');
+
+        if (!$branchId) {
+            return response()->json(['staff' => []]);
+        }
+
+        $staff = \App\Models\User::where('role', 'staff')
+            ->where('branch_id', $branchId)
+            ->where('active', true)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['staff' => $staff]);
     }
 }

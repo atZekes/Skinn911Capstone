@@ -182,16 +182,27 @@ class Admincontroller extends Controller{
             'code' => 'required|string|unique:promos,code',
             'title' => 'required|string',
             'description' => 'nullable|string',
-            'discount' => 'required|numeric|min:0',
+            'discount' => 'required|numeric|min:0|max:100',
+            'quantity_available' => 'nullable|integer|min:0|max:9999999',
+            'max_claims_per_user' => 'nullable|integer|min:1',
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'category' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
     $admin = Auth::guard('admin')->user();
-    $data = $request->only(['code','title','description','discount','start_date','end_date','category']);
+    $data = $request->only(['code','title','description','discount','quantity_available','max_claims_per_user','start_date','end_date','category']);
     $data['branch_id'] = ($admin && $admin->role === 'admin') ? $admin->branch_id : null;
+
+    // Handle image upload
+    if ($request->hasFile('image')) {
+        $imageName = time() . '.' . $request->image->extension();
+        $request->image->move(public_path('uploads/promos'), $imageName);
+        $data['image'] = 'uploads/promos/' . $imageName;
+    }
+
         $promo = Promo::create($data);
         if ($request->filled('service_ids')) {
             $promo->services()->sync($request->input('service_ids'));
@@ -205,18 +216,34 @@ class Admincontroller extends Controller{
         $request->validate([
             'title' => 'required|string',
             'description' => 'nullable|string',
-            'discount' => 'required|numeric|min:0',
+            'discount' => 'required|numeric|min:0|max:100',
+            'quantity_available' => 'nullable|integer|min:0|max:9999999',
+            'max_claims_per_user' => 'nullable|integer|min:1',
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'category' => 'nullable|string',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
         $admin = Auth::guard('admin')->user();
         if ($admin && $admin->role === 'admin' && $admin->branch_id && $promo->branch_id && $promo->branch_id !== $admin->branch_id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage promos in your branch.']);
         }
-        $promo->update($request->only(['title','description','discount','start_date','end_date','category']));
+        $data = $request->only(['title','description','discount','quantity_available','max_claims_per_user','start_date','end_date','category']);
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($promo->image && file_exists(public_path($promo->image))) {
+                unlink(public_path($promo->image));
+            }
+            $imageName = time() . '.' . $request->image->extension();
+            $request->image->move(public_path('uploads/promos'), $imageName);
+            $data['image'] = 'uploads/promos/' . $imageName;
+        }
+
+        $promo->update($data);
         if ($request->has('service_ids')) {
             $promo->services()->sync($request->input('service_ids'));
         } else {
@@ -231,6 +258,18 @@ class Admincontroller extends Controller{
         $admin = Auth::guard('admin')->user();
         if ($admin && $admin->role === 'admin' && $admin->branch_id && $promo->branch_id && $promo->branch_id !== $admin->branch_id) {
             return redirect()->back()->withErrors(['error' => 'You can only manage promos in your branch.']);
+        }
+
+        // Check if promo has been claimed by any users
+        $claimsCount = $promo->claims()->count();
+        $confirmed = $request->input('_confirmed_delete') == '1';
+        if ($claimsCount > 0 && ! $confirmed) {
+            return redirect()->back()->withErrors(['error' => 'Promo "' . $promo->title . '" has ' . $claimsCount . ' claimed record(s). Please confirm deletion.']);
+        }
+
+        // Delete associated image file
+        if ($promo->image && file_exists(public_path($promo->image))) {
+            unlink(public_path($promo->image));
         }
         $promo->delete();
         return redirect()->back()->with('success', 'Promo deleted.');
@@ -341,6 +380,77 @@ class Admincontroller extends Controller{
             $branches = collect();
         }
         return view('admin.branchmanagement', compact('branches'));
+    }
+
+    /**
+     * List promo usages for a given promo (optional filter by user)
+     */
+    public function promoUsages(Request $request, Promo $promo)
+    {
+        $admin = Auth::guard('admin')->user();
+        if ($admin && $admin->role === 'admin' && $admin->branch_id && $promo->branch_id && $promo->branch_id !== $admin->branch_id) {
+            return response()->json(['error' => 'Unauthorized to view usages for this promo.'], 403);
+        }
+
+        $query = \App\Models\PromoUsage::with(['service', 'promo'])->where('promo_id', $promo->id);
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        $usages = $query->orderBy('used_at', 'desc')->paginate(50);
+
+        return response()->json($usages);
+    }
+
+    /**
+     * Revoke (delete) a promo usage by id
+     */
+    public function revokePromoUsage(Request $request, $usageId)
+    {
+        $admin = Auth::guard('admin')->user();
+        $usage = \App\Models\PromoUsage::with('promo')->findOrFail($usageId);
+
+        if ($admin && $admin->role === 'admin' && $admin->branch_id && $usage->promo && $usage->promo->branch_id && $usage->promo->branch_id !== $admin->branch_id) {
+            return response()->json(['error' => 'Unauthorized to revoke usage for this promo.'], 403);
+        }
+
+        try {
+            $usage->delete();
+            return response()->json(['success' => true, 'message' => 'Promo usage revoked.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to revoke usage.'], 500);
+        }
+    }
+
+    /**
+     * Update a promo usage (service_id, used_at)
+     */
+    public function updatePromoUsage(Request $request, $usageId)
+    {
+        $admin = Auth::guard('admin')->user();
+
+        $usage = \App\Models\PromoUsage::with('promo')->findOrFail($usageId);
+
+        if ($admin && $admin->role === 'admin' && $admin->branch_id && $usage->promo && $usage->promo->branch_id && $usage->promo->branch_id !== $admin->branch_id) {
+            return response()->json(['error' => 'Unauthorized to update usage for this promo.'], 403);
+        }
+
+        $request->validate([
+            'service_id' => 'nullable|integer|exists:services,id',
+            'used_at' => 'nullable|date',
+        ]);
+
+        if ($request->filled('service_id')) {
+            $usage->service_id = $request->service_id;
+        }
+        if ($request->filled('used_at')) {
+            $usage->used_at = \Carbon\Carbon::parse($request->used_at);
+        }
+
+        $usage->save();
+
+        return response()->json(['success' => true, 'message' => 'Promo usage updated.', 'usage' => $usage]);
     }
 
     public function updateBranch(Request $request, $branchId)

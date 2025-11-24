@@ -33,6 +33,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'mobile_phone' => ['required', 'string', 'regex:/^[0-9]{10,11}$/', 'max:11'],
+            'birthday' => ['required', 'date', 'before_or_equal:' . now()->subYears(18)->format('Y-m-d')],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'preferences' => ['nullable', 'array'],
             'preferences.*' => ['string', 'in:Facial,Laser,Slimming,Immuno,Hair Removal'],
@@ -42,6 +43,7 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'mobile_phone' => $request->mobile_phone,
+            'birthday' => $request->birthday,
             'password' => Hash::make($request->password),
             'role' => 'client', // Force role to client
             'preferences' => $request->preferences ?? [],

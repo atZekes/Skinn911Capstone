@@ -45,3 +45,31 @@ window.addEventListener('pageshow', function(event) {
         window.location.reload();
     }
 });
+
+// Handle promo claiming with login check
+function handleClaimPromo(promoCode, promoId) {
+    if (!confirm('Are you sure you want to claim this promo? You can only claim it once.')) {
+        return;
+    }
+
+    fetch(`/client/promo/${promoId}/claim`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Promo claimed successfully! Use code: ${promoCode}`);
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to claim promo');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while claiming the promo');
+    });
+}

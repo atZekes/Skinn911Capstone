@@ -189,8 +189,24 @@
 
             <div class="old-info">
                 <h4>Previous Schedule</h4>
-                <p><strong>Date:</strong> {{ $booking->getOriginal('date') ? \Carbon\Carbon::parse($booking->getOriginal('date'))->format('M d, Y') : 'N/A' }}</p>
-                <p><strong>Time:</strong> {{ $booking->getOriginal('time_slot') ?? 'N/A' }}</p>
+                <p><strong>Date:</strong>
+                    @if(isset($previousDate) && $previousDate)
+                        {{ \Carbon\Carbon::parse($previousDate)->format('M d, Y') }}
+                    @elseif($booking->getOriginal('date'))
+                        {{ \Carbon\Carbon::parse($booking->getOriginal('date'))->format('M d, Y') }}
+                    @else
+                        N/A
+                    @endif
+                </p>
+                <p><strong>Time:</strong>
+                    @if(isset($previousTime) && $previousTime)
+                        {{ $previousTime }}
+                    @elseif($booking->getOriginal('time_slot'))
+                        {{ $booking->getOriginal('time_slot') }}
+                    @else
+                        N/A
+                    @endif
+                </p>
             </div>
 
             <div class="new-info">

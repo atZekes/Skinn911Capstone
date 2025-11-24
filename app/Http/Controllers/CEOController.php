@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\Branch;
 use App\Models\User;
 use App\Models\Booking;
@@ -730,7 +732,7 @@ class CEOController extends Controller
     public function updateBranch(Request $request, Branch $branch)
     {
         // Add debugging
-        \Log::info('CEO Branch Update Request', [
+        Log::info('CEO Branch Update Request', [
             'branch_id' => $branch->id,
             'request_data' => $request->all(),
             'has_active' => $request->has('active'),
@@ -789,7 +791,7 @@ class CEOController extends Controller
                 ? ucwords(strtolower(trim($request->city)))
                 : null;
 
-            \Log::info('CEO Branch Update Data', [
+            Log::info('CEO Branch Update Data', [
                 'branch_id' => $branch->id,
                 'operating_days_raw' => $request->operating_days,
                 'operating_days_processed' => $operatingDays,
@@ -816,14 +818,14 @@ class CEOController extends Controller
                 }
             }
 
-            \Log::info('CEO Branch Update Success', ['branch_id' => $branch->id]);
+            Log::info('CEO Branch Update Success', ['branch_id' => $branch->id]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Branch updated successfully!'
             ]);
         } catch (\Exception $e) {
-            \Log::error('CEO Branch Update Failed', [
+            Log::error('CEO Branch Update Failed', [
                 'branch_id' => $branch->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1406,5 +1408,313 @@ class CEOController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Sales report UI and filter
+     */
+    public function salesReport(Request $request)
+    {
+        $branches = Branch::all();
+
+        $from = $request->get('from');
+        $to = $request->get('to');
+        $branchId = $request->get('branch_id');
+
+        $report = null;
+        $metrics = null;
+        if ($from || $to || $branchId) {
+            $query = Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->leftJoin('services', 'bookings.service_id', '=', 'services.id')
+                ->whereNotNull('bookings.service_id')
+                ->select(
+                    'bookings.id as booking_id',
+                    'branches.name as branch_name',
+                    'services.name as service_name',
+                    'transactions.amount',
+                    'transactions.created_at'
+                );
+
+            if ($from) {
+                $query->whereDate('transactions.created_at', '>=', $from);
+            }
+            if ($to) {
+                $query->whereDate('transactions.created_at', '<=', $to);
+            }
+            if ($branchId) {
+                $query->where('bookings.branch_id', $branchId);
+            }
+
+            $rows = $query->orderBy('transactions.created_at', 'desc')->get();
+            $total = $rows->sum('amount');
+            $count = $rows->count();
+
+            $report = [
+                'rows' => $rows,
+                'total' => $total,
+                'count' => $count
+            ];
+        }
+
+        // Compute metrics across all branches (date filtered if from/to provided)
+        try {
+            $txQuery = Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->leftJoin('services', 'bookings.service_id', '=', 'services.id');
+
+            if ($from) $txQuery->whereDate('transactions.created_at', '>=', $from);
+            if ($to) $txQuery->whereDate('transactions.created_at', '<=', $to);
+
+            // Total revenue per branch: use purchased_services prices (user-requested)
+            $psQuery = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id');
+
+            if ($from) $psQuery->whereDate('purchased_services.created_at', '>=', $from);
+            if ($to) $psQuery->whereDate('purchased_services.created_at', '<=', $to);
+
+            $branchRevenues = (clone $psQuery)->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
+                ->groupBy('branches.id', 'branches.name')
+                ->orderByDesc('total')
+                ->get();
+
+            // Total bookings and cancellations
+            $bookingQuery = Booking::query();
+            if ($from) $bookingQuery->whereDate('created_at', '>=', $from);
+            if ($to) $bookingQuery->whereDate('created_at', '<=', $to);
+            $totalBookings = (clone $bookingQuery)->count();
+            $cancelled = (clone $bookingQuery)->where('status', 'cancelled')->count();
+            $cancellationRate = $totalBookings > 0 ? round(($cancelled / $totalBookings) * 100, 2) : 0;
+
+            // Top services by transactions (count + revenue)
+            $topServices = (clone $txQuery)->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(transactions.amount) as revenue')
+                ->groupBy('services.id', 'services.name')
+                ->orderByDesc('tx_count')
+                ->limit(10)
+                ->get();
+
+            // Profit per service based on purchased_services.price (user requested using purchased services)
+            $profitPerService = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+                ->when($from, fn($q) => $q->whereDate('bookings.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('bookings.created_at', '<=', $to))
+                ->selectRaw('services.id as service_id, services.name as service_name, SUM(purchased_services.price) as profit')
+                ->groupBy('services.id', 'services.name')
+                ->orderByDesc('profit')
+                ->get();
+
+            // Promo impact
+            $promoTx = (clone $txQuery)->whereNotNull('transactions.promo_code');
+            $promoCount = $promoTx->count();
+            $promoRevenue = $promoTx->sum('transactions.amount');
+
+            // Overall revenue should be derived from purchased_services to match branch totals
+            $totalRevenue = (clone $psQuery)->sum('purchased_services.price') ?? 0;
+            $promoRevenuePct = $totalRevenue > 0 ? round(($promoRevenue / $totalRevenue) * 100, 2) : 0;
+
+            // Peak hours/days (simple aggregates)
+            $peakHours = (clone $bookingQuery)->selectRaw("HOUR(created_at) as hour, COUNT(*) as cnt")
+                ->groupByRaw('HOUR(created_at)')
+                ->orderByDesc('cnt')
+                ->limit(6)
+                ->get();
+
+            $peakDays = (clone $bookingQuery)->selectRaw("DATE(created_at) as day, COUNT(*) as cnt")
+                ->groupByRaw('DATE(created_at)')
+                ->orderByDesc('cnt')
+                ->limit(6)
+                ->get();
+
+            $metrics = [
+                'branch_revenues' => $branchRevenues,
+                'total_bookings' => $totalBookings,
+                'cancelled' => $cancelled,
+                'cancellation_rate' => $cancellationRate,
+                'top_services' => $topServices,
+                'profit_per_service' => $profitPerService,
+                'promo' => [
+                    'count' => $promoCount,
+                    'revenue' => $promoRevenue,
+                    'pct_of_revenue' => $promoRevenuePct
+                ],
+                'peak_hours' => $peakHours,
+                'peak_days' => $peakDays,
+                'total_revenue_all' => $totalRevenue,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Sales report metrics error: ' . $e->getMessage());
+            $metrics = null;
+        }
+
+        return view('CEO.sales-report', compact('branches', 'report', 'metrics'));
+    }
+
+    /**
+     * Download sales report as PDF (if dompdf present) or CSV
+     */
+    public function downloadSalesReport(Request $request)
+    {
+        $from = $request->get('from');
+        $to = $request->get('to');
+        $branchId = $request->get('branch_id');
+
+        $query = Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+            ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+            ->leftJoin('services', 'bookings.service_id', '=', 'services.id')
+                ->whereNotNull('bookings.service_id')
+            ->select(
+                'bookings.id as booking_id',
+                'branches.name as branch_name',
+                'services.name as service_name',
+                'transactions.amount',
+                'transactions.created_at'
+            );
+
+        if ($from) {
+            $query->whereDate('transactions.created_at', '>=', $from);
+        }
+        if ($to) {
+            $query->whereDate('transactions.created_at', '<=', $to);
+        }
+        if ($branchId) {
+            $query->where('bookings.branch_id', $branchId);
+        }
+
+        $rows = $query->orderBy('transactions.created_at', 'desc')->get();
+        $total = $rows->sum('amount');
+        $count = $rows->count();
+
+        $report = [
+            'rows' => $rows,
+            'total' => $total,
+            'count' => $count
+        ];
+
+        // Compute same metrics for download (so PDF includes metrics)
+        try {
+            $txQuery = Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->leftJoin('services', 'bookings.service_id', '=', 'services.id');
+
+            if ($from) $txQuery->whereDate('transactions.created_at', '>=', $from);
+            if ($to) $txQuery->whereDate('transactions.created_at', '<=', $to);
+
+            // Use purchased_services to compute branch revenues so totals align
+            $psQuery = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id');
+
+            if ($from) $psQuery->whereDate('purchased_services.created_at', '>=', $from);
+            if ($to) $psQuery->whereDate('purchased_services.created_at', '<=', $to);
+
+            $branchRevenues = (clone $psQuery)->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
+                ->groupBy('branches.id', 'branches.name')
+                ->orderByDesc('total')
+                ->get();
+
+            $bookingQuery = Booking::query();
+            if ($from) $bookingQuery->whereDate('created_at', '>=', $from);
+            if ($to) $bookingQuery->whereDate('created_at', '<=', $to);
+            $totalBookings = (clone $bookingQuery)->count();
+            $cancelled = (clone $bookingQuery)->where('status', 'cancelled')->count();
+            $cancellationRate = $totalBookings > 0 ? round(($cancelled / $totalBookings) * 100, 2) : 0;
+
+            $topServices = (clone $txQuery)->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(transactions.amount) as revenue')
+                ->groupBy('services.id', 'services.name')
+                ->orderByDesc('tx_count')
+                ->limit(10)
+                ->get();
+
+            $profitPerService = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+                ->when($from, fn($q) => $q->whereDate('bookings.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('bookings.created_at', '<=', $to))
+                ->selectRaw('services.id as service_id, services.name as service_name, SUM(purchased_services.price) as profit')
+                ->groupBy('services.id', 'services.name')
+                ->orderByDesc('profit')
+                ->get();
+
+            $promoTx = (clone $txQuery)->whereNotNull('transactions.promo_code');
+            $promoCount = $promoTx->count();
+            $promoRevenue = $promoTx->sum('transactions.amount');
+
+            // Overall revenue derived from purchased_services to match branch totals
+            $totalRevenueAll = (clone $psQuery)->sum('purchased_services.price') ?? 0;
+
+            $peakHours = (clone $bookingQuery)->selectRaw("HOUR(created_at) as hour, COUNT(*) as cnt")
+                ->groupByRaw('HOUR(created_at)')
+                ->orderByDesc('cnt')
+                ->limit(6)
+                ->get();
+
+            $peakDays = (clone $bookingQuery)->selectRaw("DATE(created_at) as day, COUNT(*) as cnt")
+                ->groupByRaw('DATE(created_at)')
+                ->orderByDesc('cnt')
+                ->limit(6)
+                ->get();
+
+            $metrics = [
+                'branch_revenues' => $branchRevenues,
+                'total_bookings' => $totalBookings,
+                'cancelled' => $cancelled,
+                'cancellation_rate' => $cancellationRate,
+                'top_services' => $topServices,
+                'profit_per_service' => $profitPerService,
+                'promo' => [
+                    'count' => $promoCount,
+                    'revenue' => $promoRevenue,
+                    'pct_of_revenue' => $totalRevenueAll > 0 ? round(($promoRevenue / $totalRevenueAll) * 100, 2) : 0
+                ],
+                'peak_hours' => $peakHours,
+                'peak_days' => $peakDays,
+                'total_revenue_all' => $totalRevenueAll,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Sales report download metrics error: ' . $e->getMessage());
+            $metrics = null;
+        }
+
+        // If dompdf is installed and bound, render PDF
+        if (app()->bound('dompdf.wrapper')) {
+            $fromLabel = $from ?: '';
+            $toLabel = $to ?: '';
+            $pdf = app('dompdf.wrapper');
+            $pdf->loadView('CEO.sales-report-pdf', [
+                'report' => $report,
+                'from' => $fromLabel,
+                'to' => $toLabel,
+                'metrics' => $metrics
+            ]);
+
+            $fileName = 'sales-report-' . ($from ?: 'start') . '-to-' . ($to ?: 'end') . '.pdf';
+            return $pdf->download($fileName);
+        }
+
+        // Fallback to CSV download
+        $fileName = 'sales-report-' . ($from ?: 'start') . '-to-' . ($to ?: 'end') . '.csv';
+
+        $callback = function() use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Booking ID', 'Branch', 'Service', 'Date', 'Amount']);
+            foreach ($rows as $r) {
+                fputcsv($handle, [
+                    $r->booking_id,
+                    $r->branch_name,
+                    $r->service_name,
+                    Carbon::parse($r->created_at)->toDateString(),
+                    number_format($r->amount, 2)
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, $fileName, [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 }

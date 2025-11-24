@@ -41,6 +41,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('/client/home', [App\Http\Controllers\ClientController::class, 'home'])->name('client.home');
     Route::get('/client/services', [ClientController::class, 'clientServices'])->name('client.services');
     Route::get('/client/booking', [App\Http\Controllers\ClientController::class, 'showBookingForm'])->name('client.booking');
+    Route::post('/client/booking/check-conflicts', [App\Http\Controllers\ClientController::class, 'checkBookingConflicts'])->name('client.booking.check-conflicts');
     Route::post('/client/booking', [App\Http\Controllers\ClientController::class, 'submitBooking'])->name('client.booking.submit');
     Route::delete('/client/booking/{id}/cancel', [App\Http\Controllers\ClientController::class, 'cancelBooking'])->name('client.booking.cancel');
     Route::delete('/client/booking/cancel-all', [App\Http\Controllers\ClientController::class, 'cancelAllBookings'])->name('client.booking.cancelAll');
@@ -70,6 +71,9 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
 
     // Client notifications page
     Route::get('/client/notifications', [ClientController::class, 'notifications'])->name('client.notifications');
+
+    // Promo claim route
+    Route::post('/client/promo/{id}/claim', [App\Http\Controllers\ClientController::class, 'claimPromo'])->name('client.promo.claim');
 
     // Real-time chat message routes (with session authentication)
     Route::post('/api/chat/send', [ChatMessageController::class, 'sendMessage']);
@@ -125,6 +129,7 @@ require __DIR__.'/auth.php';
 Route::get('/staff/login', [App\Http\Controllers\StaffController::class, 'loginForm'])->name('staff.login');
 Route::get('/staff/availability', [StaffController::class, 'availability'])->middleware('staff')->name('staff.availability');
 Route::get('/staff/appointments', [App\Http\Controllers\StaffController::class, 'appointments'])->middleware('staff')->name('staff.appointments');
+Route::get('/staff/booking/{id}/gcash-receipt', [App\Http\Controllers\StaffController::class, 'viewGcashReceipt'])->middleware('staff')->name('staff.booking.gcash-receipt');
 Route::post('/staff/login', [App\Http\Controllers\StaffController::class, 'login'])->name('staff.login.submit');
 
 // Staff dashboard/profile (protected by staff auth middleware)
@@ -233,6 +238,11 @@ Route::middleware('admin')->group(function () {
     Route::get('/session-keep-alive', function () {
         return response()->json(['status' => 'ok']);
     })->name('session.keep-alive');
+
+    // Promo usage management (admin) - list, revoke, update
+    Route::get('/admin/promos/{promo}/usages', [App\Http\Controllers\Admincontroller::class, 'promoUsages'])->name('admin.promos.usages');
+    Route::delete('/admin/promo-usage/{id}', [App\Http\Controllers\Admincontroller::class, 'revokePromoUsage'])->name('admin.promos.usages.revoke');
+    Route::put('/admin/promo-usage/{id}', [App\Http\Controllers\Admincontroller::class, 'updatePromoUsage'])->name('admin.promos.usages.update');
 });
 
 // Staff-facing password reset form (token link)
@@ -269,6 +279,10 @@ Route::middleware('ceo')->group(function () {
     Route::post('/ceo/change-password', [App\Http\Controllers\CEOController::class, 'changePassword'])->name('ceo.changePassword');
     Route::post('/ceo/user-manage/{user}/change-password', [App\Http\Controllers\CEOController::class, 'adminChangePassword'])->name('ceo.adminChangePassword');
     Route::post('/ceo/user-manage/{user}/reset-password', [App\Http\Controllers\CEOController::class, 'resetAdminPassword'])->name('ceo.resetAdminPassword');
+
+    // Sales report (CEO)
+    Route::get('/ceo/sales-report', [App\Http\Controllers\CEOController::class, 'salesReport'])->name('ceo.sales.report');
+    Route::get('/ceo/sales-report/download', [App\Http\Controllers\CEOController::class, 'downloadSalesReport'])->name('ceo.sales.download');
 
     // Session keep-alive endpoint for CEO
     Route::get('/session-keep-alive', function () {

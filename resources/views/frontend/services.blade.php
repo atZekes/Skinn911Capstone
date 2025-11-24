@@ -48,6 +48,20 @@
             </div>
         </div>
 
+        @if(isset($claimedPromo))
+        <!-- Promo Claim Banner -->
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 12px;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-gift me-3" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>🎉 Promo Claimed!</strong>
+                    <p class="mb-0 mt-1">You're claiming: <strong>{{ $claimedPromo->title }}</strong> ({{ $claimedPromo->discount }}% OFF)</p>
+                    <small>Use code: <strong>{{ $claimedPromo->code }}</strong> when booking</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
         @if(isset($services) && $services->count() > 0)
         <!-- Category Filter Buttons -->
         <div class="mb-5 row">

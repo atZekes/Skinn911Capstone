@@ -1,0 +1,69 @@
+/* Services page specific styles */
+
+/* Ensure consistent card heights in carousels */
+.carousel-container .service-card {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 400px !important; /* Set minimum height for consistent alignment */
+    margin-right: 25px !important; /* Add space between service cards */
+}
+
+.carousel-container .service-info {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.carousel-container .service-details {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Promo card specific styles */
+.promotions-container .service-card {
+    min-height: 450px !important; /* Slightly taller for promo cards with more content */
+}
+
+/* Ensure proper spacing and alignment */
+.carousel-container .owl-item {
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+/* Expiration message styling */
+.expiration-message {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;
+    color: #856404 !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    border: 1px solid #ffeaa7 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    animation: pulse 2s infinite !important;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .carousel-container .service-card {
+        min-height: 380px !important;
+    }
+
+    .promotions-container .service-card {
+        min-height: 420px !important;
+    }
+
+    .expiration-message {
+        font-size: 0.8rem !important;
+        padding: 6px 10px !important;
+    }
+}

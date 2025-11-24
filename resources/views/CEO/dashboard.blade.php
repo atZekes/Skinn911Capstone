@@ -89,6 +89,13 @@
         </div>
             </div>
 
+    <!-- Quick actions -->
+    <div class="mb-3 d-flex justify-content-end">
+        <a href="{{ route('ceo.sales.download') }}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-download me-1"></i> Download Sales Report
+        </a>
+    </div>
+
     <!-- Client Retention -->
     <div class="mb-4 mt-5">
         <div class="chart-container">

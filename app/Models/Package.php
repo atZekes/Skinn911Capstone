@@ -33,6 +33,8 @@ class Package extends Model
         $total = 0;
         $branchId = $this->branch_id;
         foreach ($this->services as $s) {
+            if (!$s || !$s->id) continue; // Skip null or invalid services
+
             $qty = $s->pivot->quantity ?? 1;
             // Package-level pivot may contain duration if we add it later; check first
             $pkgPivotDuration = $s->pivot->duration ?? null;

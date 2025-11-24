@@ -214,7 +214,6 @@ class BookingSessionSeeder extends Seeder
                 'amount' => $servicePrice,
                 'payment_method' => $paymentStatus === 'refunded' ? 'refund' : 'cash',
                 'branch_id' => $branchId,
-                'staff_id' => null,
                 'created_at' => $bookingDate,
                 'updated_at' => $bookingDate,
             ]);

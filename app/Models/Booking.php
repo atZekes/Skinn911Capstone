@@ -9,7 +9,7 @@ class Booking extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'user_id', 'package_booking_id', 'service_id', 'branch_id', 'package_id', 'date', 'time_slot', 'status', 'is_walkin', 'walkin_name', 'walkin_phone', 'walkin_email', 'payment_method', 'payment_status', 'payment_data'
+        'user_id', 'package_booking_id', 'service_id', 'branch_id', 'staff_id', 'package_id', 'date', 'time_slot', 'status', 'is_walkin', 'walkin_name', 'walkin_phone', 'walkin_email', 'payment_method', 'payment_status', 'payment_data', 'gcash_receipt'
     ];
 
     protected $casts = [
@@ -20,6 +20,7 @@ class Booking extends Model
     public function service() { return $this->belongsTo(Service::class); }
     public function package() { return $this->belongsTo(\App\Models\Package::class); }
     public function branch() { return $this->belongsTo(Branch::class); }
+    public function staff() { return $this->belongsTo(User::class, 'staff_id'); }
     public function purchasedServices() { return $this->hasMany(\App\Models\PurchasedService::class); }
     public function transactions() { return $this->hasMany(\App\Models\Transaction::class); }
 

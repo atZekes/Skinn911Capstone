@@ -527,6 +527,19 @@ class StaffController extends Controller
             'time_slot' => 'required|string',
         ]);
         $booking = \App\Models\Booking::findOrFail($id);
+        // Prevent rescheduling to a past date
+        try {
+            $newDate = \Carbon\Carbon::parse($request->date);
+            $today = \Carbon\Carbon::today();
+            if ($newDate->lt($today)) {
+                if ($request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Cannot reschedule to a past date.'], 422);
+                }
+                return back()->withErrors(['date' => 'Cannot reschedule to a past date.'])->withInput();
+            }
+        } catch (\Exception $e) {
+            // If parsing fails, let validation handle it
+        }
         // Debug: log reschedule attempts and branch break values to help diagnose missing DB columns/migrations
         try {
             $branchForLog = null;
@@ -656,13 +669,17 @@ class StaffController extends Controller
             }
         }
 
+        // Capture previous schedule before updating
+        $previousDate = $booking->date;
+        $previousTime = $booking->time_slot;
+
         $booking->date = $request->date;
         $booking->time_slot = $request->time_slot;
         $booking->save();
 
         // Send reschedule confirmation email
         try {
-            Mail::to($booking->user->email)->send(new BookingReschedule($booking));
+            Mail::to($booking->user->email)->send(new BookingReschedule($booking, $previousDate, $previousTime));
         } catch (\Exception $e) {
             Log::error('Failed to send booking reschedule email', [
                 'booking_id' => $booking->id,
@@ -832,7 +849,7 @@ class StaffController extends Controller
         $staffBranchId = $staffUser->branch_id;
 
     // Appointments: ALL bookings for registered users (include active, pending_refund, refunded, cancelled, completed) in staff's branch
-    $appointments = \App\Models\Booking::with(['user', 'service', 'package.services'])
+    $appointments = \App\Models\Booking::with(['user', 'service', 'package.services', 'staff'])
         ->whereNotNull('user_id')
         ->where('branch_id', $staffBranchId)
         ->orderBy('date', 'desc')
@@ -840,7 +857,7 @@ class StaffController extends Controller
         ->get();
 
         // Booking queue: all bookings in staff's branch (all statuses)
-    $bookings = \App\Models\Booking::with(['user', 'service', 'package.services'])
+    $bookings = \App\Models\Booking::with(['user', 'service', 'package.services', 'staff'])
             ->where('branch_id', $staffBranchId)
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc')
@@ -1512,6 +1529,27 @@ class StaffController extends Controller
         }
     }
 
+    public function viewGcashReceipt($id)
+    {
+        $staff = auth('staff')->user();
+        $booking = \App\Models\Booking::findOrFail($id);
 
+        // Check if staff belongs to the same branch as the booking
+        if ($staff->branch_id != $booking->branch_id) {
+            abort(403, 'Unauthorized');
+        }
+
+        if (!$booking->gcash_receipt) {
+            abort(404, 'Receipt not found');
+        }
+
+        $path = storage_path('app/private/' . $booking->gcash_receipt);
+
+        if (!file_exists($path)) {
+            abort(404, 'File not found');
+        }
+
+        return response()->file($path);
+    }
 
 }

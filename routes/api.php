@@ -13,8 +13,11 @@ Route::get('/staff/booking-details', [StaffAvailabilityController::class, 'getBo
 Route::post('/staff/confirm-booking/{bookingId}', [StaffAvailabilityController::class, 'confirmBooking']);
 Route::post('/staff/reject-booking/{bookingId}', [StaffAvailabilityController::class, 'rejectBooking']);
 
-// Validate promo code (AJAX)
-Route::get('/promo/validate', [ClientController::class, 'validatePromo'])->name('api.promo.validate');
+// Validate promo code (AJAX) - enable session/auth for web users
+Route::middleware(['web','auth'])->group(function () {
+	Route::get('/promo/validate', [ClientController::class, 'validatePromo'])->name('api.promo.validate');
+	Route::get('/staff', [ClientController::class, 'getStaffForBranch'])->name('api.staff');
+});
 
 // Chat widget API routes
 Route::get('/chat/categories', [ChatController::class, 'getCategories']);
@@ -34,8 +37,7 @@ Route::get('/staff/booking-details', [StaffAvailabilityController::class, 'getBo
 Route::post('/staff/confirm-booking/{bookingId}', [StaffAvailabilityController::class, 'confirmBooking']);
 Route::post('/staff/reject-booking/{bookingId}', [StaffAvailabilityController::class, 'rejectBooking']);
 
-// Validate promo code (AJAX)
-Route::get('/promo/validate', [ClientController::class, 'validatePromo'])->name('api.promo.validate');
+// (promo validate route defined above with web/auth middleware)
 
 // Chat widget API routes
 Route::get('/chat/categories', [ChatController::class, 'getCategories']);

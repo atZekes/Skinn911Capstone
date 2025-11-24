@@ -11,7 +11,20 @@ class ClientProfileController extends Controller
     public function edit()
     {
         $user = Auth::user();
-        return view('Client.profile_edit', ['user' => $user]);
+
+        // Load claimed promos with promo details and branch info, excluding used ones
+        $claimedPromos = $user->promoClaims()
+            ->with(['promo.branch'])
+            ->whereDoesntHave('promo.usages', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->orderBy('claimed_at', 'desc')
+            ->get();
+
+        return view('Client.profile_edit', [
+            'user' => $user,
+            'claimedPromos' => $claimedPromos
+        ]);
     }
 
     // Handle update
@@ -25,7 +38,7 @@ class ClientProfileController extends Controller
             'mobile_phone' => 'nullable|string|max:30',
             'telephone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:1000',
-            'birthday' => 'nullable|date',
+            'birthday' => 'nullable|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
             'preferences' => 'nullable|array',
             'preferences.*' => 'string|in:Facial,Laser,Slimming,Immuno,Hair Removal',
         ]);

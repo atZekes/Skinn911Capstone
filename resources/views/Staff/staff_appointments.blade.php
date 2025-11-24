@@ -35,8 +35,10 @@
         <th>Sessions Left</th>
         <th>Last Complete Session Date</th>
         <th>Expiry Date</th>
+        <th>Preferred Staff</th>
         <th>Date</th>
         <th>Time</th>
+        <th>Payment Method</th>
         <th>Status</th>
         <th>Actions</th>
       </tr>
@@ -108,6 +110,13 @@
             <span class="text-muted">-</span>
           @endif
         </td>
+        <td>
+          @if($appointment->staff)
+            <span class="badge badge-info">{{ $appointment->staff->name }}</span>
+          @else
+            <span class="text-muted">-</span>
+          @endif
+        </td>
         <td>{{ $appointment->date }}</td>
         <td>
             @php
@@ -162,6 +171,20 @@
                 }
             @endphp
             {!! $displayTime !!}
+        </td>
+        <td>
+            @if($appointment->payment_method === 'cash')
+                <span class="badge bg-success"><i class="fas fa-money-bill-wave"></i> Cash</span>
+            @elseif($appointment->payment_method === 'card')
+                <span class="badge bg-primary"><i class="fas fa-credit-card"></i> Card</span>
+            @elseif($appointment->payment_method === 'gcash')
+                <span class="badge bg-info"><i class="fas fa-mobile-alt"></i> GCash</span>
+                @if($appointment->gcash_receipt)
+                    <br><a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('staff.booking.gcash-receipt', $appointment->id) }}" target="_blank" rel="noopener noreferrer">View Receipt</a>
+                @endif
+            @else
+                <span class="text-muted">-</span>
+            @endif
         </td>
         <td>
             @if($appointment->status === 'pending_refund')
@@ -1330,6 +1353,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="badge bg-primary"><i class="fas fa-credit-card"></i> Card</span>
                         @elseif($booking->payment_method === 'gcash')
                             <span class="badge bg-info"><i class="fas fa-mobile-alt"></i> GCash</span>
+                            @if($booking->gcash_receipt)
+                                <br><a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('staff.booking.gcash-receipt', $booking->id) }}" target="_blank" rel="noopener noreferrer">View Receipt</a>
+                            @endif
                         @else
                             <span class="text-muted">-</span>
                         @endif
@@ -1560,6 +1586,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="badge bg-primary"><i class="fas fa-credit-card"></i> Card</span>
                 @elseif($w->payment_method === 'gcash')
                     <span class="badge bg-info"><i class="fas fa-mobile-alt"></i> GCash</span>
+                    @if($w->gcash_receipt)
+                        <br><a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('staff.booking.gcash-receipt', $w->id) }}" target="_blank" rel="noopener noreferrer">View Receipt</a>
+                    @endif
                 @else
                     <span class="text-muted">-</span>
                 @endif
@@ -2674,5 +2703,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<!-- Receipt modal and jQuery-based loader removed: receipts now open in a new tab -->
 
 @endsection

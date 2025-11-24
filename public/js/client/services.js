@@ -25,7 +25,7 @@ function initSimpleServices() {
   // 2) Initialize Owl Carousel for services
   $('.carousel-container').owlCarousel({
     loop: false,
-    margin: 80, // Increased margin to match CSS gap
+    margin: 300, // Proper spacing between service cards
     nav: true,
     navText: ['‹', '›'],
     dots: false,

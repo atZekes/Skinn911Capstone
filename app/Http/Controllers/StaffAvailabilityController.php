@@ -44,7 +44,7 @@ class StaffAvailabilityController extends Controller
             $clickedStartTime = \Carbon\Carbon::createFromFormat('H:i', trim($clickedStart));
 
             // Get all bookings for this date that could occupy this slot
-            $query = Booking::with(['user', 'service', 'package.services'])
+            $query = Booking::with(['user', 'service', 'package.services', 'staff'])
                 ->where('date', $date)
                 ->where('status', 'active');
 
@@ -163,6 +163,15 @@ class StaffAvailabilityController extends Controller
                     $sessionsLeft = 0;
                 }
 
+                // Get preferred staff information
+                $preferredStaff = null;
+                if ($booking->staff) {
+                    $preferredStaff = [
+                        'id' => $booking->staff->id,
+                        'name' => $booking->staff->name
+                    ];
+                }
+
                 return [
                     'id' => $booking->id,
                     'customer_name' => $customerName,
@@ -173,6 +182,7 @@ class StaffAvailabilityController extends Controller
                     'price' => $price,
                     'status' => $booking->status ?? 'pending',
                     'sessions_left' => $sessionsLeft,
+                    'preferred_staff' => $preferredStaff,
                     'created_at' => $booking->created_at->format('M j, Y g:i A')
                 ];
             });

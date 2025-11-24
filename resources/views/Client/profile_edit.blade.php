@@ -155,6 +155,93 @@
 
         <button class="btn btn-pink" type="submit">Save</button>
     </form>
+
+    <!-- Claimed Promos Section -->
+    <div class="mt-5">
+        <h3 class="mb-3">My Claimed Promo Codes</h3>
+
+        @if($claimedPromos->count() > 0)
+            <div class="row">
+                @foreach($claimedPromos as $claim)
+                    @if($claim->promo)
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="card-title mb-1">{{ $claim->promo->title }}</h5>
+                                        <p class="card-text text-muted small mb-2">{{ $claim->promo->description }}</p>
+                                        <div class="mb-2">
+                                            <span class="badge bg-primary">{{ $claim->promo->code }}</span>
+                                            <span class="badge bg-info ms-1">{{ $claim->promo->discount }}% OFF</span>
+                                            @if($claim->promo->branch)
+                                                <span class="badge bg-secondary ms-1">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>{{ $claim->promo->branch->name }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <small class="text-muted">
+                                            Claimed: {{ $claim->claimed_at->format('M d, Y g:i A') }}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        @php
+                                            $userClaims = $claim->promo->claims()->where('user_id', $user->id)->sum('quantity_claimed');
+                                            $canUseMore = $userClaims < $claim->promo->max_claims_per_user;
+                                            $isAvailable = $claim->promo->is_available;
+                                        @endphp
+
+                                        @if($canUseMore && $isAvailable)
+                                            <span class="badge bg-success">Usable</span>
+                                            <div class="mt-1">
+                                                <small class="text-muted">
+                                                    Used: {{ $userClaims }}/{{ $claim->promo->max_claims_per_user }}
+                                                </small>
+                                            </div>
+                                        @else
+                                            @if(!$canUseMore)
+                                                <span class="badge bg-warning">Limit Reached</span>
+                                                <div class="mt-1">
+                                                    <small class="text-muted">
+                                                        Used: {{ $userClaims }}/{{ $claim->promo->max_claims_per_user }}
+                                                    </small>
+                                                </div>
+                                            @else
+                                                <span class="badge bg-secondary">Unavailable</span>
+                                            @endif
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if($claim->promo->end_date)
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            Expires: {{ $claim->promo->end_date->format('M d, Y') }}
+                                            @if($claim->promo->days_left > 0)
+                                                <span class="text-warning">({{ $claim->promo->days_left }} days left)</span>
+                                            @elseif($claim->promo->days_left === 0)
+                                                <span class="text-danger">(Expires today!)</span>
+                                            @else
+                                                <span class="text-danger">(Expired)</span>
+                                            @endif
+                                        </small>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-4">
+                <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Claimed Promos Yet</h5>
+                <p class="text-muted">You haven't claimed any promo codes yet. Check out our available promotions!</p>
+                <a href="{{ route('client.home') }}" class="btn btn-outline-primary">View Available Promos</a>
+            </div>
+        @endif
+    </div>
 </div>
 
 <script>

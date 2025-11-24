@@ -75,7 +75,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('client.booking.submit') }}">
+                    <form method="POST" action="{{ route('client.booking.submit') }}" enctype="multipart/form-data">
                         @csrf
                         <!-- City Filter and Branch Selection Row -->
                         <div class="row mb-3">
@@ -153,14 +153,19 @@
 
                         <div class="mb-3 form-group">
                             <div class="row g-2 align-items-center">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="service_price">Price</label>
                                     <input type="text" id="service_price" name="service_price" class="form-control" readonly placeholder="₱0.00">
                                 </div>
-                                <div class="col-md-8">
+                                <div class="col-md-6">
                                     <label for="promo_code">Promo code (optional)</label>
+                                    <div id="promo_input_container">
+                                        <input type="text" id="promo_code" name="promo_code" class="form-control" placeholder="Enter promo code">
+                                    </div>
                                     <div id="promo_applied_message" style="min-height:18px;margin-bottom:6px;color:#198754;font-size:0.95rem;"></div>
-                                    <input type="text" id="promo_code" name="promo_code" class="form-control" placeholder="Enter promo code">
+                                    @if($errors->has('promo_code'))
+                                        <div class="mt-1 text-danger"><small>{{ $errors->first('promo_code') }}</small></div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -300,6 +305,24 @@
                                 @endif
                             </div>
                         </div>
+                        <!-- Staff Selection -->
+                        <div class="mb-3 form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select_staff_checkbox" name="select_staff_checkbox">
+                                <label class="form-check-label" for="select_staff_checkbox">
+                                    I want to choose a specific staff member for this appointment
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-group" id="staff_selection_container" style="display: none;">
+                            <label for="staff_id">Preferred Staff</label>
+                            <select name="staff_id" id="staff_id" class="form-select">
+                                <option value="">Select Staff</option>
+                            </select>
+                            @if($errors->has('staff_id'))
+                                <div class="mt-1 text-danger"><small>{{ $errors->first('staff_id') }}</small></div>
+                            @endif
+                        </div>
                         <div class="text-center">
                             <button type="button" id="openPaymentModal" class="px-4 py-2 btn btn-pink" style="background:#F56289;color:#fff;">Book Now</button>
                         </div>
@@ -410,7 +433,7 @@
                                         </div>
                                         <div class="d-flex align-items-center" style="gap:12px;">
                                             <div class="service-price text-nowrap" data-service-id="{{ $service->id }}">
-                                                <span class="price-loader text-muted">Select branch to see price</span>
+
                                             </div>
                                             <button type="button" class="btn btn-sm btn-outline-pink btn-select-service">
                                                 Select
@@ -663,8 +686,14 @@
                                 <i class="fas fa-check-circle me-2"></i>
                                 <strong>Payment Instructions:</strong><br>
                                 <small>1. Scan the QR code or send payment to the number above<br>
-                                2. Click "Confirm & Book" to complete your reservation<br>
-                                3. Show your GCash receipt at the branch</small>
+                                2. Upload your GCash receipt image below<br>
+                                3. Click "Confirm & Book" to complete your reservation<br>
+                                4. Show your GCash receipt at the branch</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="modal_gcash_receipt" class="form-label">Upload GCash Receipt (Optional)</label>
+                                <input type="file" id="modal_gcash_receipt" class="form-control" accept="image/*">
+                                <div class="form-text">Please upload a clear image of your GCash payment receipt.</div>
                             </div>
                         </div>
                     </div>
@@ -881,6 +910,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var serviceSelect = document.getElementById('service_id');
     var packageContainer = document.getElementById('package-container');
     var packageSelect = document.getElementById('package_id');
+
+    // Claimed promos data (ensure a plain JS array)
+    var claimedPromos = @json(isset($claimedPromos) ? $claimedPromos->values()->toArray() : []);
+    // Available promos data (ensure a plain JS array)
+    var availablePromos = @json(isset($availablePromos) ? $availablePromos->values()->toArray() : []);
 
     // Set minimum date based on advance booking requirement
     var minimumAdvanceDays = {{ config('booking.minimum_advance_days', 2) }};
@@ -1179,6 +1213,161 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function updatePromoOptions(branchId, serviceId) {
+        var container = document.getElementById('promo_input_container');
+        if (!container) return;
+
+        // Clear existing content
+        container.innerHTML = '';
+
+        if (!branchId) {
+            // No branch selected, show input
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'promo_code';
+            input.name = 'promo_code';
+            input.className = 'form-control';
+            input.placeholder = 'Enter promo code';
+            container.appendChild(input);
+            // Append the message below the input
+            var promoMessage = document.getElementById('promo_applied_message');
+            if (promoMessage) container.appendChild(promoMessage);
+            return;
+        }
+
+        // Filter available promos for this branch and service
+        var promosForBranch = availablePromos.filter(function(promo) {
+            return (promo.branch_id == branchId) || (!promo.branch_id && (promo.branch_id !== 0 && promo.branch_id !== null));
+        });
+
+        // If no available promos but user has a claimed promo for this branch, include it so dropdown shows
+        try {
+            if ((!promosForBranch || promosForBranch.length === 0) && claimedPromos && Array.isArray(claimedPromos)) {
+                var claimed = claimedPromos.find(function(cp){
+                    var pBranch = (cp.branch_id !== undefined) ? cp.branch_id : (cp.promo && cp.promo.branch_id ? cp.promo.branch_id : null);
+                    return String(pBranch) === String(branchId);
+                });
+                if (claimed) {
+                    var claimedCode = claimed.code || (claimed.promo && claimed.promo.code) || null;
+                    var claimedTitle = (claimed.promo && claimed.promo.title) || (claimed.title || 'Claimed Promo');
+                    var claimedDiscount = (claimed.promo && claimed.promo.discount) || (claimed.discount || 0);
+                    if (claimedCode) {
+                        promosForBranch = [{ code: claimedCode, title: claimedTitle, discount: claimedDiscount, branch_id: branchId, claimed: true }];
+                    }
+                }
+            }
+        } catch (e) { console.error('Error merging claimed promo into promosForBranch', e); }
+
+        if (serviceId) {
+            promosForBranch = promosForBranch.filter(function(promo) {
+                // If promo has services, check if serviceId is in them; if no services, it's global
+                if (!promo.services || promo.services.length === 0) {
+                    return true; // global promo
+                }
+                return promo.services.some(function(service) {
+                    return service.id == serviceId;
+                });
+            });
+        }
+
+        if (promosForBranch.length > 0) {
+            // Show dropdown
+            var select = document.createElement('select');
+            select.id = 'promo_code';
+            select.name = 'promo_code';
+            select.className = 'form-control';
+            var defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select a promo code';
+            select.appendChild(defaultOption);
+            promosForBranch.forEach(function(promo) {
+                var option = document.createElement('option');
+                option.value = promo.code;
+                // Only show the promo code (do not render full promo details)
+                option.textContent = promo.code + (promo.claimed ? ' (claimed)' : '');
+                select.appendChild(option);
+            });
+            container.appendChild(select);
+
+            // Append the message below the select
+            var promoMessage = document.getElementById('promo_applied_message');
+            if (promoMessage) container.appendChild(promoMessage);
+
+            // Handle change to trigger validation
+            select.addEventListener('change', function() {
+                validatePromoCode();
+            });
+        } else {
+            // Show input
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'promo_code';
+            input.name = 'promo_code';
+            input.className = 'form-control';
+            input.placeholder = 'Enter promo code';
+            container.appendChild(input);
+
+            // Append the message below the input
+            var promoMessage = document.getElementById('promo_applied_message');
+            if (promoMessage) container.appendChild(promoMessage);
+
+            // Add input event listener
+            input.addEventListener('input', function(){ if (promoTimer) clearTimeout(promoTimer); promoTimer = setTimeout(validatePromoCode, 600); });
+        }
+    }
+
+    function loadStaffForBranch(branchId) {
+        var staffSelect = document.getElementById('staff_id');
+        if (!staffSelect) return;
+
+        staffSelect.innerHTML = '<option value="">Select Staff</option>';
+
+        if (!branchId) return;
+
+        // Fetch staff for this branch
+        fetch('/api/staff?branch_id=' + branchId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        }).then(function(response) {
+            return response.json();
+        }).then(function(data) {
+            if (data && data.staff) {
+                data.staff.forEach(function(staff) {
+                    var option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = staff.name;
+                    staffSelect.appendChild(option);
+                });
+            }
+        }).catch(function(error) {
+            console.error('Error loading staff:', error);
+        });
+    }
+
+    // Handle staff selection checkbox
+    var selectStaffCheckbox = document.getElementById('select_staff_checkbox');
+    var staffSelectionContainer = document.getElementById('staff_selection_container');
+
+    if (selectStaffCheckbox && staffSelectionContainer) {
+        selectStaffCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                staffSelectionContainer.style.display = 'block';
+                // Load staff if branch is already selected
+                var branchId = branchSelect ? branchSelect.value : null;
+                if (branchId) {
+                    loadStaffForBranch(branchId);
+                }
+            } else {
+                staffSelectionContainer.style.display = 'none';
+                // Clear staff selection
+                var staffSelect = document.getElementById('staff_id');
+                if (staffSelect) {
+                    staffSelect.value = '';
+                }
+            }
+        });
+    }
+
     if (branchSelect) {
         branchSelect.addEventListener('change', function() {
             var selected = branchSelect.options[branchSelect.selectedIndex];
@@ -1262,7 +1451,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 packageContainer.style.display = 'none';
                 packageSelect.innerHTML = '';
             }
+            // Load staff for this branch
+            loadStaffForBranch(bid);
             updateTimeSlots();
+            // Update promo options for this branch and service
+            updatePromoOptions(bid, serviceSelect.value);
+            // If user has a claimed promo for this branch, preload it
+            try {
+                if (claimedPromos && Array.isArray(claimedPromos)) {
+                    var claimedForBranch = claimedPromos.find(function(cp){
+                        // PromoClaim may include nested promo relationship
+                        var pBranch = (cp.branch_id !== undefined) ? cp.branch_id : (cp.promo && cp.promo.branch_id ? cp.promo.branch_id : null);
+                        return String(pBranch) === String(bid);
+                    });
+                    if (claimedForBranch) {
+                        // Wait a tick for promo input/select to be rendered
+                        setTimeout(function(){
+                            var promoInput = document.getElementById('promo_code');
+                            if (promoInput) {
+                                // Determine the promo code (PromoClaim may nest the promo)
+                                var claimedCode = claimedForBranch.code || (claimedForBranch.promo && claimedForBranch.promo.code) || null;
+                                // If it's a select, try to pick the claimed code option
+                                if (promoInput.tagName.toLowerCase() === 'select') {
+                                    for (var i=0;i<promoInput.options.length;i++) {
+                                        if (promoInput.options[i].value === claimedCode) {
+                                            promoInput.selectedIndex = i;
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    promoInput.value = claimedCode;
+                                }
+                                // Trigger validation for the preloaded promo
+                                if (typeof validatePromoCode === 'function') validatePromoCode();
+                                // Show a subtle message
+                                var promoMessage = document.getElementById('promo_applied_message');
+                                if (promoMessage && claimedForBranch) {
+                                    promoMessage.textContent = 'Claimed promo applied: ' + (claimedForBranch.code || (claimedForBranch.promo && claimedForBranch.promo.code) || '');
+                                    promoMessage.style.color = '#198754';
+                                }
+                            }
+                        }, 150);
+                    }
+                }
+            } catch (e) { console.error('Error preloading claimed promo', e); }
             // Validate operating day when branch changes
             validateOperatingDay();
 
@@ -1358,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateTimeSlots();
         });
     }
-    serviceSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); });
+    serviceSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); updatePromoOptions(branchSelect.value, serviceSelect.value); });
     packageSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); });
     serviceSelect.addEventListener('change', updateSelectedCoverage);
     timeSlotSelect.addEventListener('change', updateSelectedCoverage);
@@ -1423,21 +1655,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // set initial price from defaults if any
     updatePriceDisplay();
     // Promo code validation (debounced)
-    var promoInput = document.getElementById('promo_code');
     var promoTimer = null;
-    var promoMessage = null;
+    function getPromoInput() {
+        return document.getElementById('promo_code');
+    }
     function showPromoMessage(msg, ok) {
-        if (!promoMessage) {
-            promoMessage = document.createElement('div');
-            promoMessage.style.marginTop = '6px';
-            promoMessage.style.fontSize = '0.95rem';
-            promoMessage.style.color = ok ? '#198754' : '#dc3545';
-            promoInput.parentNode.appendChild(promoMessage);
-        }
+        var promoMessage = document.getElementById('promo_applied_message');
+        if (!promoMessage) return;
         promoMessage.textContent = msg;
         promoMessage.style.color = ok ? '#198754' : '#dc3545';
     }
     function validatePromoCode() {
+        var promoInput = getPromoInput();
         if (!promoInput) return;
         var code = promoInput.value.trim();
         if (!code) { showPromoMessage('', true); updatePriceDisplay(); return; }
@@ -1446,7 +1675,10 @@ document.addEventListener('DOMContentLoaded', function() {
         params.append('branch_id', branchSelect.value || '');
         params.append('service_id', serviceSelect.value || '');
         params.append('package_id', packageSelect.value || '');
-        fetch('/api/promo/validate?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r){ return r.json(); }).then(function(json){
+        fetch('/api/promo/validate?' + params.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        }).then(function(r){ return r.json(); }).then(function(json){
             if (json && json.valid) {
                 // show discounted price
                 var priceEl = document.getElementById('service_price');
@@ -1458,8 +1690,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).catch(function(){ showPromoMessage('Promo validation failed (network)', false); updatePriceDisplay(); });
     }
-    if (promoInput) {
-        promoInput.addEventListener('input', function(){ if (promoTimer) clearTimeout(promoTimer); promoTimer = setTimeout(validatePromoCode, 600); });
+    // Initialize promo options if branch is pre-selected
+    if (branchSelect && branchSelect.value) {
+        updatePromoOptions(branchSelect.value, serviceSelect.value);
+            // Preload claimed promo for initial branch selection if present
+        try {
+            if (claimedPromos && Array.isArray(claimedPromos)) {
+                var initialClaim = claimedPromos.find(function(cp){
+                    var pBranch = (cp.branch_id !== undefined) ? cp.branch_id : (cp.promo && cp.promo.branch_id ? cp.promo.branch_id : null);
+                    return String(pBranch) === String(branchSelect.value);
+                });
+                if (initialClaim) {
+                    setTimeout(function(){
+                        var promoInput = document.getElementById('promo_code');
+                        if (promoInput) {
+                            var claimedCode = initialClaim.code || (initialClaim.promo && initialClaim.promo.code) || null;
+                            if (promoInput.tagName.toLowerCase() === 'select') {
+                                for (var i=0;i<promoInput.options.length;i++) {
+                                    if (promoInput.options[i].value === claimedCode) { promoInput.selectedIndex = i; break; }
+                                }
+                            } else {
+                                promoInput.value = claimedCode;
+                            }
+                            if (typeof validatePromoCode === 'function') validatePromoCode();
+                            var promoMessage = document.getElementById('promo_applied_message');
+                            if (promoMessage && claimedCode) { promoMessage.textContent = 'Claimed promo applied: ' + claimedCode; promoMessage.style.color = '#198754'; }
+                        }
+                    }, 150);
+                }
+            }
+        } catch (e) { console.error('Error preloading initial claimed promo', e); }
     }
 });
 </script>
@@ -2244,6 +2504,24 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set flag to prevent double submission
             isSubmitting = true;
 
+            // If GCash payment, include the receipt file
+            if (paymentMethod === 'gcash') {
+                const receiptFile = document.getElementById('modal_gcash_receipt')?.files[0];
+                if (receiptFile) {
+                    // Create a new file input in the main form
+                    let fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.name = 'gcash_receipt';
+                    fileInput.style.display = 'none';
+                    bookingForm.appendChild(fileInput);
+
+                    // Create a DataTransfer to set the file
+                    const dt = new DataTransfer();
+                    dt.items.add(receiptFile);
+                    fileInput.files = dt.files;
+                }
+            }
+
             // Disable button and show loading state
             confirmPaymentBtn.disabled = true;
             confirmPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
@@ -2314,7 +2592,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!branchId || typeof branchData === 'undefined' || !branchData[branchId]) {
             // No branch selected, show message for services
             document.querySelectorAll('.service-price .price-loader').forEach(el => {
-                el.textContent = 'Select branch first';
+
                 el.style.color = '#999';
                 el.style.fontSize = '0.85rem';
             });

@@ -329,6 +329,8 @@ $(document).ready(function(){
                                     ${booking.package_services ? `<p><strong>📦 Package includes:</strong> ${booking.package_services}</p>` : ''}
                                     ${booking.sessions_left !== undefined && booking.sessions_left > 0 ?
                                         `<p><strong>🎫 Sessions Left:</strong> <span class="badge bg-warning text-dark">${booking.sessions_left} remaining</span></p>` : ''}
+                                    ${booking.preferred_staff ?
+                                        `<p><strong>👨‍💼 Preferred Staff:</strong> <span class="badge bg-info text-white">${booking.preferred_staff.name}</span></p>` : ''}
                                     <p><strong>💰 Price:</strong> ₱${booking.price || 'TBD'}</p>
                                     <p><strong>🕐 Booked:</strong> ${booking.created_at}</p>
                                 </div>
