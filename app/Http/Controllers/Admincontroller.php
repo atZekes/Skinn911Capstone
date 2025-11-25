@@ -480,7 +480,7 @@ class Admincontroller extends Controller{
             $branch = Branch::findOrFail($branchId);
 
             // Log the incoming slot_capacity and all request data
-            \Log::info('Admin Update Branch - Request Data', [
+            Log::info('Admin Update Branch - Request Data', [
                 'branch_id' => $branchId,
                 'all_request_data' => $request->all(),
                 'slot_capacity_from_request' => $request->slot_capacity,
@@ -589,14 +589,14 @@ class Admincontroller extends Controller{
         $branch->save();
 
         // Log after save
-        \Log::info('Admin Branch Updated Successfully', [
+        Log::info('Admin Branch Updated Successfully', [
             'branch_id' => $branchId,
             'saved_slot_capacity' => $branch->slot_capacity
         ]);
 
         return redirect()->back()->with('success', 'Branch details updated successfully.');
     } catch (\Exception $e) {
-        \Log::error('Admin Branch Update Failed', [
+        Log::error('Admin Branch Update Failed', [
             'branch_id' => $branchId,
             'error' => $e->getMessage(),
             'slot_capacity' => $request->slot_capacity

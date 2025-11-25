@@ -61,26 +61,45 @@ class CEOController extends Controller
 
             // Total completed bookings and revenue with error handling
             try {
-                $totalCompletedBookings = \App\Models\Booking::where('status', 'completed')->count();
+                // Count distinct bookings that have purchased services and are completed
+                $totalCompletedBookings = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.status', 'completed')
+                    ->distinct()
+                    ->count('purchased_services.booking_id');
 
-                $lastMonthBookings = \App\Models\Booking::whereMonth('created_at', $lastMonth)
-                                                       ->whereYear('created_at', $lastMonthYear)
-                                                       ->where('status', 'completed')
-                                                       ->count();
+                // Last month bookings based on purchased_services.created_at
+                $lastMonthBookings = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.status', 'completed')
+                    ->whereMonth('purchased_services.created_at', $lastMonth)
+                    ->whereYear('purchased_services.created_at', $lastMonthYear)
+                    ->distinct()
+                    ->count('purchased_services.booking_id');
             } catch (\Exception $e) {
                 $totalCompletedBookings = 0;
                 $lastMonthBookings = 0;
             }
 
             try {
-                $totalRevenue = \App\Models\Transaction::sum('amount') ?? 0;
-                $monthlyRevenue = $totalRevenue;
-                $lastMonthRevenue = 0;
+                // Use purchased_services.price as the authoritative revenue source
+                $totalRevenue = DB::table('purchased_services')->sum('price') ?? 0;
 
-                // Separate service and package revenue
-                $serviceRevenue = \App\Models\Transaction::whereNull('package_id')
-                    ->whereNotNull('service_id')
-                    ->sum('amount') ?? 0;
+                // Monthly and last month revenue from purchased_services
+                $monthlyRevenue = DB::table('purchased_services')
+                    ->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('price') ?? 0;
+
+                $lastMonthRevenue = DB::table('purchased_services')
+                    ->whereMonth('created_at', $lastMonth)
+                    ->whereYear('created_at', $lastMonthYear)
+                    ->sum('price') ?? 0;
+
+                // Service revenue derived from purchased_services
+                $serviceRevenue = DB::table('purchased_services')->sum('price') ?? 0;
+
+                // Package revenue (if packages stored via transactions)
                 $packageRevenue = \App\Models\Transaction::whereNotNull('package_id')
                     ->sum('amount') ?? 0;
             } catch (\Exception $e) {

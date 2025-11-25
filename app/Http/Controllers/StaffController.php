@@ -1450,7 +1450,7 @@ class StaffController extends Controller
                                         'amount' => $package->price ?? 0,
                                         'payment_method' => $booking->payment_method ?? 'package',
                                     ]);
-                                    \Log::info('Transaction created (package)', ['transaction' => $transaction]);
+                                    Log::info('Transaction created (package)', ['transaction' => $transaction]);
                                 }
                             }
                         }
@@ -1494,7 +1494,7 @@ class StaffController extends Controller
                 // Record transaction for walk-in / single-session booking
                 try {
                     $amount = $booking->service ? ($booking->service->price ?? 0) : 0;
-                    \Log::info('Attempting service transaction', [
+                    Log::info('Attempting service transaction', [
                         'booking_id' => $booking->id,
                         'service_id' => $booking->service_id,
                         'amount' => $amount,
@@ -1512,7 +1512,7 @@ class StaffController extends Controller
                             'amount' => $amount,
                             'payment_method' => $booking->payment_method ?? 'cash',
                         ]);
-                        \Log::info('Transaction created (service)', ['transaction' => $transaction]);
+                        Log::info('Transaction created (service)', ['transaction' => $transaction]);
                     }
                 } catch (\Exception $e) {
                     Log::warning('Failed to record transaction for single/walkin completion', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
