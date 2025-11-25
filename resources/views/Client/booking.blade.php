@@ -2066,12 +2066,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var promoInput = getPromoInput();
         if (!promoInput) return;
         var code = promoInput.value.trim();
-        if (!code) { 
+        if (!code) {
             // Clear promo data when promo is removed
             window.currentPromo = null;
-            showPromoMessage('', true); 
-            updatePriceDisplay(); 
-            return; 
+            showPromoMessage('', true);
+            updatePriceDisplay();
+            return;
         }
         var params = new URLSearchParams();
         params.append('code', code);
