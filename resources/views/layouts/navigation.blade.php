@@ -99,5 +99,5 @@
         </div>
         @endauth
     </div>
-       
+
 </nav>
