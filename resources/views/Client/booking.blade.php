@@ -614,14 +614,7 @@
                                 <strong>Saved Card Detected!</strong> Your previously saved card details have been loaded.
                             </div>
                             @endif
-                            <div class="mb-3">
-                                <label for="card_type" class="form-label">Card Type</label>
-                                <select class="form-select" id="card_type" name="card_type" required>
-                                    <option value="">Select Card Type</option>
-                                    <option value="visa">Visa</option>
-                                    <option value="mastercard">Mastercard</option>
-                                </select>
-                            </div>
+
                             <div class="mb-3">
                                 <label for="card_number" class="form-label">Card Number</label>
                                 <div class="input-group">

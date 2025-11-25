@@ -314,7 +314,6 @@
               </form>
             @endif
           @endif
-          @if($appointment->status === 'active')
           <form action="{{ route('staff.sendReminder', $appointment->id) }}" method="POST" style="display:inline-block;" class="send-reminder-form">
             @csrf
             <button type="submit" class="mb-1 btn btn-info btn-sm" title="Send reminder email to client">
@@ -322,12 +321,17 @@
             </button>
           </form>
           @endif
+          @if($appointment->status === 'active')
+          <button type="button" class="mb-1 btn btn-primary btn-sm" data-toggle="modal" data-target="#addServiceModal{{ $appointment->id }}" title="Add a service to this booking">
+            <i class="fas fa-plus"></i> Add Service
+          </button>
+          @endif
           <form action="{{ route('staff.cancelAppointment', $appointment->id) }}" method="POST" style="display:inline-block;">
             @csrf
             <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
           </form>
           <button type="button" class="btn btn-pink btn-sm" style="background:#e75480;color:#fff;" data-toggle="modal" data-target="#rescheduleModal{{ $appointment->id }}">Reschedule</button>
-          @else
+          @if($appointment->status === 'cancelled')
             <span class="text-muted">Cancelled</span>
           @endif
         </td>
@@ -2129,6 +2133,55 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="modal-footer" style="background:#fff;border-bottom-left-radius:16px;border-bottom-right-radius:16px;">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
               <button type="submit" class="btn btn-pink" style="background:#e75480;color:#fff;">Reschedule</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    @endforeach
+
+    <!-- Add Service Modal (one per appointment) -->
+    @foreach($appointments as $appointment)
+    <div class="modal fade" id="addServiceModal{{ $appointment->id }}" tabindex="-1" role="dialog" aria-labelledby="addServiceModalLabel{{ $appointment->id }}" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content" style="background:#fff;border-radius:16px;">
+          <div class="modal-header" style="background:#e75480;color:#fff;border-top-left-radius:16px;border-top-right-radius:16px;">
+            <h5 class="modal-title" id="addServiceModalLabel{{ $appointment->id }}">Add Service to Booking</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form method="POST" action="{{ route('staff.addServiceToBooking', $appointment->id) }}">
+            @csrf
+            <div class="modal-body">
+              <div class="mb-3">
+                <p class="text-muted">Add an additional service to this booking. The client will need to pay for the additional service.</p>
+              </div>
+              <div class="form-group">
+                <label for="service_id" style="color:#e75480;">Select Service</label>
+                <select name="service_id" class="form-control" required>
+                  <option value="">Choose a service...</option>
+                  @php
+                    $services = \App\Models\Service::where('active', true)->get();
+                  @endphp
+                  @foreach($services as $service)
+                    <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-duration="{{ $service->duration }}">
+                      {{ $service->name }} - ₱{{ number_format($service->price, 2) }} ({{ $service->duration }}h)
+                    </option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sessions" style="color:#e75480;">Number of Sessions</label>
+                <input type="number" name="sessions" class="form-control" value="1" min="1" required>
+                <small class="text-muted">Total cost will be calculated as: sessions × service price</small>
+              </div>
+            </div>
+            <div class="modal-footer" style="background:#fff;border-bottom-left-radius:16px;border-bottom-right-radius:16px;">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-pink" style="background:#e75480;color:#fff;">
+                <i class="fas fa-plus me-2"></i>Add Service
+              </button>
             </div>
           </form>
         </div>

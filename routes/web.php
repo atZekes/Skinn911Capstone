@@ -158,6 +158,7 @@ Route::middleware('staff')->group(function () {
     // New session management routes
     Route::post('/staff/booking/{id}/complete-session', [App\Http\Controllers\StaffController::class, 'completeSession'])->name('staff.completeSession');
     Route::post('/staff/package-session/{id}/send-reminder', [App\Http\Controllers\StaffController::class, 'sendPackageReminder'])->name('staff.sendPackageReminder');
+    Route::post('/staff/appointments/{id}/add-service', [App\Http\Controllers\StaffController::class, 'addServiceToBooking'])->name('staff.addServiceToBooking');
 
     Route::post('/staff/pos/record', [App\Http\Controllers\StaffController::class, 'recordTransaction'])->name('staff.pos.record');
 

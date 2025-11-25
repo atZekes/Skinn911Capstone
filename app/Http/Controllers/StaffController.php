@@ -1546,6 +1546,66 @@ class StaffController extends Controller
         }
     }
 
+    public function addServiceToBooking(Request $request, $bookingId)
+    {
+        $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'sessions' => 'required|integer|min:1',
+        ]);
+
+        try {
+            $booking = \App\Models\Booking::findOrFail($bookingId);
+            $service = \App\Models\Service::findOrFail($request->service_id);
+
+            // Check if staff belongs to the same branch
+            $staffBranchId = auth()->guard('staff')->user()->branch_id;
+            if ($booking->branch_id != $staffBranchId) {
+                return back()->with('error', 'This booking belongs to a different branch.');
+            }
+
+            // Check if the service is already in this booking
+            $existingService = \App\Models\PurchasedService::where('booking_id', $booking->id)
+                ->where('service_id', $service->id)
+                ->first();
+
+            if ($existingService) {
+                return back()->with('error', 'This service is already added to the booking.');
+            }
+
+            // Add the service to the booking
+            \App\Models\PurchasedService::create([
+                'user_id' => $booking->user_id,
+                'service_id' => $service->id,
+                'booking_id' => $booking->id,
+                'price' => $service->price,
+                'description' => $service->name,
+                'status' => 'active',
+                'total_sessions' => $request->sessions,
+                'sessions_used' => 0,
+                'sessions_remaining' => $request->sessions,
+                'session_status' => 'active',
+                'session_expiry_date' => now()->addYear(),
+            ]);
+
+            // Send notification to client
+            if ($booking->user_id) {
+                $this->sendPushNotification(
+                    $booking->user_id,
+                    'Service Added',
+                    'A new service has been added to your booking: ' . $service->name,
+                    'info',
+                    $booking->id
+                );
+            }
+
+            return back()->with('success', 'Service added successfully to the booking.');
+
+        } catch (\Exception $e) {
+            Log::error('Error adding service to booking: ' . $e->getMessage());
+            return back()->with('error', 'Error adding service: ' . $e->getMessage());
+        }
+    }
+
     public function viewGcashReceipt($id)
     {
         $staff = auth('staff')->user();
