@@ -67,6 +67,7 @@
                     @if($errors->has('password_confirmation'))
                         <div class="text-danger small mt-1">{{ $errors->first('password_confirmation') }}</div>
                     @endif
+                        <div id="register-password-error" class="text-danger small" style="display:none;position:absolute;left:0;top:100%;width:100%;padding-top:2px;font-size:0.85rem;z-index:2;"></div>
                 </div>
 
                 <!-- Service Preferences -->
@@ -266,6 +267,25 @@ document.addEventListener('DOMContentLoaded', function() {
             registerPasswordConfirmation.setAttribute('type', type);
             this.classList.toggle('fa-eye');
             this.classList.toggle('fa-eye-slash');
+        });
+    }
+
+    // Password match validation
+    const registerForm = document.querySelector('#registerModal form');
+    const passwordErrorDiv = document.getElementById('register-password-error');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            if (registerPassword && registerPasswordConfirmation) {
+                if (registerPassword.value !== registerPasswordConfirmation.value) {
+                    e.preventDefault();
+                    passwordErrorDiv.textContent = "Passwords do not match.";
+                    passwordErrorDiv.style.display = "block";
+                    registerPasswordConfirmation.focus();
+                } else {
+                    passwordErrorDiv.textContent = "";
+                    passwordErrorDiv.style.display = "none";
+                }
+            }
         });
     }
 });

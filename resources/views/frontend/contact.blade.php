@@ -101,6 +101,8 @@
                                                     data-slot_capacity="{{ $branch->slot_capacity ?? 5 }}"
                                                     data-gcash-number="{{ $branch->gcash_number ?? '0917 123 4567' }}"
                                                     data-gcash-qr="{{ $branch->gcash_qr ? asset($branch->gcash_qr) : asset('img/gcash-qr.png') }}"
+                                                    data-contact-number="{{ $branch->contact_number ?? '' }}"
+                                                    data-telephone-number="{{ $branch->telephone_number ?? '' }}"
                                                     @if(request('branch_id') == $branch->id) selected @endif>{{ $branch->name }}</option>
                                         @endforeach
                                     </select>
@@ -491,9 +493,22 @@
                     }
                 }
 
-                // Update contact info (you can enhance this with actual contact data)
+                // Update contact info
                 if (branchContact) {
-                    branchContact.innerHTML = 'Contact information coming soon';
+                    var contactNumber = selectedOption.getAttribute('data-contact-number') || '';
+                    var telephoneNumber = selectedOption.getAttribute('data-telephone-number') || '';
+                    var contactText = '';
+                    if (contactNumber && contactNumber.trim() !== '') {
+                        contactText += 'Mobile: ' + contactNumber;
+                    }
+                    if (telephoneNumber && telephoneNumber.trim() !== '') {
+                        if (contactText) contactText += '<br>';
+                        contactText += 'Phone: ' + telephoneNumber;
+                    }
+                    if (contactText === '') {
+                        contactText = 'Contact information coming soon';
+                    }
+                    branchContact.innerHTML = contactText;
                 }
 
                 // Update directions button

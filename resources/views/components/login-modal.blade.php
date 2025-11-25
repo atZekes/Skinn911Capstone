@@ -44,8 +44,12 @@
                     @if($errors->has('password'))
                         <div class="mt-1 text-danger small">{{ $errors->first('password') }}</div>
                     @endif
+                        <div id="login-error-message" class="text-danger small" style="display:none;position:absolute;left:0;top:100%;width:100%;padding-top:2px;font-size:0.85rem;z-index:2;"></div>
                 </div>
                 <button type="submit" class="button" style="width:100%;padding:12px;background:#F56289;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:1.1rem;box-shadow:0 2px 8px rgba(245,98,137,0.10);margin-top:8px;transition:background 0.2s;">LOGIN</button>
+                                    <div id="login-loading-spinner" style="display:none;text-align:center;margin-top:8px;">
+                                        <span class="spinner-border spinner-border-sm" style="color:#F56289;"></span> Logging in...
+                                    </div>
                 <p class="text" style="text-align:left;margin-top:15px;font-size:0.95rem;">
                     <input type="checkbox" name="remember" style="vertical-align:middle;"> Remember me
                     <a href="#" class="links" id="openResetPasswordModal" style="margin-left:25px;color:#F56289;font-weight:500;">Forgot Password?</a>
@@ -92,6 +96,57 @@ document.addEventListener('DOMContentLoaded', function() {
             loginPassword.setAttribute('type', type);
             this.classList.toggle('fa-eye');
             this.classList.toggle('fa-eye-slash');
+        });
+    }
+
+    // AJAX login
+    const loginForm = loginModal ? loginModal.querySelector('form[action*="login"]') : null;
+    const loginErrorDiv = document.getElementById('login-error-message');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            loginErrorDiv.style.display = "none";
+            loginErrorDiv.textContent = "";
+            const formData = new FormData(loginForm);
+            fetch(loginForm.action, {
+                            // Show spinner
+                            const spinner = document.getElementById('login-loading-spinner');
+                            if (spinner) spinner.style.display = "block";
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': loginForm.querySelector('input[name="_token"]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (spinner) spinner.style.display = "none";
+                if (data.errors && data.errors.password) {
+                    loginErrorDiv.textContent = data.errors.password[0];
+                    loginErrorDiv.style.display = "block";
+                } else if (data.errors && data.errors.email) {
+                    loginErrorDiv.textContent = data.errors.email[0];
+                    loginErrorDiv.style.display = "block";
+                } else if (data.message) {
+                    loginErrorDiv.textContent = data.message;
+                    loginErrorDiv.style.display = "block";
+                } else if (data.success) {
+                    loginErrorDiv.textContent = "";
+                    loginErrorDiv.style.display = "none";
+                    window.location.reload();
+                } else {
+                    loginErrorDiv.textContent = "";
+                    loginErrorDiv.style.display = "none";
+                    window.location.reload();
+                }
+            })
+            .catch(() => {
+                                if (spinner) spinner.style.display = "none";
+                loginErrorDiv.textContent = "Login failed. Please try again.";
+                loginErrorDiv.style.display = "block";
+            });
         });
     }
 });
