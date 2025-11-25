@@ -63,6 +63,11 @@
     table {
         width: 100%; border-collapse: collapse; font-size: 10px;
         margin-top: 8px; background: white;
+        page-break-inside: auto;
+    }
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
     }
     thead { background: #F56289; color: white; }
     th, td { padding: 8px; border-bottom: 1px solid #f1f1f1; }
@@ -93,7 +98,7 @@
     </div>
     <div class="header-right">
         <div class="report-title">Executive Sales Report</div>
-        <div class="report-period">📅 {{ $from }} — {{ $to }}</div>
+
     </div>
 </div>
 
@@ -163,19 +168,18 @@
         @foreach($report['rows'] as $i => $r)
         <tr>
             <td>{{ $i+1 }}</td>
-            <td>{{ $r->branch_name }}</td>
-            <td>{{ $r->service_name }}</td>
+            <td>{{ $r->branch_name ?? ($r->branch->name ?? 'N/A') }}</td>
+            <td>{{ $r->service_name ?? ($r->service->name ?? 'N/A') }}</td>
             <td>{{ \Carbon\Carbon::parse($r->created_at)->format('M d, Y') }}</td>
-            <td class="amount">{{ number_format($r->amount, 2) }}</td>
+            <td class="amount">{{ number_format($r->price ?? $r->amount, 2) }}</td>
         </tr>
         @endforeach
     </tbody>
 </table>
 
 <footer>
-    
+
+    <span><strong>Skin911 Confidential</strong></span>
+<footer>
     <span><strong>Skin911 Confidential</strong></span>
 </footer>
-
-</body>
-</html>

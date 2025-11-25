@@ -102,11 +102,11 @@
                     <tbody>
                         @foreach($report['rows'] as $r)
                             <tr>
-                                <td>#{{ $r->booking_id }}</td>
-                                <td>{{ $r->branch_name }}</td>
-                                <td>{{ $r->service_name }}</td>
+                                <td>#{{ $r->booking_id ?? $r->ps_id }}</td>
+                                <td>{{ $r->branch_name ?? ($r->branch->name ?? 'N/A') }}</td>
+                                <td>{{ $r->service_name ?? ($r->service->name ?? 'N/A') }}</td>
                                 <td>{{ \Carbon\Carbon::parse($r->created_at)->format('M d, Y') }}</td>
-                                <td>{{ number_format($r->amount,2) }}</td>
+                                <td>{{ number_format($r->price ?? $r->amount,2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

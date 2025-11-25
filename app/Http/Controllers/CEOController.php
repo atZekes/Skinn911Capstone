@@ -83,25 +83,12 @@ class CEOController extends Controller
 
             try {
                 // Use purchased_services.price as the authoritative revenue source
-                $totalRevenue = DB::table('purchased_services')->sum('price') ?? 0;
-
-                // Monthly and last month revenue from purchased_services
-                $monthlyRevenue = DB::table('purchased_services')
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->sum('price') ?? 0;
-
-                $lastMonthRevenue = DB::table('purchased_services')
-                    ->whereMonth('created_at', $lastMonth)
-                    ->whereYear('created_at', $lastMonthYear)
-                    ->sum('price') ?? 0;
-
-                // Service revenue derived from purchased_services
-                $serviceRevenue = DB::table('purchased_services')->sum('price') ?? 0;
-
-                // Package revenue (if packages stored via transactions)
-                $packageRevenue = \App\Models\Transaction::whereNotNull('package_id')
-                    ->sum('amount') ?? 0;
+                // These will be recalculated below for consistency
+                $totalRevenue = 0;
+                $monthlyRevenue = 0;
+                $lastMonthRevenue = 0;
+                $serviceRevenue = 0;
+                $packageRevenue = 0;
             } catch (\Exception $e) {
                 $totalRevenue = 0;
                 $monthlyRevenue = 0;
@@ -112,6 +99,14 @@ class CEOController extends Controller
 
             // Branch Performance Comparison
             $branchPerformance = $this->getBranchPerformance();
+
+            // Set totalRevenue, serviceRevenue, and packageRevenue as sum of all branch values for consistency
+            $totalRevenue = collect($branchPerformance)->sum('revenue_overall');
+            $serviceRevenue = collect($branchPerformance)->sum(function($branch) {
+                // If you have a way to distinguish services vs packages in purchased_services, update here
+                return $branch['revenue_overall'];
+            });
+            $packageRevenue = 0; // If you want to split package revenue, update branchPerformance to include it
 
             // Revenue Growth (last 6 months)
             $revenueGrowth = $this->getRevenueGrowth();
@@ -186,26 +181,40 @@ class CEOController extends Controller
             $performance = [];
 
             foreach ($branches as $branch) {
-                // Overall completed bookings (all time)
-                $bookings_month = null;
-                $bookings_overall = \App\Models\Booking::where('branch_id', $branch->id)
-                                               ->where('status', 'completed')
-                                               ->count();
+                // Bookings overall: count distinct completed bookings with purchased services for this branch
+                $bookings_overall = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.branch_id', $branch->id)
+                    ->where('bookings.status', 'completed')
+                    ->distinct()
+                    ->count('purchased_services.booking_id');
 
-                // Revenue for this branch this month
-                // Use transactions.booking_id -> bookings.id to accurately attribute revenue
-                $revenue_month = \App\Models\Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
-                                                  ->where('bookings.branch_id', $branch->id)
-                                                  ->whereMonth('transactions.created_at', now()->month)
-                                                  ->whereYear('transactions.created_at', now()->year)
-                                                  ->sum('transactions.amount') ?? 0;
+                // Bookings this month: count distinct completed bookings with purchased services for this branch and month
+                $bookings_month = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.branch_id', $branch->id)
+                    ->where('bookings.status', 'completed')
+                    ->whereMonth('purchased_services.created_at', now()->month)
+                    ->whereYear('purchased_services.created_at', now()->year)
+                    ->distinct()
+                    ->count('purchased_services.booking_id');
 
-                // Overall revenue (all time) for branch
-                $revenue_overall = \App\Models\Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
-                                                  ->where('bookings.branch_id', $branch->id)
-                                                  ->sum('transactions.amount') ?? 0;
+                // Revenue for this branch this month: sum purchased_services.price for this branch and month
+                $revenue_month = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.branch_id', $branch->id)
+                    ->where('bookings.status', 'completed')
+                    ->whereMonth('purchased_services.created_at', now()->month)
+                    ->whereYear('purchased_services.created_at', now()->year)
+                    ->sum('purchased_services.price') ?? 0;
 
-                // Include legacy keys 'bookings' and 'revenue' for backward compatibility
+                // Overall revenue (all time) for branch: sum purchased_services.price for this branch
+                $revenue_overall = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.branch_id', $branch->id)
+                    ->where('bookings.status', 'completed')
+                    ->sum('purchased_services.price') ?? 0;
+
                 $performance[] = [
                     'name' => $branch->name,
                     'bookings_month' => $bookings_month,
@@ -372,6 +381,8 @@ class CEOController extends Controller
     {
         $branch1Id = $request->input('branch1');
         $branch2Id = $request->input('branch2');
+        $from = $request->input('from', null);
+        $to = $request->input('to', null);
 
         if (!$branch1Id || !$branch2Id || $branch1Id == $branch2Id) {
             return response()->json(['error' => 'Please select two different branches'], 400);
@@ -383,7 +394,7 @@ class CEOController extends Controller
         foreach ($branchIds as $branchId) {
             $branch = Branch::find($branchId);
 
-            // Get monthly revenue data for the last 6 months
+            // Get monthly revenue and bookings from purchased_services for the last 6 months
             $monthlyRevenue = [];
             $monthlyBookings = [];
             $monthLabels = [];
@@ -392,52 +403,68 @@ class CEOController extends Controller
                 $month = now()->subMonths($i);
                 $monthLabels[] = $month->format('M Y');
 
-                $revenue = Transaction::where('branch_id', $branchId)
-                    ->whereYear('created_at', $month->year)
-                    ->whereMonth('created_at', $month->month)
-                    ->sum('amount');
+                $revenue = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.branch_id', $branchId)
+                    ->whereYear('purchased_services.created_at', $month->year)
+                    ->whereMonth('purchased_services.created_at', $month->month)
+                    ->sum('purchased_services.price');
 
-                $bookings = Booking::where('branch_id', $branchId)
-                    ->whereYear('created_at', $month->year)
-                    ->whereMonth('created_at', $month->month)
+                $bookings = DB::table('purchased_services')
+                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                    ->where('bookings.branch_id', $branchId)
+                    ->whereYear('purchased_services.created_at', $month->year)
+                    ->whereMonth('purchased_services.created_at', $month->month)
                     ->count();
 
                 $monthlyRevenue[] = floatval($revenue);
                 $monthlyBookings[] = $bookings;
             }
 
-            // Calculate current month metrics
-            $currentRevenue = Transaction::where('branch_id', $branchId)
-                ->whereMonth('created_at', now()->month)
-                ->sum('amount');
+            // Current month metrics
+            $currentRevenue = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->where('bookings.branch_id', $branchId)
+                ->whereMonth('purchased_services.created_at', now()->month)
+                ->sum('purchased_services.price');
 
-            $currentBookings = Booking::where('branch_id', $branchId)
-                ->whereMonth('created_at', now()->month)
+            $currentBookings = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->where('bookings.branch_id', $branchId)
+                ->whereMonth('purchased_services.created_at', now()->month)
                 ->count();
 
-            $currentClients = Booking::where('branch_id', $branchId)
-                ->whereMonth('created_at', now()->month)
-                ->distinct('user_id')
-                ->count('user_id');
+            $currentClients = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->where('bookings.branch_id', $branchId)
+                ->whereMonth('purchased_services.created_at', now()->month)
+                ->distinct('purchased_services.user_id')
+                ->count('purchased_services.user_id');
 
-            // Get previous month for growth calculation
-            $previousRevenue = Transaction::where('branch_id', $branchId)
-                ->whereMonth('created_at', now()->subMonth()->month)
-                ->sum('amount');
+            // Previous month for growth calculation
+            $previousRevenue = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->where('bookings.branch_id', $branchId)
+                ->whereMonth('purchased_services.created_at', now()->subMonth()->month)
+                ->sum('purchased_services.price');
 
-            $previousBookings = Booking::where('branch_id', $branchId)
-                ->whereMonth('created_at', now()->subMonth()->month)
+            $previousBookings = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->where('bookings.branch_id', $branchId)
+                ->whereMonth('purchased_services.created_at', now()->subMonth()->month)
                 ->count();
 
-            // Calculate growth percentages
+            // Growth percentages
             $revenueGrowth = $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0;
             $bookingsGrowth = $previousBookings > 0 ? (($currentBookings - $previousBookings) / $previousBookings) * 100 : 0;
 
-            // Get top service
-            $topService = DB::table('bookings')
-                ->join('services', 'bookings.service_id', '=', 'services.id')
-                ->where('bookings.branch_id', $branchId)
-                ->whereMonth('bookings.created_at', now()->month)
+            // Top service by purchased_services
+            $topService = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+                ->where('bookings.status', 'completed')
+                ->when($from, fn($q) => $q->whereDate('bookings.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('bookings.created_at', '<=', $to))
                 ->select('services.name', DB::raw('COUNT(*) as booking_count'))
                 ->groupBy('services.id', 'services.name')
                 ->orderBy('booking_count', 'desc')
@@ -1023,74 +1050,67 @@ class CEOController extends Controller
             $labels = [];
             $revenues = [];
 
-            $query = \App\Models\Transaction::query();
+            // Use purchased_services for revenue analytics
+            $baseQuery = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id');
             if ($branchId) {
-                $query->where('branch_id', $branchId);
+                $baseQuery->where('bookings.branch_id', $branchId);
             }
 
             switch ($period) {
                 case 'week':
-                    // Last 7 days
                     for ($i = 6; $i >= 0; $i--) {
                         $date = now()->subDays($i);
-                        $label = $date->format('D'); // Mon, Tue, etc.
-                        $revenue = (clone $query)->whereDate('created_at', $date->toDateString())
-                                                          ->sum('amount') ?? 0;
-
+                        $label = $date->format('D');
+                        $revenue = (clone $baseQuery)
+                            ->whereDate('purchased_services.created_at', $date->toDateString())
+                            ->sum('purchased_services.price') ?? 0;
                         $labels[] = $label;
                         $revenues[] = $revenue;
                     }
                     break;
-
                 case 'month':
-                    // Last 30 days
-                    for ($i = 29; $i >= 0; $i--) {
-                        $date = now()->subDays($i);
-                        $label = $date->format('M j'); // Jan 1, Jan 2, etc.
-                        $revenue = (clone $query)->whereDate('created_at', $date->toDateString())
-                                                          ->sum('amount') ?? 0;
-
-                        $labels[] = $label;
-                        $revenues[] = $revenue;
-                    }
-                    break;
-
-                case 'quarter':
-                    // Last 3 months
-                    for ($i = 2; $i >= 0; $i--) {
-                        $date = now()->subMonths($i);
-                        $label = $date->format('M Y'); // Jan 2024, Feb 2024, etc.
-                        $revenue = (clone $query)->whereMonth('created_at', $date->month)
-                                                          ->whereYear('created_at', $date->year)
-                                                          ->sum('amount') ?? 0;
-
-                        $labels[] = $label;
-                        $revenues[] = $revenue;
-                    }
-                    break;
-
-                case 'year':
-                    // Last 12 months
-                    for ($i = 11; $i >= 0; $i--) {
-                        $date = now()->subMonths($i);
-                        $label = $date->format('M Y'); // Jan 2024, Feb 2024, etc.
-                        $revenue = (clone $query)->whereMonth('created_at', $date->month)
-                                                          ->whereYear('created_at', $date->year)
-                                                          ->sum('amount') ?? 0;
-
-                        $labels[] = $label;
-                        $revenues[] = $revenue;
-                    }
-                    break;
-
-                default:
-                    // Default to month view
                     for ($i = 29; $i >= 0; $i--) {
                         $date = now()->subDays($i);
                         $label = $date->format('M j');
-                        $revenue = (clone $query)->whereDate('created_at', $date->toDateString())
-                                                          ->sum('amount') ?? 0;
-
+                        $revenue = (clone $baseQuery)
+                            ->whereDate('purchased_services.created_at', $date->toDateString())
+                            ->sum('purchased_services.price') ?? 0;
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+                case 'quarter':
+                    for ($i = 2; $i >= 0; $i--) {
+                        $date = now()->subMonths($i);
+                        $label = $date->format('M Y');
+                        $revenue = (clone $baseQuery)
+                            ->whereMonth('purchased_services.created_at', $date->month)
+                            ->whereYear('purchased_services.created_at', $date->year)
+                            ->sum('purchased_services.price') ?? 0;
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+                case 'year':
+                    for ($i = 11; $i >= 0; $i--) {
+                        $date = now()->subMonths($i);
+                        $label = $date->format('M Y');
+                        $revenue = (clone $baseQuery)
+                            ->whereMonth('purchased_services.created_at', $date->month)
+                            ->whereYear('purchased_services.created_at', $date->year)
+                            ->sum('purchased_services.price') ?? 0;
+                        $labels[] = $label;
+                        $revenues[] = $revenue;
+                    }
+                    break;
+                default:
+                    for ($i = 29; $i >= 0; $i--) {
+                        $date = now()->subDays($i);
+                        $label = $date->format('M j');
+                        $revenue = (clone $baseQuery)
+                            ->whereDate('purchased_services.created_at', $date->toDateString())
+                            ->sum('purchased_services.price') ?? 0;
                         $labels[] = $label;
                         $revenues[] = $revenue;
                     }
@@ -1246,71 +1266,51 @@ class CEOController extends Controller
     {
         try {
             // METRIC 1: Total Clients
-            // Count unique clients in the database
-            $totalClients = User::where('role', 'client')->count();
+            $totalClients = DB::table('purchased_services')
+                ->distinct('user_id')
+                ->count('user_id');
 
             // METRIC 2: Average Return Rate (Past 30 Days)
-            // Calculate percentage of clients who booked 2+ times in last 30 days
             $thirtyDaysAgo = now()->subDays(30);
+            $clientsBookedInLast30Days = DB::table('purchased_services')
+                ->where('created_at', '>=', $thirtyDaysAgo)
+                ->distinct('user_id')
+                ->count('user_id');
 
-            // Get clients who booked at least once in last 30 days
-            $clientsBookedInLast30Days = User::where('role', 'client')
-                ->whereHas('bookings', function($q) use ($thirtyDaysAgo) {
-                    $q->where('status', 'completed')
-                      ->where('date', '>=', $thirtyDaysAgo);
-                })->count();
+            $clientsWithTwoOrMoreBookings = DB::table('purchased_services')
+                ->where('created_at', '>=', $thirtyDaysAgo)
+                ->select('user_id', DB::raw('COUNT(*) as cnt'))
+                ->groupBy('user_id')
+                ->having('cnt', '>=', 2)
+                ->get()->count();
 
-            // Get clients who booked 2+ times in last 30 days
-            $clientsWithTwoOrMoreBookings = User::where('role', 'client')
-                ->whereHas('bookings', function($q) use ($thirtyDaysAgo) {
-                    $q->where('status', 'completed')
-                      ->where('date', '>=', $thirtyDaysAgo);
-                }, '>=', 2)->count();
-
-            // Calculate return rate percentage
             $averageReturnRate = $clientsBookedInLast30Days > 0
                 ? round(($clientsWithTwoOrMoreBookings / $clientsBookedInLast30Days) * 100, 1)
                 : 0;
 
             // METRIC 3: Average Days Between Bookings
-            // For each client with 2+ bookings, calculate average interval
-            $clientsWithMultipleBookings = User::where('role', 'client')
-                ->whereHas('bookings', function($q) {
-                    $q->where('status', 'completed');
-                }, '>=', 2)
-                ->with(['bookings' => function($q) {
-                    $q->where('status', 'completed')
-                      ->orderBy('date', 'asc')
-                      ->orderBy('time_slot', 'asc');
-                }])->get();
-
-            $totalIntervals = 0;
-            $intervalCount = 0;
-
-            foreach ($clientsWithMultipleBookings as $client) {
-                $bookings = $client->bookings->sortBy('date');
-
-                // Calculate intervals between consecutive bookings
-                for ($i = 1; $i < $bookings->count(); $i++) {
-                    $previousDate = \Carbon\Carbon::parse($bookings[$i-1]->date);
-                    $currentDate = \Carbon\Carbon::parse($bookings[$i]->date);
-
-                    // Get difference in days
-                    $daysDiff = $previousDate->diffInDays($currentDate);
-
-                    $totalIntervals += $daysDiff;
-                    $intervalCount++;
+            $intervals = [];
+            $users = DB::table('purchased_services')
+                ->select('user_id')
+                ->groupBy('user_id')
+                ->get();
+            foreach ($users as $user) {
+                $dates = DB::table('purchased_services')
+                    ->where('user_id', $user->user_id)
+                    ->orderBy('created_at', 'asc')
+                    ->pluck('created_at');
+                for ($i = 1; $i < count($dates); $i++) {
+                    $prev = \Carbon\Carbon::parse($dates[$i-1]);
+                    $curr = \Carbon\Carbon::parse($dates[$i]);
+                    $intervals[] = $prev->diffInDays($curr);
                 }
             }
-
-            // Calculate average days between bookings
-            $averageDaysBetweenBookings = $intervalCount > 0
-                ? round($totalIntervals / $intervalCount, 1)
+            $averageDaysBetweenBookings = count($intervals) > 0
+                ? round(array_sum($intervals) / count($intervals), 1)
                 : 0;
 
             // METRIC 4: Total Visits (Overall)
-            // Count all completed bookings across all clients
-            $totalVisits = \App\Models\Booking::where('status', 'completed')->count();
+            $totalVisits = DB::table('purchased_services')->count();
 
             return [
                 'total_clients' => $totalClients,
@@ -1443,30 +1443,32 @@ class CEOController extends Controller
         $report = null;
         $metrics = null;
         if ($from || $to || $branchId) {
-            $query = Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+            $psQuery = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
                 ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
-                ->leftJoin('services', 'bookings.service_id', '=', 'services.id')
-                ->whereNotNull('bookings.service_id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+                ->where('bookings.status', 'completed')
                 ->select(
+                    'purchased_services.id as ps_id',
                     'bookings.id as booking_id',
                     'branches.name as branch_name',
                     'services.name as service_name',
-                    'transactions.amount',
-                    'transactions.created_at'
+                    'purchased_services.price',
+                    'purchased_services.created_at'
                 );
 
             if ($from) {
-                $query->whereDate('transactions.created_at', '>=', $from);
+                $psQuery->whereDate('purchased_services.created_at', '>=', $from);
             }
             if ($to) {
-                $query->whereDate('transactions.created_at', '<=', $to);
+                $psQuery->whereDate('purchased_services.created_at', '<=', $to);
             }
             if ($branchId) {
-                $query->where('bookings.branch_id', $branchId);
+                $psQuery->where('bookings.branch_id', $branchId);
             }
 
-            $rows = $query->orderBy('transactions.created_at', 'desc')->get();
-            $total = $rows->sum('amount');
+            $rows = $psQuery->orderBy('purchased_services.created_at', 'desc')->get();
+            $total = $rows->sum('price');
             $count = $rows->count();
 
             $report = [
@@ -1580,30 +1582,32 @@ class CEOController extends Controller
         $to = $request->get('to');
         $branchId = $request->get('branch_id');
 
-        $query = Transaction::join('bookings', 'transactions.booking_id', '=', 'bookings.id')
+        $psQuery = DB::table('purchased_services')
+            ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
             ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
-            ->leftJoin('services', 'bookings.service_id', '=', 'services.id')
-                ->whereNotNull('bookings.service_id')
+            ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+            ->where('bookings.status', 'completed')
             ->select(
+                'purchased_services.id as ps_id',
                 'bookings.id as booking_id',
                 'branches.name as branch_name',
                 'services.name as service_name',
-                'transactions.amount',
-                'transactions.created_at'
+                'purchased_services.price',
+                'purchased_services.created_at'
             );
 
         if ($from) {
-            $query->whereDate('transactions.created_at', '>=', $from);
+            $psQuery->whereDate('purchased_services.created_at', '>=', $from);
         }
         if ($to) {
-            $query->whereDate('transactions.created_at', '<=', $to);
+            $psQuery->whereDate('purchased_services.created_at', '<=', $to);
         }
         if ($branchId) {
-            $query->where('bookings.branch_id', $branchId);
+            $psQuery->where('bookings.branch_id', $branchId);
         }
 
-        $rows = $query->orderBy('transactions.created_at', 'desc')->get();
-        $total = $rows->sum('amount');
+        $rows = $psQuery->orderBy('purchased_services.created_at', 'desc')->get();
+        $total = $rows->sum('price');
         $count = $rows->count();
 
         $report = [
@@ -1630,7 +1634,13 @@ class CEOController extends Controller
             if ($from) $psQuery->whereDate('purchased_services.created_at', '>=', $from);
             if ($to) $psQuery->whereDate('purchased_services.created_at', '<=', $to);
 
-            $branchRevenues = (clone $psQuery)->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
+            $branchRevenues = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->where('bookings.status', 'completed')
+                ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
+                ->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
                 ->groupBy('branches.id', 'branches.name')
                 ->orderByDesc('total')
                 ->get();
@@ -1642,7 +1652,13 @@ class CEOController extends Controller
             $cancelled = (clone $bookingQuery)->where('status', 'cancelled')->count();
             $cancellationRate = $totalBookings > 0 ? round(($cancelled / $totalBookings) * 100, 2) : 0;
 
-            $topServices = (clone $txQuery)->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(transactions.amount) as revenue')
+            $topServices = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+                ->where('bookings.status', 'completed')
+                ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
+                ->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(purchased_services.price) as revenue')
                 ->groupBy('services.id', 'services.name')
                 ->orderByDesc('tx_count')
                 ->limit(10)
@@ -1651,8 +1667,9 @@ class CEOController extends Controller
             $profitPerService = DB::table('purchased_services')
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
                 ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
-                ->when($from, fn($q) => $q->whereDate('bookings.created_at', '>=', $from))
-                ->when($to, fn($q) => $q->whereDate('bookings.created_at', '<=', $to))
+                ->where('bookings.status', 'completed')
+                ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
                 ->selectRaw('services.id as service_id, services.name as service_name, SUM(purchased_services.price) as profit')
                 ->groupBy('services.id', 'services.name')
                 ->orderByDesc('profit')
