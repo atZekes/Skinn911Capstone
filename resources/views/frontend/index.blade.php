@@ -285,7 +285,7 @@
                         </ul>
                         <div class="offer-buttons d-flex gap-2 justify-content-center mt-3">
                             <a href="{{ route('services') }}" class="btn btn-outline-pink btn-sm">View Services</a>
-                            <a href="#" onclick="handleClaimPromo('{{ $promo->code }}', '{{ $promo->id }}'); return false;" class="btn btn-pink btn-sm">Claim Now!</a>
+                            <a href="#" onclick="document.getElementById('openLoginModalBtn').click(); return false;" class="btn btn-pink btn-sm">Claim Now!</a>
                         </div>
                     </div>
                 </div>
