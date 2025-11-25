@@ -149,10 +149,34 @@
                     <span class="info-label">Booking ID:</span>
                     <span class="info-value">#{{ $booking->id }}</span>
                 </div>
+
+                @php
+                    $purchasedServices = $booking->purchasedServices()->with('service')->get();
+                @endphp
+
+                @if($purchasedServices->count() > 1)
+                <div class="info-row">
+                    <span class="info-label">Services:</span>
+                    <span class="info-value">
+                        <div style="text-align: right;">
+                            @foreach($purchasedServices as $ps)
+                                <div style="margin-bottom: 4px;">{{ $ps->service->name }}</div>
+                            @endforeach
+                        </div>
+                    </span>
+                </div>
+                @elseif($purchasedServices->count() === 1)
+                <div class="info-row">
+                    <span class="info-label">Service:</span>
+                    <span class="info-value">{{ $purchasedServices->first()->service->name }}</span>
+                </div>
+                @else
                 <div class="info-row">
                     <span class="info-label">Service:</span>
                     <span class="info-value">{{ $booking->service->name ?? 'N/A' }}</span>
                 </div>
+                @endif
+
                 <div class="info-row">
                     <span class="info-label">Branch:</span>
                     <span class="info-value">{{ $booking->branch->name ?? 'N/A' }}</span>

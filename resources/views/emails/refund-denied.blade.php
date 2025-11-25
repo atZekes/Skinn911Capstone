@@ -121,10 +121,32 @@
                     <span class="detail-label">Branch:</span>
                     <span class="detail-value">{{ $booking->branch->name ?? 'N/A' }}</span>
                 </div>
+
+                @php
+                    $purchasedServices = $booking->purchasedServices()->with('service')->get();
+                @endphp
+
+                @if($purchasedServices->count() > 1)
+                <div class="detail-row">
+                    <span class="detail-label">Services:</span>
+                    <span class="detail-value">
+                        @foreach($purchasedServices as $ps)
+                            {{ $ps->service->name }}@if(!$loop->last), @endif
+                        @endforeach
+                    </span>
+                </div>
+                @elseif($purchasedServices->count() === 1)
+                <div class="detail-row">
+                    <span class="detail-label">Service:</span>
+                    <span class="detail-value">{{ $purchasedServices->first()->service->name }}</span>
+                </div>
+                @else
                 <div class="detail-row">
                     <span class="detail-label">Service:</span>
                     <span class="detail-value">{{ $booking->service->name ?? $booking->package->name ?? 'N/A' }}</span>
                 </div>
+                @endif
+
                 <div class="detail-row">
                     <span class="detail-label">Appointment Date:</span>
                     <span class="detail-value">{{ \Carbon\Carbon::parse($booking->date)->format('F d, Y') }}</span>

@@ -46,6 +46,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::delete('/client/booking/{id}/cancel', [App\Http\Controllers\ClientController::class, 'cancelBooking'])->name('client.booking.cancel');
     Route::delete('/client/booking/cancel-all', [App\Http\Controllers\ClientController::class, 'cancelAllBookings'])->name('client.booking.cancelAll');
     Route::put('/client/booking/{id}/reschedule', [App\Http\Controllers\ClientController::class, 'rescheduleBooking'])->name('client.booking.reschedule');
+    Route::post('/client/booking/validate-time-slot', [App\Http\Controllers\ClientController::class, 'validateTimeSlot'])->name('client.booking.validate-time-slot');
     Route::post('/client/booking/{id}/request-refund', [App\Http\Controllers\ClientController::class, 'requestRefund'])->name('client.booking.requestRefund');
     Route::post('/client/booking/{id}/book-next-session', [App\Http\Controllers\ClientController::class, 'bookNextSession'])->name('client.booking.bookNextSession');
     Route::get('/client/calendar', [App\Http\Controllers\ClientController::class, 'calendarViewer'])->name('client.calendar');

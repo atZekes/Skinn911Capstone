@@ -66,10 +66,28 @@
     foreach ($bookings as $b) {
         $dur = 1;
         if ($b->service) {
-            // prefer branch-specific pivot duration when present
-            $dur = $b->service->duration ?? 1;
-            if (isset($branchDurations[$b->service->id]) && $branchDurations[$b->service->id]) {
-                $dur = $branchDurations[$b->service->id];
+            // Check if this booking has multiple purchased services
+            $purchasedServices = \App\Models\PurchasedService::where('booking_id', $b->id)->with('service')->get();
+            if ($purchasedServices->count() > 1) {
+                // Multiple services - sum their durations
+                $dur = 0;
+                foreach ($purchasedServices as $ps) {
+                    if ($ps->service) {
+                        $serviceDur = $ps->service->duration ?? 1;
+                        // Check for branch-specific duration
+                        if (isset($branchDurations[$ps->service->id]) && $branchDurations[$ps->service->id]) {
+                            $serviceDur = $branchDurations[$ps->service->id];
+                        }
+                        $dur += $serviceDur;
+                    }
+                }
+                if ($dur <= 0) $dur = 1;
+            } else {
+                // Single service - use service duration
+                $dur = $b->service->duration ?? 1;
+                if (isset($branchDurations[$b->service->id]) && $branchDurations[$b->service->id]) {
+                    $dur = $branchDurations[$b->service->id];
+                }
             }
         } elseif ($b->package) {
             $dur = 0;
@@ -327,7 +345,17 @@ $(document).ready(function(){
 
                                     <p><strong>💅 Service:</strong> ${booking.service_name}</p>
                                     ${booking.package_services ? `<p><strong>📦 Package includes:</strong> ${booking.package_services}</p>` : ''}
-                                    ${booking.sessions_left !== undefined && booking.sessions_left > 0 ?
+                                    ${booking.individual_services ? `
+                                        <div class="individual-services mt-2">
+                                            <p><strong>📋 Individual Services:</strong></p>
+                                            <ul class="list-unstyled ms-3">
+                                                ${booking.individual_services.map(service => `
+                                                    <li>• ${service.name} (${service.duration}h) - ${service.sessions_remaining} sessions left</li>
+                                                `).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                    ${booking.sessions_left !== undefined && booking.sessions_left > 0 && !booking.individual_services ?
                                         `<p><strong>🎫 Sessions Left:</strong> <span class="badge bg-warning text-dark">${booking.sessions_left} remaining</span></p>` : ''}
                                     ${booking.preferred_staff ?
                                         `<p><strong>👨‍💼 Preferred Staff:</strong> <span class="badge bg-info text-white">${booking.preferred_staff.name}</span></p>` : ''}

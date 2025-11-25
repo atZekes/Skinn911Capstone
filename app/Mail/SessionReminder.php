@@ -30,13 +30,20 @@ class SessionReminder extends Mailable
         $this->sessionCredit = $sessionCredit;
         $this->clientName = $booking->user->name;
 
-        // Get service name from package or service
+        // Get service name from package, multiple services, or single service
         if ($booking->package) {
             $this->serviceName = $booking->package->name;
-        } elseif ($booking->service) {
-            $this->serviceName = $booking->service->name;
         } else {
-            $this->serviceName = 'your service';
+            $purchasedServices = $booking->purchasedServices()->with('service')->get();
+            if ($purchasedServices->count() > 1) {
+                $this->serviceName = $purchasedServices->pluck('service.name')->implode(', ');
+            } elseif ($purchasedServices->count() === 1) {
+                $this->serviceName = $purchasedServices->first()->service->name;
+            } elseif ($booking->service) {
+                $this->serviceName = $booking->service->name;
+            } else {
+                $this->serviceName = 'your service';
+            }
         }
 
         $this->sessionsRemaining = $sessionCredit->sessions_remaining;

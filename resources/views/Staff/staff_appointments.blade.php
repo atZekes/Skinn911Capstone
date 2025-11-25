@@ -32,6 +32,7 @@
         <th>Client Name</th>
         <th>Service</th>
         <th>Price</th>
+        <th>Duration</th>
         <th>Sessions Left</th>
         <th>Last Complete Session Date</th>
         <th>Expiry Date</th>
@@ -45,7 +46,7 @@
     </thead>
     <tbody>
   @forelse($appointments as $appointment)
-  <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-id="{{ $appointment->user->id ?? 'Walk-in' }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}" data-date="{{ $appointment->date }}">
+  <tr data-id="{{ $appointment->id }}" data-booking-id="{{ $appointment->id }}" data-client-id="{{ $appointment->user->id ?? 'Walk-in' }}" data-client-name="{{ $appointment->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}" data-status="{{ $appointment->status }}" data-payment-status="{{ $appointment->payment_status }}" data-date="{{ $appointment->date }}" data-branch-id="{{ $appointment->branch_id }}">
         <td class="col-narrow"><span class="badge bg-primary">#{{ $appointment->id }}</span></td>
         <td>{{ $appointment->user->id ?? 'Walk-in' }}</td>
         <td>{{ $appointment->user->name ?? 'Walk-in' }}</td>
@@ -55,7 +56,15 @@
       <div><strong>{{ $pkg->name }}</strong></div>
       <div class="text-muted small">{{ $pkg->services->pluck('name')->implode(', ') }}</div>
       @else
-      {{ $appointment->service->name ?? '-' }}
+        @php
+          $purchasedServices = \App\Models\PurchasedService::where('booking_id', $appointment->id)->with('service')->get();
+        @endphp
+        @if($purchasedServices->count() > 1)
+          <div><strong>Multiple Services</strong></div>
+          <div class="text-muted small">{{ $purchasedServices->pluck('service.name')->implode(', ') }}</div>
+        @else
+          {{ $appointment->service->name ?? '-' }}
+        @endif
       @endif
     <  <td>
             @php
@@ -67,7 +76,35 @@
               <span class="text-muted">-</span>
             @endif
           </td>
-        <td class="col-narrow-center">{{ $sessionCreditsByBooking[$appointment->id] ?? 0 }}</td>
+          <td class="col-narrow-center">
+            @php
+              $currentDuration = $appointment->getCurrentActiveDuration();
+              $originalDuration = $appointment->getOriginalTotalDuration();
+            @endphp
+            @if($currentDuration < $originalDuration)
+              <span class="text-warning" title="Reduced from {{ $originalDuration }}hrs due to completed services">{{ $currentDuration }}h</span>
+            @else
+              {{ $currentDuration }}h
+            @endif
+          </td>
+        <td class="col-narrow-center">
+          @php
+            $purchasedServices = \App\Models\PurchasedService::where('booking_id', $appointment->id)->with('service')->get();
+            $totalSessionsLeft = $sessionCreditsByBooking[$appointment->id] ?? 0;
+          @endphp
+          @if($purchasedServices->count() > 1)
+            <div class="text-center">
+              <div class="fw-bold">{{ $totalSessionsLeft }}</div>
+              <div class="text-muted small">
+                @foreach($purchasedServices as $ps)
+                  <div>{{ $ps->service->name }}: {{ $ps->sessions_remaining }}</div>
+                @endforeach
+              </div>
+            </div>
+          @else
+            {{ $totalSessionsLeft }}
+          @endif
+        </td>
         <td>
           @php
             $lastCompletedDate = null;
@@ -130,31 +167,41 @@
                 $debugInfo['has_service'] = !is_null($appointment->service);
                 $debugInfo['has_package'] = !is_null($appointment->package);
 
-                // Get duration from service or package
+                // Get duration using current active duration for consistency
                 if ($appointment->package && $appointment->package->services->count() > 0) {
-                    // Use the package's duration attribute which considers admin-configured durations
-                    $duration = $appointment->package->duration ?: 1;
+                    // For packages, use current active duration
+                    $duration = $appointment->getCurrentActiveDuration();
                     $debugInfo['package_duration'] = $duration;
                     $debugInfo['package_services'] = $appointment->package->services->pluck('name', 'duration')->toArray();
                 } elseif ($appointment->service) {
-                    $duration = $appointment->service->duration ?: 1;
-                    $debugInfo['service_duration'] = $duration;
-                    $debugInfo['service_name'] = $appointment->service->name;
+                    // Check if this is actually multiple services
+                    $purchasedServices = \App\Models\PurchasedService::where('booking_id', $appointment->id)->with('service')->get();
+                    if ($purchasedServices->count() > 1) {
+                        // Multiple services - use current active duration
+                        $duration = $appointment->getCurrentActiveDuration();
+                        $debugInfo['multiple_services_duration'] = $duration;
+                        $debugInfo['multiple_services'] = $purchasedServices->pluck('service.name')->toArray();
+                    } else {
+                        // Single service - use current active duration (will be same as original)
+                        $duration = $appointment->getCurrentActiveDuration();
+                        $debugInfo['service_duration'] = $duration;
+                        $debugInfo['service_name'] = $appointment->service->name;
+                    }
+                } else {
+                    // Fallback for bookings without service/package
+                    $duration = $appointment->getCurrentActiveDuration();
                 }
 
                 $debugInfo['final_duration'] = $duration;
 
-                // Calculate end time
+                // Calculate end time and display in consistent format
                 try {
                     if (strpos($startTime, '-') !== false) {
                         [$start, $end] = explode('-', $startTime, 2);
                         $startCarbon = \Carbon\Carbon::createFromFormat('H:i', trim($start));
                         $endCarbon = $startCarbon->copy()->addHours($duration);
 
-                        $displayTime = $startCarbon->format('g:i A') . ' - ' . $endCarbon->format('g:i A');
-                        if ($duration > 1) {
-                            $displayTime .= ' <small class="text-muted">(' . $duration . 'h)</small>';
-                        }
+                        $displayTime = $startCarbon->format('g') . ' to ' . $endCarbon->format('g A');
                         $debugInfo['display_time'] = $displayTime;
                     } else {
                         $displayTime = $startTime;
@@ -237,9 +284,15 @@
               $sessionsRemaining = $sessionCreditsByBooking[$appointment->id] ?? 0;
             @endphp
             @if($sessionsRemaining > 0)
+              @php
+                $appointmentPurchasedServices = \App\Models\PurchasedService::where('booking_id', $appointment->id)->with('service')->get();
+                $buttonTitle = $appointmentPurchasedServices->count() > 1
+                  ? 'Complete one session from each service (' . $sessionsRemaining . ' total remaining)'
+                  : 'Complete one session (' . $sessionsRemaining . ' remaining)';
+              @endphp
               <form action="{{ route('staff.completeSession', $appointment->id) }}" method="POST" style="display:inline-block;" class="complete-session-form">
                 @csrf
-                <button type="submit" class="mb-1 btn btn-warning btn-sm" title="Complete one session ({{ $sessionsRemaining }} remaining)">
+                <button type="submit" class="mb-1 btn btn-warning btn-sm" title="{{ $buttonTitle }}">
                   <i class="fas fa-check"></i> Complete Session
                 </button>
               </form>
@@ -727,39 +780,99 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       } catch (e) { /* ignore and continue */ }
 
-      var action = form.getAttribute('action');
-      var fd = new FormData(form);
-      // Use fetch with same-origin credentials
-      fetch(action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(resp){
-        return resp.json().then(function(json){ return { ok: resp.ok, status: resp.status, body: json }; });
-      }).then(function(result){
-        if (!result.ok) {
-          var msg = (result.body && result.body.message) ? result.body.message : 'Failed to reschedule.';
-          showRescheduleFloat(modal || document.body, msg, 'danger');
-          return;
-        }
-        var data = result.body && result.body.booking ? result.body.booking : null;
-        // extract id from action url (assumes /staff/appointments/{id}/reschedule)
-        var m = action.match(/appointments\/(\d+)\/reschedule/);
-        var id = m ? m[1] : null;
-        if (id) {
-          var row = document.querySelector('tr[data-id="' + id + '"]');
-          if (row) {
-            // Date column is 4th cell (0-based index 3), Time is 5th (index 4)
-            try { row.cells[6].textContent = data.date || fd.get('date'); } catch(e){}
-            try { row.cells[7].textContent = data.time_slot || fd.get('time_slot'); } catch(e){}
-          }
-        }
-        // update booking queue / walkin tables where time shown
-        try {
-          document.querySelectorAll('.walkin-queue-wrapper table tbody tr').forEach(function(r){ var tcell = r.cells[4]; if (tcell) { /* leave as-is; can't reliably map id here */ } });
-        } catch(e){}
+      // AJAX validation before submitting
+      var timeSelect = form.querySelector('select[name="time_slot"]');
+      var dateInput = form.querySelector('input[name="date"]');
+      if (timeSelect && dateInput) {
+        var selectedTime = timeSelect.value;
+        var selectedDate = dateInput.value;
+        var bookingId = form.getAttribute('action').match(/\/(\d+)\/reschedule/) ? form.getAttribute('action').match(/\/(\d+)\/reschedule/)[1] : null;
 
-        // close modal
-        try {
-          if (modal) {
-            if (window.jQuery && typeof window.jQuery === 'function' && typeof window.jQuery(modal).modal === 'function') {
-              window.jQuery(modal).modal('hide');
+        if (selectedTime && selectedDate && bookingId) {
+          // Show validating message
+          showRescheduleFloat(modal || document.body, 'Validating time slot...', 'info');
+
+          // Get branch ID from the booking row or modal data
+          var branchId = null;
+          try {
+            var row = document.querySelector('tr[data-id="' + bookingId + '"]');
+            if (row) {
+              branchId = row.getAttribute('data-branch-id');
+            }
+          } catch(e) {}
+
+          fetch('/client/booking/validate-time-slot', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+              date: selectedDate,
+              time_slot: selectedTime,
+              branch_id: branchId,
+              booking_id: bookingId
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (!data.valid) {
+              showRescheduleFloat(modal || document.body, data.message, 'danger');
+              return;
+            }
+
+            // Validation passed, proceed with reschedule
+            submitRescheduleForm(form, modal);
+          })
+          .catch(error => {
+            console.error('Validation error:', error);
+            showRescheduleFloat(modal || document.body, 'Validation failed. Please try again.', 'danger');
+          });
+
+          return; // Stop here, validation will call submitRescheduleForm if successful
+        }
+      }
+
+      // No validation needed or validation failed, proceed with normal submit
+      submitRescheduleForm(form, modal);
+    });
+  });
+
+  // Separate function for actual form submission
+  function submitRescheduleForm(form, modal) {
+    var action = form.getAttribute('action');
+    var fd = new FormData(form);
+    // Use fetch with same-origin credentials
+    fetch(action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(resp){
+      return resp.json().then(function(json){ return { ok: resp.ok, status: resp.status, body: json }; });
+    }).then(function(result){
+      if (!result.ok) {
+        var msg = (result.body && result.body.message) ? result.body.message : 'Failed to reschedule.';
+        showRescheduleFloat(modal || document.body, msg, 'danger');
+        return;
+      }
+      var data = result.body && result.body.booking ? result.body.booking : null;
+      // extract id from action url (assumes /staff/appointments/{id}/reschedule)
+      var m = action.match(/appointments\/(\d+)\/reschedule/);
+      var id = m ? m[1] : null;
+      if (id) {
+        var row = document.querySelector('tr[data-id="' + id + '"]');
+        if (row) {
+          // Date column is 4th cell (0-based index 3), Time is 5th (index 4)
+          try { row.cells[6].textContent = data.date || fd.get('date'); } catch(e){}
+          try { row.cells[7].textContent = data.time_slot || fd.get('time_slot'); } catch(e){}
+        }
+      }
+      // update booking queue / walkin tables where time shown
+      try {
+        document.querySelectorAll('.walkin-queue-wrapper table tbody tr').forEach(function(r){ var tcell = r.cells[4]; if (tcell) { /* leave as-is; can't reliably map id here */ } });
+      } catch(e){}
+
+      // close modal
+      try {
+        if (modal) {
+          if (window.jQuery && typeof window.jQuery === 'function' && typeof window.jQuery(modal).modal === 'function') {
+            window.jQuery(modal).modal('hide');
             } else {
               modal.style.display = 'none';
             }
@@ -772,8 +885,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Dispatch event so any calendar on the page can update if it's listening
         try { window.dispatchEvent(new CustomEvent('booking:rescheduled', { detail: data })); } catch(e){}
       }).catch(function(err){ console.error('Reschedule failed', err); showRescheduleFloat(modal || document.body, 'Reschedule failed (network)', 'danger'); });
-    });
-  });
+  }
 });
 </script>
 
@@ -1301,6 +1413,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <th>Client ID</th>
                   <th>User Name</th>
                   <th>Service</th>
+                  <th>Duration</th>
                   <th>Sessions Left</th>
                   <th>Last Complete Session</th>
                   <th>Date</th>
@@ -1311,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </thead>
             <tbody>
                 @forelse($bookings as $booking)
-                <tr data-id="{{ $booking->id }}" data-booking-id="{{ $booking->id }}" data-client-id="{{ $booking->user->id ?? 'Walk-in' }}" data-client-name="{{ $booking->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}" data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}" data-date="{{ $booking->date }}">
+                <tr data-id="{{ $booking->id }}" data-booking-id="{{ $booking->id }}" data-client-id="{{ $booking->user->id ?? 'Walk-in' }}" data-client-name="{{ $booking->user->name ?? 'Walk-in' }}" data-session-credits="{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}" data-status="{{ $booking->status }}" data-payment-status="{{ $booking->payment_status }}" data-date="{{ $booking->date }}" data-branch-id="{{ $booking->branch_id }}">
                     <td>{{ $loop->iteration }}</td>
                     <td class="col-narrow"><span class="badge bg-primary">#{{ $booking->id }}</span></td>
                     <td>{{ $booking->user->id ?? 'Walk-in' }}</td>
@@ -1325,7 +1438,35 @@ document.addEventListener('DOMContentLoaded', function() {
               {{ $booking->service->name ?? '-' }}
             @endif
           </td>
-                    <td class="col-narrow-center">{{ $sessionCreditsByBooking[$booking->id] ?? 0 }}</td>
+          <td class="col-narrow-center">
+            @php
+              $bookingCurrentDuration = $booking->getCurrentActiveDuration();
+              $bookingOriginalDuration = $booking->getOriginalTotalDuration();
+            @endphp
+            @if($bookingCurrentDuration < $bookingOriginalDuration)
+              <span class="text-warning" title="Reduced from {{ $bookingOriginalDuration }}hrs due to completed services">{{ $bookingCurrentDuration }}h</span>
+            @else
+              {{ $bookingCurrentDuration }}h
+            @endif
+          </td>
+                    <td class="col-narrow-center">
+                      @php
+                        $bookingPurchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->with('service')->get();
+                        $bookingTotalSessionsLeft = $sessionCreditsByBooking[$booking->id] ?? 0;
+                      @endphp
+                      @if($bookingPurchasedServices->count() > 1)
+                        <div class="text-center">
+                          <div class="fw-bold">{{ $bookingTotalSessionsLeft }}</div>
+                          <div class="text-muted small">
+                            @foreach($bookingPurchasedServices as $bps)
+                              <div>{{ $bps->service->name }}: {{ $bps->sessions_remaining }}</div>
+                            @endforeach
+                          </div>
+                        </div>
+                      @else
+                        {{ $bookingTotalSessionsLeft }}
+                      @endif
+                    </td>
                     <td>
                       @php
                         $lastCompletedDate = null;
@@ -1394,9 +1535,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                   $sessionsRemaining = $sessionCreditsByBooking[$booking->id] ?? 0;
                                 @endphp
                                 @if($sessionsRemaining > 0)
+                                  @php
+                                    $bookingPurchasedServices2 = \App\Models\PurchasedService::where('booking_id', $booking->id)->with('service')->get();
+                                    $buttonTitle2 = $bookingPurchasedServices2->count() > 1
+                                      ? 'Complete one session from each service (' . $sessionsRemaining . ' total remaining)'
+                                      : 'Complete one session (' . $sessionsRemaining . ' remaining)';
+                                  @endphp
                                   <form action="{{ route('staff.completeSession', $booking->id) }}" method="POST" class="complete-session-form d-inline">
                                       @csrf
-                                      <button type="submit" class="btn btn-warning btn-sm" title="Complete one session ({{ $sessionsRemaining }} remaining)">
+                                      <button type="submit" class="btn btn-warning btn-sm" title="{{ $buttonTitle2 }}">
                                           <i class="fas fa-check"></i> Complete Session
                                       </button>
                                   </form>
@@ -1477,6 +1624,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>Client ID</th>
             <th>Client Name</th>
             <th>Contact Number</th>
+            <th>Duration</th>
             <th>Sessions Left</th>
             <th>Last Complete Session</th>
             <th>Expiry Date</th>
@@ -1490,13 +1638,41 @@ document.addEventListener('DOMContentLoaded', function() {
         </thead>
         <tbody>
           @forelse($walkins as $w)
-            <tr data-id="walkin-{{ $w->id }}" data-booking-id="{{ $w->id }}" data-client-id="{{ $w->user->id ?? 'Walk-in' }}" data-client-name="{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}" data-session-credits="{{ $sessionCreditsByBooking[$w->id] ?? 0 }}" data-status="{{ $w->status }}">
+            <tr data-id="walkin-{{ $w->id }}" data-booking-id="{{ $w->id }}" data-client-id="{{ $w->user->id ?? 'Walk-in' }}" data-client-name="{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}" data-session-credits="{{ $sessionCreditsByBooking[$w->id] ?? 0 }}" data-status="{{ $w->status }}" data-branch-id="{{ $w->branch_id }}">
               <td>{{ $loop->iteration }}</td>
               <td class="col-narrow"><span class="badge bg-success">#{{ $w->id }}</span></td>
               <td>{{ $w->user->id ?? 'Walk-in' }}</td>
               <td>{{ $w->user->name ?? ($w->walkin_name ?? 'Walk-in') }}</td>
               <td>{{ $w->walkin_phone ?? ($w->user->phone ?? '-') }}</td>
-              <td class="col-narrow-center">{{ $sessionCreditsByBooking[$w->id] ?? 0 }}</td>
+              <td class="col-narrow-center">
+                @php
+                  $walkinCurrentDuration = $w->getCurrentActiveDuration();
+                  $walkinOriginalDuration = $w->getOriginalTotalDuration();
+                @endphp
+                @if($walkinCurrentDuration < $walkinOriginalDuration)
+                  <span class="text-warning" title="Reduced from {{ $walkinOriginalDuration }}hrs due to completed services">{{ $walkinCurrentDuration }}h</span>
+                @else
+                  {{ $walkinCurrentDuration }}h
+                @endif
+              </td>
+              <td class="col-narrow-center">
+                @php
+                  $walkinPurchasedServices = \App\Models\PurchasedService::where('booking_id', $w->id)->with('service')->get();
+                  $walkinTotalSessionsLeft = $sessionCreditsByBooking[$w->id] ?? 0;
+                @endphp
+                @if($walkinPurchasedServices->count() > 1)
+                  <div class="text-center">
+                    <div class="fw-bold">{{ $walkinTotalSessionsLeft }}</div>
+                    <div class="text-muted small">
+                      @foreach($walkinPurchasedServices as $wps)
+                        <div>{{ $wps->service->name }}: {{ $wps->sessions_remaining }}</div>
+                      @endforeach
+                    </div>
+                  </div>
+                @else
+                  {{ $walkinTotalSessionsLeft }}
+                @endif
+              </td>
               <td>
                 @php
                   $lastCompletedDate = null;
@@ -1551,25 +1727,17 @@ document.addEventListener('DOMContentLoaded', function() {
                       $startTime = $w->time_slot;
                       $duration = 1; // default 1 hour
 
-                      // Get duration from service or package
-                      if ($w->package) {
-                          // Use the package's duration attribute which considers admin-configured durations
-                          $duration = $w->package->duration ?: 1;
-                      } elseif ($w->service) {
-                          $duration = $w->service->duration ?: 1;
-                      }
+                      // Use current active duration for consistency
+                      $duration = $w->getCurrentActiveDuration();
 
-                      // Calculate end time
+                      // Calculate end time and display in consistent format
                       try {
                           if (strpos($startTime, '-') !== false) {
                               [$start, $end] = explode('-', $startTime, 2);
                               $startCarbon = \Carbon\Carbon::createFromFormat('H:i', trim($start));
                               $endCarbon = $startCarbon->copy()->addHours($duration);
 
-                              $displayTime = $startCarbon->format('g:i A') . ' - ' . $endCarbon->format('g:i A');
-                              if ($duration > 1) {
-                                  $displayTime .= ' <small class="text-muted">(' . $duration . 'h)</small>';
-                              }
+                              $displayTime = $startCarbon->format('g') . ' to ' . $endCarbon->format('g A');
                           } else {
                               $displayTime = $startTime;
                           }

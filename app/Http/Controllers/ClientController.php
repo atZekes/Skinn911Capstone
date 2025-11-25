@@ -170,8 +170,9 @@ public function submitBooking(Request $request)
     try {
         $request->validate([
             'branch_id' => 'required|exists:branches,id',
-            // service is required unless a package is selected
-            'service_id' => 'nullable|exists:services,id|required_without:package_id',
+            // service is required unless a package is selected - now accepts array
+            'service_ids' => 'nullable|array|required_without:package_id',
+            'service_ids.*' => 'exists:services,id',
             'package_id' => 'nullable|exists:packages,id',
             'staff_id' => 'nullable|exists:users,id',
             'date' => 'required|date|after_or_equal:' . $minDate,
@@ -276,6 +277,14 @@ public function submitBooking(Request $request)
                 $totalDuration += ($svc->duration ?? 1);
             }
         }
+    } elseif (is_array($request->service_ids ?? null) && count($request->service_ids ?? []) > 0) {
+        $totalDuration = 0;
+        foreach ($request->service_ids as $serviceId) {
+            $svc = \App\Models\Service::find($serviceId);
+            if ($svc) {
+                $totalDuration += ($svc->duration ?? 1);
+            }
+        }
     } elseif ($request->filled('service_id')) {
         $svc = \App\Models\Service::find($request->service_id);
         if ($svc) $totalDuration = $svc->duration ?? 1;
@@ -369,8 +378,17 @@ public function submitBooking(Request $request)
         $booking = new \App\Models\Booking();
         $booking->user_id = Auth::id();
         $booking->branch_id = $request->branch_id;
-        // allow null service_id when booking a package
-        $booking->service_id = $request->service_id ?? null;
+
+        // Handle multiple services
+        $serviceIds = $request->service_ids;
+        if (is_array($serviceIds) && count($serviceIds) > 0) {
+            // Set the first service as the primary service for the booking
+            $booking->service_id = $serviceIds[0];
+        } else {
+            // Single service or package
+            $booking->service_id = $serviceIds ?? null;
+        }
+
         // persist chosen package on booking when provided
         $booking->package_id = $request->package_id ?? null;
         $booking->staff_id = $request->staff_id ?? null;
@@ -452,6 +470,24 @@ public function submitBooking(Request $request)
         }
 
         $booking->save();
+
+        // Create PurchasedService records for multiple services
+        if (is_array($serviceIds) && count($serviceIds) > 0) {
+            foreach ($serviceIds as $serviceId) {
+                $service = \App\Models\Service::find($serviceId);
+                if ($service) {
+                    \App\Models\PurchasedService::create([
+                        'user_id' => Auth::id(),
+                        'service_id' => $serviceId,
+                        'booking_id' => $booking->id,
+                        'price' => $service->price,
+                        'description' => $service->name,
+                        'status' => 'active'
+                    ]);
+                }
+            }
+        }
+
         $user = Auth::user();
 
         // --- Record transaction with promo discount if applicable ---
@@ -483,8 +519,19 @@ public function submitBooking(Request $request)
                     $pkg = \App\Models\Package::find($request->package_id);
                     $basePrice = $pkg ? $pkg->price : 0;
                 } else {
-                    $service = \App\Models\Service::find($request->service_id);
-                    $basePrice = $service ? $service->price : 0;
+                    $serviceIds = $request->service_ids ?? [];
+                    if (is_array($serviceIds) && count($serviceIds) > 0) {
+                        $basePrice = 0;
+                        foreach ($serviceIds as $serviceId) {
+                            $service = \App\Models\Service::find($serviceId);
+                            if ($service) {
+                                $basePrice += $service->price;
+                            }
+                        }
+                    } else {
+                        $service = \App\Models\Service::find($request->service_id);
+                        $basePrice = $service ? $service->price : 0;
+                    }
                 }
                 $discountPct = floatval($promo->discount ?? 0);
                 $discountAmount = round(($basePrice * $discountPct) / 100, 2);
@@ -498,13 +545,24 @@ public function submitBooking(Request $request)
                 $pkg = \App\Models\Package::find($request->package_id);
                 $finalAmount = $pkg ? $pkg->price : 0;
             } else {
-                $service = \App\Models\Service::find($request->service_id);
-                $finalAmount = $service ? $service->price : 0;
+                $serviceIds = $request->service_ids ?? [];
+                if (is_array($serviceIds) && count($serviceIds) > 0) {
+                    $finalAmount = 0;
+                    foreach ($serviceIds as $serviceId) {
+                        $service = \App\Models\Service::find($serviceId);
+                        if ($service) {
+                            $finalAmount += $service->price;
+                        }
+                    }
+                } else {
+                    $service = \App\Models\Service::find($request->service_id);
+                    $finalAmount = $service ? $service->price : 0;
+                }
             }
         }
 
         \App\Models\Transaction::create([
-            'service_id' => $request->service_id ?? null,
+            'service_id' => is_array($request->service_ids ?? null) ? null : ($request->service_id ?? null),
             'branch_id' => $request->branch_id ?? null,
             'booking_id' => $booking->id,
             'package_id' => $request->package_id ?? null,
@@ -545,6 +603,18 @@ public function submitBooking(Request $request)
                             'booking_id' => $booking->id,
                             'used_at' => now(),
                         ]);
+                    } elseif (is_array($request->service_ids ?? null) && count($request->service_ids ?? []) > 0) {
+                        // Multiple services booking
+                        foreach ($request->service_ids as $serviceId) {
+                            \App\Models\PromoUsage::create([
+                                'user_id' => $user->id,
+                                'promo_id' => $promo->id,
+                                'service_id' => $serviceId,
+                                'package_id' => null,
+                                'booking_id' => $booking->id,
+                                'used_at' => now(),
+                            ]);
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -578,24 +648,13 @@ public function submitBooking(Request $request)
                         'service_id' => $svc->id,
                         'booking_id' => $booking->id,
                         'price' => $svc->price ?? 0,
-                        'description' => $svc->description ?? '',
+                        'description' => $svc->name ?? '',
+                        'status' => 'active'
                     ]);
                 }
             }
             // Ensure package sessions are created for this booking
             $booking->ensurePackageSessionsExist();
-        } else {
-            // Single service booking
-            $service = \App\Models\Service::find($request->service_id);
-            if ($service) {
-                \App\Models\PurchasedService::create([
-                    'user_id' => $user->id,
-                    'service_id' => $service->id,
-                    'booking_id' => $booking->id,
-                    'price' => $service->price ?? 0,
-                    'description' => $service->description ?? '',
-                ]);
-            }
         }
 
         return ['booking' => $booking, 'user' => $user];
@@ -885,12 +944,23 @@ public function rescheduleBooking(Request $request, $id)
     return redirect()->back()->withErrors(['new_date' => 'You can only reschedule to a date at least 3 days from your current booking date.'])->withInput()->with('reschedule_booking_id', $id);
     }
 
-    // Calculate required slots based on service/package duration
-    $requiredSlots = [$request->new_time_slot];
+    // Calculate required slots based on CURRENT active service duration (only services with remaining sessions)
+    $totalDuration = $booking->getCurrentActiveDuration();
 
-    // For rescheduling, we only need to check the single selected time slot
-    // since the modal now shows slots that span the full service duration
-    // No need to calculate multiple slots like in new booking
+    $requiredSlots = [];
+    if ($totalDuration > 1) {
+        try {
+            [$startStr, $endStr] = explode('-', $request->new_time_slot, 2);
+            $start = \Carbon\Carbon::createFromFormat('H:i', trim($startStr));
+            for ($i = 0; $i < $totalDuration; $i++) {
+                $s = $start->copy()->addHours($i);
+                $e = $s->copy()->addHour();
+                $requiredSlots[] = $s->format('H:i') . '-' . $e->format('H:i');
+            }
+        } catch (\Exception $e) {
+            // ignore parsing errors
+        }
+    }
 
     // Check break time overlap for all required slots
     if ($branch && $branch->break_start && $branch->break_end) {
@@ -905,7 +975,9 @@ public function rescheduleBooking(Request $request, $id)
 
                 // Check for overlap: slot overlaps with break if slotStart < breakEnd and slotEnd > breakStart
                         if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
-                    return redirect()->back()->withErrors(['new_time_slot' => 'Selected time falls within branch break time. Please choose another slot.'])->withInput()->with('reschedule_booking_id', $id);
+                    $slotTime = $slotStart->format('g:i A') . ' - ' . $slotEnd->format('g:i A');
+                    $breakTime = $breakStart->format('g:i A') . ' - ' . $breakEnd->format('g:i A');
+                    return redirect()->back()->withErrors(['new_time_slot' => 'The time slot ' . $slotTime . ' overlaps with the branch break time (' . $breakTime . '). Please choose a different time.'])->withInput()->with('reschedule_booking_id', $id);
                 }
             }
         } catch (\Exception $e) {
@@ -947,7 +1019,11 @@ public function rescheduleBooking(Request $request, $id)
                 }
 
                 if ($existingCount >= $slotCapacity) {
-                    throw new \Exception('The time slots you chose are fully booked. Please select another start time.');
+                    [$reqStartStr, $reqEndStr] = explode('-', $slot, 2);
+                    $reqStart = \Carbon\Carbon::createFromFormat('H:i', trim($reqStartStr));
+                    $reqEnd = \Carbon\Carbon::createFromFormat('H:i', trim($reqEndStr));
+                    $slotTime = $reqStart->format('g:i A') . ' - ' . $reqEnd->format('g:i A');
+                    throw new \Exception('The time slot ' . $slotTime . ' is fully booked. Please select a different time.');
                 }
             }
 
@@ -1125,6 +1201,7 @@ public function rescheduleBooking(Request $request, $id)
         $code = $request->query('code');
         $branchId = $request->query('branch_id');
         $serviceId = $request->query('service_id');
+        $serviceIds = $request->query('service_ids'); // Array for multiple services
         $packageId = $request->query('package_id');
         if (! $code) {
             return response()->json(['valid' => false, 'message' => 'No promo code provided.'], 400);
@@ -1155,7 +1232,7 @@ public function rescheduleBooking(Request $request, $id)
         }
 
         // Require a service or package to be selected before applying a promo
-        if (! $serviceId && ! $packageId) {
+        if (! $serviceId && ! $serviceIds && ! $packageId) {
             return response()->json(['valid' => false, 'message' => 'Please select a service or package first before applying a promo.'], 400);
         }
 
@@ -1186,6 +1263,13 @@ public function rescheduleBooking(Request $request, $id)
         if ($packageId) {
             $pkg = \App\Models\Package::find($packageId);
             if ($pkg) $basePrice = $pkg->price ?? 0;
+        } elseif ($serviceIds) {
+            // Multiple services
+            $serviceIdsArray = is_array($serviceIds) ? $serviceIds : explode(',', $serviceIds);
+            foreach ($serviceIdsArray as $sid) {
+                $svc = \App\Models\Service::find($sid);
+                if ($svc) $basePrice += $svc->price ?? 0;
+            }
         } elseif ($serviceId) {
             $svc = \App\Models\Service::find($serviceId);
             if ($svc) $basePrice = $svc->price ?? 0;
@@ -1193,7 +1277,17 @@ public function rescheduleBooking(Request $request, $id)
         // if promo is tied to services, ensure target is allowed
         if ($promo->services()->count() > 0) {
             // if service/package provided ensure one of the promo services matches
-            if ($serviceId) {
+            if ($serviceIds) {
+                // For multiple services, at least one must be in the promo services
+                $serviceIdsArray = is_array($serviceIds) ? $serviceIds : explode(',', $serviceIds);
+                $matches = false;
+                foreach ($serviceIdsArray as $sid) {
+                    if ($promo->services->contains($sid)) { $matches = true; break; }
+                }
+                if (! $matches) {
+                    return response()->json(['valid' => false, 'message' => 'Promo does not apply to any of the selected services.'], 400);
+                }
+            } elseif ($serviceId) {
                 if (! $promo->services->contains($serviceId)) {
                     return response()->json(['valid' => false, 'message' => 'Promo does not apply to this service.'], 400);
                 }
@@ -1682,9 +1776,15 @@ public function calendarViewer()
                         <select class="form-select" id="new_time_' . $booking->id . '" name="new_time_slot" required>
                             <option value="">Select a time slot</option>';
 
-        // Calculate service duration
+        // Calculate service duration - handle multiple services
         $serviceDuration = 1; // default
-        if ($booking->package_id) {
+        $purchasedServices = $booking->purchasedServices()->with('service')->get();
+        if ($purchasedServices->count() > 0) {
+            $serviceDuration = 0;
+            foreach ($purchasedServices as $ps) {
+                $serviceDuration += $ps->service->duration ?? 1;
+            }
+        } elseif ($booking->package_id) {
             $pkg = \App\Models\Package::find($booking->package_id);
             if ($pkg) {
                 $serviceDuration = $pkg->duration ?? 1;
@@ -1781,11 +1881,30 @@ public function calendarViewer()
 
         $request->validate([
             'branch_id' => 'required|exists:branches,id',
-            'service_id' => 'nullable|exists:services,id',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'exists:services,id',
             'package_id' => 'nullable|exists:packages,id',
             'date' => 'required|date',
             'time_slot' => 'required',
         ]);
+
+        // Get branch and slot capacity
+        $branch = \App\Models\Branch::find($request->branch_id);
+        $slotCapacity = $branch ? ($branch->slot_capacity ?? 5) : 5;
+
+        // Check if the time slot is fully booked
+        $existingCount = \App\Models\Booking::where('branch_id', $request->branch_id)
+            ->where('date', $request->date)
+            ->where('time_slot', $request->time_slot)
+            ->where('status', 'active')
+            ->count();
+
+        if ($existingCount >= $slotCapacity) {
+            return response()->json([
+                'conflict' => true,
+                'message' => 'This time slot is fully booked. Please select another time.'
+            ]);
+        }
 
         // Check if user already has ANY booking at this date and time
         $existingBooking = \App\Models\Booking::where('user_id', $userId)
@@ -1826,5 +1945,164 @@ public function calendarViewer()
             ->get();
 
         return response()->json(['staff' => $staff]);
+    }
+
+    // AJAX endpoint to validate time slot availability for rescheduling
+    public function validateTimeSlot(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'time_slot' => 'required|string',
+            'branch_id' => 'required|exists:branches,id',
+            'booking_id' => 'nullable|exists:bookings,id', // For rescheduling, exclude current booking
+        ]);
+
+        try {
+            $booking = null;
+            $totalDuration = 1;
+
+            // If booking_id is provided (rescheduling), get the booking and calculate its duration
+            if ($request->booking_id) {
+                $booking = \App\Models\Booking::findOrFail($request->booking_id);
+                $totalDuration = $booking->getCurrentActiveDuration();
+            } else {
+                // For new bookings, duration should be provided
+                $totalDuration = $request->duration ?? 1;
+            }
+
+            // Calculate required slots
+            $requiredSlots = [];
+            if ($totalDuration > 1) {
+                try {
+                    [$startStr, $endStr] = explode('-', $request->time_slot, 2);
+                    $start = \Carbon\Carbon::createFromFormat('H:i', trim($startStr));
+                    for ($i = 0; $i < $totalDuration; $i++) {
+                        $s = $start->copy()->addHours($i);
+                        $e = $s->copy()->addHour();
+                        $requiredSlots[] = $s->format('H:i') . '-' . $e->format('H:i');
+                    }
+                } catch (\Exception $e) {
+                    return response()->json(['valid' => false, 'message' => 'Invalid time slot format']);
+                }
+            } else {
+                // For single hour bookings, just check the selected slot
+                $requiredSlots = [$request->time_slot];
+            }
+
+            // Check branch operating hours
+            $branch = \App\Models\Branch::find($request->branch_id);
+            if ($branch) {
+                $branchSlots = ["09:00-10:00","10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00"];
+                if ($branch->time_slot && strpos($branch->time_slot, ' - ') !== false) {
+                    try {
+                        [$bs,$be] = explode(' - ', $branch->time_slot, 2);
+                        $startRange = \Carbon\Carbon::createFromFormat('H:i', trim($bs));
+                        $endRange = \Carbon\Carbon::createFromFormat('H:i', trim($be));
+                        $branchSlots = [];
+                        for ($t = $startRange->copy(); $t->lt($endRange); $t->addHour()) {
+                            $slotStart = $t->format('H:i');
+                            $slotEnd = $t->copy()->addHour()->format('H:i');
+                            if (\Carbon\Carbon::createFromFormat('H:i', $slotEnd)->lte($endRange)) {
+                                $branchSlots[] = $slotStart . '-' . $slotEnd;
+                            }
+                        }
+                    } catch (\Exception $e) { }
+                }
+
+                foreach ($requiredSlots as $rs) {
+                    if (! in_array($rs, $branchSlots)) {
+                        try {
+                            [$start, $end] = explode('-', $rs);
+                            $formattedSlot = \Carbon\Carbon::createFromFormat('H:i', trim($start))->format('g:i A') . ' - ' . \Carbon\Carbon::createFromFormat('H:i', trim($end))->format('g:i A');
+                            return response()->json(['valid' => false, 'message' => 'The time slot ' . $formattedSlot . ' is outside the branch operating hours (' . $branch->time_slot . '). Please select a time within operating hours.']);
+                        } catch (\Exception $e) {
+                            return response()->json(['valid' => false, 'message' => 'Selected time slot is outside branch operating hours']);
+                        }
+                    }
+                }
+
+                // Check branch break time
+                if ($branch->break_start && $branch->break_end) {
+                    $conflictingBreakSlots = [];
+                    foreach ($requiredSlots as $slot) {
+                        try {
+                            [$slotStartStr, $slotEndStr] = explode('-', $slot, 2);
+                            $slotStart = \Carbon\Carbon::parse(trim($slotStartStr));
+                            $slotEnd = \Carbon\Carbon::parse(trim($slotEndStr));
+                            $breakStart = \Carbon\Carbon::parse($branch->break_start);
+                            $breakEnd = \Carbon\Carbon::parse($branch->break_end);
+                            if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
+                                $conflictingBreakSlots[] = $slot;
+                            }
+                        } catch (\Exception $e) { }
+                    }
+
+                    if (!empty($conflictingBreakSlots)) {
+                        $slotText = count($conflictingBreakSlots) === 1 ? 'slot' : 'slots';
+                        $formattedSlots = array_map(function($slot) {
+                            try {
+                                [$start, $end] = explode('-', $slot);
+                                return \Carbon\Carbon::createFromFormat('H:i', trim($start))->format('g:i A') . ' - ' . \Carbon\Carbon::createFromFormat('H:i', trim($end))->format('g:i A');
+                            } catch (\Exception $e) {
+                                return $slot;
+                            }
+                        }, $conflictingBreakSlots);
+
+                        $breakTime = \Carbon\Carbon::parse($branch->break_start)->format('g:i A') . ' - ' . \Carbon\Carbon::parse($branch->break_end)->format('g:i A');
+                        return response()->json([
+                            'valid' => false,
+                            'message' => 'The following time ' . $slotText . ' overlap with the branch break time (' . $breakTime . '): ' . implode(', ', $formattedSlots) . '. Please select a different time.'
+                        ]);
+                    }
+                }
+
+                // Check capacity with more specific error messages
+                $max = $branch->slot_capacity ?? null;
+                if ($max) {
+                    $conflictingSlots = [];
+                    foreach ($requiredSlots as $slot) {
+                        $query = \App\Models\Booking::where('branch_id', $request->branch_id)
+                            ->where('date', $request->date)
+                            ->where('time_slot', $slot)
+                            ->where('status', 'active');
+
+                        // Exclude current booking if rescheduling
+                        if ($request->booking_id) {
+                            $query->where('id', '!=', $request->booking_id);
+                        }
+
+                        $count = $query->count();
+                        if ($count >= $max) {
+                            $conflictingSlots[] = $slot;
+                        }
+                    }
+
+                    if (!empty($conflictingSlots)) {
+                        $slotText = count($conflictingSlots) === 1 ? 'slot' : 'slots';
+                        $formattedSlots = array_map(function($slot) {
+                            try {
+                                [$start, $end] = explode('-', $slot);
+                                return \Carbon\Carbon::createFromFormat('H:i', trim($start))->format('g:i A') . ' - ' . \Carbon\Carbon::createFromFormat('H:i', trim($end))->format('g:i A');
+                            } catch (\Exception $e) {
+                                return $slot;
+                            }
+                        }, $conflictingSlots);
+
+                        return response()->json([
+                            'valid' => false,
+                            'message' => 'The following time ' . $slotText . ' ' . (count($conflictingSlots) === 1 ? 'is' : 'are') . ' fully booked: ' . implode(', ', $formattedSlots) . '. Please select a different time.'
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json([
+                'valid' => true,
+                'message' => 'Time slot is available for ' . ($totalDuration > 1 ? $totalDuration . ' hour' . ($totalDuration > 1 ? 's' : '') : 'your booking')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['valid' => false, 'message' => 'Validation error: ' . $e->getMessage()]);
+        }
     }
 }

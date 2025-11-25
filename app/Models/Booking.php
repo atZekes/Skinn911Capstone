@@ -42,32 +42,36 @@ class Booking extends Model
     }
 
     /**
-     * Check if this booking has multi-session credits
+     * Check if this booking has multi-session credits (either package sessions or purchased service sessions)
      */
     public function hasSessionCredits(): bool
     {
-        return $this->clientPackageSessions()->exists();
+        return $this->clientPackageSessions()->exists() || $this->purchasedServices()->where('total_sessions', '>', 1)->exists();
     }
 
     /**
-     * Get total remaining sessions for this booking
+     * Get total remaining sessions for this booking (package sessions + purchased service sessions)
      */
     public function getRemainingSessionsCount(): int
     {
-        return $this->clientPackageSessions()->sum('sessions_remaining');
+        $packageSessions = $this->clientPackageSessions()->sum('sessions_remaining');
+        $serviceSessions = $this->purchasedServices()->sum('sessions_remaining');
+        return $packageSessions + $serviceSessions;
     }
 
     /**
-     * Get total sessions purchased
+     * Get total sessions purchased (package sessions + purchased service sessions)
      */
     public function getTotalSessionsCount(): int
     {
-        return $this->clientPackageSessions()->sum('total_sessions');
+        $packageSessions = $this->clientPackageSessions()->sum('total_sessions');
+        $serviceSessions = $this->purchasedServices()->sum('total_sessions');
+        return $packageSessions + $serviceSessions;
     }
 
     /**
      * Check if booking can be marked as complete
-     * (payment confirmed and all sessions used OR single session service)
+     * (payment confirmed and all sessions used for ALL services OR single session services)
      */
     public function canComplete(): bool
     {
@@ -76,28 +80,106 @@ class Booking extends Model
             return false;
         }
 
-        // If has session credits, all must be used
-        if ($this->hasSessionCredits()) {
-            return $this->getRemainingSessionsCount() === 0;
+        // Check if all purchased services are completed
+        $incompleteServices = $this->purchasedServices()->where('sessions_remaining', '>', 0)->count();
+        if ($incompleteServices > 0) {
+            return false;
         }
 
-        // Single-session bookings can be completed immediately after payment
+        // If has package session credits, all must be used
+        if ($this->clientPackageSessions()->exists()) {
+            return $this->clientPackageSessions()->where('sessions_remaining', '>', 0)->count() === 0;
+        }
+
+        // All services completed, booking can be completed
         return true;
     }
 
     /**
+     * Get the current active duration of this booking (hours)
+     * Only includes services that still have sessions remaining
+     */
+    public function getCurrentActiveDuration(): int
+    {
+        $totalDuration = 0;
+
+        // Add duration from purchased services that still have sessions remaining
+        $activePurchasedServices = $this->purchasedServices()
+            ->where('sessions_remaining', '>', 0)
+            ->with('service')
+            ->get();
+
+        foreach ($activePurchasedServices as $purchasedService) {
+            if ($purchasedService->service) {
+                $totalDuration += $purchasedService->service->duration ?? 1;
+            }
+        }
+
+        // If no purchased services have sessions remaining, check package sessions
+        if ($totalDuration === 0 && $this->clientPackageSessions()->where('sessions_remaining', '>', 0)->exists()) {
+            // For package bookings, use the package duration if available
+            if ($this->package) {
+                $totalDuration = $this->package->duration ?? 1;
+            } elseif ($this->service) {
+                $totalDuration = $this->service->duration ?? 1;
+            }
+        }
+
+        // Minimum duration of 1 hour
+        return max(1, $totalDuration);
+    }
+
+    /**
+     * Get the original total duration at booking time (hours)
+     */
+    public function getOriginalTotalDuration(): int
+    {
+        $totalDuration = 0;
+
+        // Sum all purchased services durations
+        foreach ($this->purchasedServices()->with('service')->get() as $purchasedService) {
+            if ($purchasedService->service) {
+                $totalDuration += $purchasedService->service->duration ?? 1;
+            }
+        }
+
+        // If no purchased services, check package/single service
+        if ($totalDuration === 0) {
+            if ($this->package) {
+                $totalDuration = $this->package->duration ?? 1;
+            } elseif ($this->service) {
+                $totalDuration = $this->service->duration ?? 1;
+            }
+        }
+
+        return max(1, $totalDuration);
+    }
+
+    /**
      * Mark one session as complete (deduct from remaining sessions)
+     * This method handles both package sessions and purchased service sessions
      */
     public function markSessionComplete(): bool
     {
-        $session = $this->clientPackageSessions()
+        // Handle package sessions (legacy)
+        $packageSession = $this->clientPackageSessions()
             ->where('sessions_remaining', '>', 0)
             ->where('status', 'active')
             ->first();
 
-        if ($session) {
-            $session->deductSession();
+        if ($packageSession) {
+            $packageSession->deductSession();
             return true;
+        }
+
+        // Handle purchased service sessions (new logic)
+        $purchasedService = $this->purchasedServices()
+            ->where('sessions_remaining', '>', 0)
+            ->where('session_status', 'active')
+            ->first();
+
+        if ($purchasedService) {
+            return $purchasedService->markSessionComplete();
         }
 
         return false;

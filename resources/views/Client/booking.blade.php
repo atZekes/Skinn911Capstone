@@ -131,14 +131,31 @@
                             </div>
                             <div class="col-md-10">
                                 <div class="form-group">
-                                    <label for="service_id">Service</label>
-                                    <select name="service_id" id="service_id" class="form-select" required>
-                                        <option value="">Select Service</option>
-                                    </select>
-                                    @if($errors->has('service_id'))
-                                        <div class="mt-1 text-danger"><small>{{ $errors->first('service_id') }}</small></div>
+                                    <label for="service_dropdown">Services</label>
+                                    <div class="custom-multiselect" id="service_dropdown_container">
+                                        <div class="multiselect-header form-control d-flex justify-content-between align-items-center" id="service_dropdown_header">
+                                            <span id="service_dropdown_text">Select Services</span>
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                        <div class="multiselect-options" id="service_dropdown_options" style="display: none; max-height: 300px; overflow-y: auto; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 0.375rem 0.375rem; background: white; z-index: 1000; position: absolute; width: 100%;">
+                                            <!-- Services will be populated dynamically -->
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block">Click to select multiple services</small>
+                                    @if($errors->has('service_ids'))
+                                        <div class="mt-1 text-danger"><small>{{ $errors->first('service_ids') }}</small></div>
                                     @endif
+                                    <!-- Hidden inputs for selected services -->
+                                    <div id="selected_service_inputs"></div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Selected Services Display -->
+                        <div id="selected-services" class="mb-3" style="display: none;">
+                            <h6 class="text-pink mb-2"><i class="fas fa-list-check me-2"></i>Selected Services:</h6>
+                            <div id="selected-services-list" class="border rounded p-3 bg-light">
+                                <!-- Selected services will be displayed here -->
                             </div>
                         </div>
 
@@ -151,11 +168,35 @@
                             </button>
                         </div>
 
+                        <!-- Staff Selection -->
+                        <div class="mb-3 form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select_staff_checkbox" name="select_staff_checkbox">
+                                <label class="form-check-label" for="select_staff_checkbox">
+                                    I want to choose a specific staff member for this appointment
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-group" id="staff_selection_container" style="display: none;">
+                            <label for="staff_id">Preferred Staff</label>
+                            <select name="staff_id" id="staff_id" class="form-select">
+                                <option value="">Select Staff</option>
+                            </select>
+                            @if($errors->has('staff_id'))
+                                <div class="mt-1 text-danger"><small>{{ $errors->first('staff_id') }}</small></div>
+                            @endif
+                        </div>
+
                         <div class="mb-3 form-group">
                             <div class="row g-2 align-items-center">
                                 <div class="col-md-6">
                                     <label for="service_price">Price</label>
                                     <input type="text" id="service_price" name="service_price" class="form-control" readonly placeholder="₱0.00">
+                                    <!-- Service breakdown section -->
+                                    <div id="service_breakdown" class="mt-2" style="display: none;">
+                                        <small class="text-muted">Selected services:</small>
+                                        <div id="service_list" class="mt-1"></div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="promo_code">Promo code (optional)</label>
@@ -305,24 +346,6 @@
                                 @endif
                             </div>
                         </div>
-                        <!-- Staff Selection -->
-                        <div class="mb-3 form-group">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="select_staff_checkbox" name="select_staff_checkbox">
-                                <label class="form-check-label" for="select_staff_checkbox">
-                                    I want to choose a specific staff member for this appointment
-                                </label>
-                            </div>
-                        </div>
-                        <div class="mb-3 form-group" id="staff_selection_container" style="display: none;">
-                            <label for="staff_id">Preferred Staff</label>
-                            <select name="staff_id" id="staff_id" class="form-select">
-                                <option value="">Select Staff</option>
-                            </select>
-                            @if($errors->has('staff_id'))
-                                <div class="mt-1 text-danger"><small>{{ $errors->first('staff_id') }}</small></div>
-                            @endif
-                        </div>
                         <div class="text-center">
                             <button type="button" id="openPaymentModal" class="px-4 py-2 btn btn-pink" style="background:#F56289;color:#fff;">Book Now</button>
                         </div>
@@ -438,6 +461,40 @@
                                             <button type="button" class="btn btn-sm btn-outline-pink btn-select-service">
                                                 Select
                                             </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($recommendedPackages->count() > 0)
+                        <div class="mb-4">
+                            <h6 class="mb-3 fw-bold" style="color: #555;">
+                                <i class="bi bi-gift me-2" style="color: #FF69B4;"></i>
+                                Recommended Packages
+                            </h6>
+                            <div class="list-group">
+                                @foreach($recommendedPackages as $package)
+                                    <div class="list-group-item package-container" data-package-id="{{ $package->id }}">
+                                        <div class="fw-bold mb-2">{{ $package->name }}</div>
+                                        <div class="text-muted small mb-3">{{ Str::limit($package->description, 100) }}</div>
+                                        <div class="package-price mb-3" data-package-id="{{ $package->id }}">
+                                            <span class="price-loader text-muted" style="font-size: 0.9rem;">₱{{ number_format($package->price, 2) }}</span>
+                                        </div>
+                                        <div class="services-in-package">
+                                            <small class="text-muted fw-semibold mb-2 d-block">Services in this package:</small>
+                                            @foreach($package->services as $service)
+                                                <div class="d-flex justify-content-between align-items-center mb-2 ps-3 border-start border-primary" data-type="package-service" data-package-id="{{ $package->id }}" data-service-id="{{ $service->id }}" data-service-name="{{ $service->name }}">
+                                                    <div>
+                                                        <div class="fw-semibold small">{{ $service->name }}</div>
+                                                        <div class="text-muted" style="font-size: 0.7rem;">{{ $service->category }} • {{ $service->duration }} min</div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-xs btn-outline-pink btn-select-package-service">
+                                                        Select
+                                                    </button>
+                                                </div>
+                                            @endforeach
                                         </div>
                                     </div>
                                 @endforeach
@@ -1097,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Determine selected item duration (service or package) to validate start times
         var selectedServiceDuration = 1;
         try {
-            var sid = serviceSelect ? serviceSelect.value : null;
+            var selectedServiceIds = getSelectedServiceIds();
             var pid = packageSelect ? packageSelect.value : null;
             if (pid && b.packages) {
                 var pkg = b.packages.find(function(x){ return String(x.id) === String(pid); });
@@ -1106,9 +1163,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     selectedServiceDuration = 1;
                 }
-            } else if (sid && b.services) {
-                var svc = b.services.find(function(x){ return String(x.id) === String(sid); });
-                if (svc && svc.duration) selectedServiceDuration = Number(svc.duration) || 1;
+            } else if (selectedServiceIds.length > 0 && b.services) {
+                // Calculate total duration for all selected services
+                var totalDuration = 0;
+                selectedServiceIds.forEach(function(sid) {
+                    var svc = b.services.find(function(x){ return String(x.id) === String(sid); });
+                    if (svc && svc.duration) {
+                        totalDuration += Number(svc.duration) || 1;
+                    } else {
+                        totalDuration += 1; // default duration
+                    }
+                });
+                selectedServiceDuration = totalDuration;
             }
         } catch (err) { selectedServiceDuration = 1; }
 
@@ -1160,15 +1226,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateSelectedCoverage() {
         var note = document.getElementById('duration_note');
         if (!note) return;
-        var sid = serviceSelect ? serviceSelect.value : null;
+        var selectedServiceIds = getSelectedServiceIds();
         var pid = packageSelect ? packageSelect.value : null;
         var duration = 1;
         if (pid && branchData[branchSelect.value] && branchData[branchSelect.value].packages) {
             // packages currently don't have durations per-item here; keep default 1
             duration = 1;
-        } else if (sid && branchData[branchSelect.value] && branchData[branchSelect.value].services) {
-            var svc = branchData[branchSelect.value].services.find(function(x){ return String(x.id) === String(sid); });
-            if (svc && svc.duration) duration = Number(svc.duration) || 1;
+        } else if (selectedServiceIds.length > 0 && branchData[branchSelect.value] && branchData[branchSelect.value].services) {
+            // Calculate total duration for all selected services
+            duration = 0;
+            selectedServiceIds.forEach(function(sid) {
+                var svc = branchData[branchSelect.value].services.find(function(x){ return String(x.id) === String(sid); });
+                if (svc && svc.duration) {
+                    duration += Number(svc.duration) || 1;
+                } else {
+                    duration += 1;
+                }
+            });
         }
         var slot = timeSlotSelect.value;
         if (!slot || duration <= 1) { note.style.display = 'none'; } // keep displaying sessions note even if duration is 1
@@ -1312,7 +1386,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (promoMessage) container.appendChild(promoMessage);
 
             // Add input event listener
-            input.addEventListener('input', function(){ if (promoTimer) clearTimeout(promoTimer); promoTimer = setTimeout(validatePromoCode, 600); });
+            input.addEventListener('input', function(){
+                // Clear promo data immediately when input is emptied
+                if (!this.value.trim()) {
+                    window.currentPromo = null;
+                    showPromoMessage('', true);
+                    updatePriceDisplay();
+                } else {
+                    // For non-empty input, use the delayed validation
+                    if (promoTimer) clearTimeout(promoTimer);
+                    promoTimer = setTimeout(validatePromoCode, 600);
+                }
+            });
         }
     }
 
@@ -1421,16 +1506,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
             // services
-            serviceSelect.innerHTML = '<option value="">Select Service</option>';
+            var serviceDropdownOptions = document.getElementById('service_dropdown_options');
+            serviceDropdownOptions.innerHTML = '';
             binfo.services.forEach(function(s){
-                var o = document.createElement('option');
-                o.value = s.id;
-                o.textContent = s.name + (s.price ? (' - ₱' + s.price) : '');
-                if (s.price) o.setAttribute('data-price', s.price);
-                if (typeof s.default_sessions !== 'undefined') o.setAttribute('data-default-sessions', s.default_sessions);
-                if (typeof s.is_package !== 'undefined') o.setAttribute('data-is-package', s.is_package ? '1' : '0');
-                o.setAttribute('data-category', s.category || '');
-                serviceSelect.appendChild(o);
+                var optionDiv = document.createElement('div');
+                optionDiv.className = 'multiselect-option p-2 border-bottom';
+                optionDiv.style.cursor = 'pointer';
+
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'service-checkbox';
+                checkbox.value = s.id;
+                checkbox.id = 'service_' + s.id;
+                checkbox.setAttribute('data-price', s.price || 0);
+                checkbox.setAttribute('data-name', s.name || 'Unknown Service');
+                checkbox.setAttribute('data-default-sessions', s.default_sessions || 1);
+                checkbox.setAttribute('data-is-package', s.is_package ? '1' : '0');
+                checkbox.setAttribute('data-category', s.category || '');
+
+                var label = document.createElement('label');
+                label.className = 'form-check-label mb-0';
+                label.htmlFor = 'service_' + s.id;
+                label.textContent = s.name + (s.price ? (' - ₱' + s.price) : '');
+                label.style.cursor = 'pointer';
+
+                optionDiv.appendChild(checkbox);
+                optionDiv.appendChild(label);
+
+                // Prevent dropdown from closing when clicking checkbox/label
+                optionDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    checkbox.checked = !checkbox.checked;
+
+                    // If a service is being selected, clear package selection
+                    if (checkbox.checked) {
+                        var packageSelect = document.getElementById('package_id');
+                        if (packageSelect && packageSelect.value) {
+                            packageSelect.value = '';
+                            // Trigger package change to update UI
+                            packageSelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+
+                    updateSelectedServices();
+                    updatePriceDisplay();
+                    updateTimeSlots();
+                    updatePromoOptions(bid, getSelectedServiceIds());
+                    checkBookingConflicts();
+                });
+
+                serviceDropdownOptions.appendChild(optionDiv);
             });
             // Trigger category filter after services are populated
             if (categorySelect) {
@@ -1455,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadStaffForBranch(bid);
             updateTimeSlots();
             // Update promo options for this branch and service
-            updatePromoOptions(bid, serviceSelect.value);
+            updatePromoOptions(bid, getSelectedServiceIds());
             // If user has a claimed promo for this branch, preload it
             try {
                 if (claimedPromos && Array.isArray(claimedPromos)) {
@@ -1550,61 +1675,333 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function to get selected service IDs from checkboxes
+    function getSelectedServiceIds() {
+        var checkboxes = document.querySelectorAll('.service-checkbox:checked');
+        return Array.from(checkboxes).map(function(checkbox) {
+            return checkbox.value;
+        });
+    }
+
+    // Function to get selected service checkboxes
+    function getSelectedServiceCheckboxes() {
+        return document.querySelectorAll('.service-checkbox:checked');
+    }
+
+    // Function to update selected services and hidden inputs
+    function updateSelectedServices() {
+        var selectedCheckboxes = getSelectedServiceCheckboxes();
+        var selectedServiceInputs = document.getElementById('selected_service_inputs');
+        var dropdownText = document.getElementById('service_dropdown_text');
+
+        // Update hidden inputs
+        selectedServiceInputs.innerHTML = '';
+        selectedCheckboxes.forEach(function(checkbox) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'service_ids[]';
+            input.value = checkbox.value;
+            selectedServiceInputs.appendChild(input);
+        });
+
+        // Update dropdown button text
+        if (selectedCheckboxes.length === 0) {
+            dropdownText.textContent = 'Select Services';
+        } else if (selectedCheckboxes.length === 1) {
+            var serviceName = selectedCheckboxes[0].nextElementSibling.textContent.split(' - ₱')[0];
+            dropdownText.textContent = serviceName;
+        } else {
+            dropdownText.textContent = selectedCheckboxes.length + ' services selected';
+        }
+
+        // Update selected services display
+        updateSelectedServicesDisplay();
+    }
+
+    // Function to update the selected services display
+    function updateSelectedServicesDisplay() {
+        var selectedServicesDiv = document.getElementById('selected-services');
+        var selectedServicesList = document.getElementById('selected-services-list');
+        var selectedCheckboxes = getSelectedServiceCheckboxes();
+
+        // Clear previous content
+        selectedServicesList.innerHTML = '';
+
+        if (selectedCheckboxes.length === 0) {
+            selectedServicesDiv.style.display = 'none';
+            return;
+        }
+
+        // Show the container
+        selectedServicesDiv.style.display = 'block';
+
+        // Add each selected service (simple list without prices)
+        selectedCheckboxes.forEach(function(checkbox) {
+            var serviceName = checkbox.getAttribute('data-name') || 'Unknown Service';
+
+            var serviceItem = document.createElement('div');
+            serviceItem.className = 'mb-2';
+            serviceItem.innerHTML = `
+                <i class="fas fa-check-circle text-success me-2"></i>
+                <span class="fw-medium">${serviceName}</span>
+            `;
+            selectedServicesList.appendChild(serviceItem);
+        });
+    }
+
     // update price display when service or package changed
     function updatePriceDisplay() {
+        // Prevent multiple simultaneous calls
+        if (updatePriceDisplay.isRunning) {
+            return;
+        }
+        updatePriceDisplay.isRunning = true;
+
         var priceEl = document.getElementById('service_price');
-        var svc = serviceSelect.options[serviceSelect.selectedIndex];
+        var serviceBreakdownEl = document.getElementById('service_breakdown');
+        var serviceListEl = document.getElementById('service_list');
+        var selectedServices = getSelectedServiceCheckboxes();
         var pkg = packageSelect.options[packageSelect.selectedIndex];
-        var price = null;
+        var branchId = document.getElementById('branch_id').value;
+
+        // Clear previous service list
+        serviceListEl.innerHTML = '';
+
+        // Show loading state
+        priceEl.value = 'Loading...';
+        priceEl.disabled = true;
+
         if (pkg && pkg.value) {
-            price = pkg.getAttribute('data-price') || null;
-        } else if (svc && svc.value) {
-            price = svc.getAttribute('data-price') || null;
-        }
-        if (price) {
-            // format as currency simple
-            priceEl.value = '₱' + Number(price).toFixed(2);
+            // Package selected - use local package price (packages have fixed prices)
+            var packagePrice = Number(pkg.getAttribute('data-price') || 0);
+            var discountedPackagePrice = packagePrice;
+
+            // Apply promo discount if active
+            if (window.currentPromo && window.currentPromo.discount_pct > 0) {
+                var discountAmount = (packagePrice * window.currentPromo.discount_pct) / 100;
+                discountedPackagePrice = Math.max(0, packagePrice - discountAmount);
+            }
+
+            priceEl.value = '₱' + discountedPackagePrice.toFixed(2);
+            priceEl.disabled = false;
+            serviceBreakdownEl.style.display = 'none';
+
+            // Reset the running flag
+            updatePriceDisplay.isRunning = false;
+        } else if (selectedServices.length > 0 && branchId) {
+            // Services selected - fetch latest prices from server
+            var serviceIds = Array.from(selectedServices).map(function(checkbox) {
+                return checkbox.value;
+            });
+
+            fetch('/api/branches/' + branchId + '/services', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch service prices');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                // Clear service list before adding new content
+                serviceListEl.innerHTML = '';
+                var totalPrice = 0;
+                var servicePrices = {};
+
+                // Create price lookup map
+                data.services.forEach(function(service) {
+                    servicePrices[service.id] = {
+                        price: service.price || 0,
+                        name: service.name || 'Unknown Service'
+                    };
+                });
+
+                // Calculate total and build breakdown
+                selectedServices.forEach(function(checkbox) {
+                    var serviceId = checkbox.value;
+                    var serviceData = servicePrices[serviceId];
+                    if (serviceData) {
+                        var price = Number(serviceData.price);
+                        totalPrice += price;
+
+                        // Add service to breakdown list
+                        var serviceItem = document.createElement('div');
+                        serviceItem.className = 'd-flex justify-content-between align-items-center mb-1';
+                        serviceItem.innerHTML = `
+                            <small class="text-muted">${serviceData.name}</small>
+                            <small class="text-muted fw-semibold">₱${price.toFixed(2)}</small>
+                        `;
+                        serviceListEl.appendChild(serviceItem);
+                    }
+                });
+
+                // Apply promo discount if active
+                var discountedTotal = totalPrice;
+                if (window.currentPromo && window.currentPromo.discount_pct > 0) {
+                    var discountAmount = (totalPrice * window.currentPromo.discount_pct) / 100;
+                    discountedTotal = Math.max(0, totalPrice - discountAmount);
+
+                    // Add discount line
+                    var discountItem = document.createElement('div');
+                    discountItem.className = 'd-flex justify-content-between align-items-center mb-1';
+                    discountItem.innerHTML = `
+                        <small class="text-warning">Discount (${window.currentPromo.discount_pct}%)</small>
+                        <small class="text-warning fw-semibold">-₱${discountAmount.toFixed(2)}</small>
+                    `;
+                    serviceListEl.appendChild(discountItem);
+                }
+
+                // Show breakdown only if multiple services are selected
+                serviceBreakdownEl.style.display = selectedServices.length > 1 ? 'block' : 'none';
+
+                // Add total line showing the final discounted amount
+                if (selectedServices.length > 1) {
+                    var totalItem = document.createElement('div');
+                    totalItem.className = 'd-flex justify-content-between align-items-center mt-2 pt-1 border-top';
+                    totalItem.innerHTML = `
+                        <small class="fw-semibold">Total</small>
+                        <small class="fw-semibold text-primary">₱${discountedTotal.toFixed(2)}</small>
+                    `;
+                    serviceListEl.appendChild(totalItem);
+                }
+
+                // Update price field with discounted total
+                priceEl.value = '₱' + discountedTotal.toFixed(2);
+                priceEl.disabled = false;
+
+                // Reset the running flag
+                updatePriceDisplay.isRunning = false;
+            })
+            .catch(function(error) {
+                console.error('Error fetching service prices:', error);
+                // Fallback to local prices if API fails
+                serviceListEl.innerHTML = ''; // Clear any previous content
+                var totalPrice = 0;
+                selectedServices.forEach(function(checkbox) {
+                    var price = Number(checkbox.getAttribute('data-price') || 0);
+                    var serviceName = checkbox.getAttribute('data-name') || 'Unknown Service';
+                    totalPrice += price;
+
+                    // Add service to breakdown list
+                    var serviceItem = document.createElement('div');
+                    serviceItem.className = 'd-flex justify-content-between align-items-center mb-1';
+                    serviceItem.innerHTML = `
+                        <small class="text-muted">${serviceName}</small>
+                        <small class="text-muted fw-semibold">₱${price.toFixed(2)}</small>
+                    `;
+                    serviceListEl.appendChild(serviceItem);
+                });
+
+                var discountedTotal = totalPrice;
+                if (window.currentPromo && window.currentPromo.discount_pct > 0) {
+                    var discountAmount = (totalPrice * window.currentPromo.discount_pct) / 100;
+                    discountedTotal = Math.max(0, totalPrice - discountAmount);
+
+                    // Add discount line
+                    var discountItem = document.createElement('div');
+                    discountItem.className = 'd-flex justify-content-between align-items-center mb-1';
+                    discountItem.innerHTML = `
+                        <small class="text-warning">Discount (${window.currentPromo.discount_pct}%)</small>
+                        <small class="text-warning fw-semibold">-₱${discountAmount.toFixed(2)}</small>
+                    `;
+                    serviceListEl.appendChild(discountItem);
+                }
+
+                serviceBreakdownEl.style.display = selectedServices.length > 1 ? 'block' : 'none';
+
+                if (selectedServices.length > 1) {
+                    var totalItem = document.createElement('div');
+                    totalItem.className = 'd-flex justify-content-between align-items-center mt-2 pt-1 border-top';
+                    totalItem.innerHTML = `
+                        <small class="fw-semibold">Total</small>
+                        <small class="fw-semibold text-primary">₱${discountedTotal.toFixed(2)}</small>
+                    `;
+                    serviceListEl.appendChild(totalItem);
+                }
+
+                priceEl.value = '₱' + discountedTotal.toFixed(2);
+                priceEl.disabled = false;
+
+                // Reset the running flag
+                updatePriceDisplay.isRunning = false;
+            });
         } else {
+            // No selection or no branch selected
             priceEl.value = '';
+            priceEl.disabled = false;
+            serviceBreakdownEl.style.display = 'none';
+
+            // Reset the running flag
+            updatePriceDisplay.isRunning = false;
         }
+
+        // Reset the running flag
+        updatePriceDisplay.isRunning = false;
     }
     // Category filter logic
     var categorySelect = document.getElementById('service_category');
-    if (categorySelect && serviceSelect) {
+    if (categorySelect) {
         categorySelect.addEventListener('change', function() {
             var selectedCategory = categorySelect.value;
-            for (var i = 0; i < serviceSelect.options.length; i++) {
-                var opt = serviceSelect.options[i];
-                if (!selectedCategory || opt.getAttribute('data-category') === selectedCategory || opt.value === '') {
-                    opt.style.display = '';
+            var optionDivs = document.querySelectorAll('.multiselect-option');
+            optionDivs.forEach(function(optionDiv) {
+                var checkbox = optionDiv.querySelector('.service-checkbox');
+                if (!selectedCategory || checkbox.getAttribute('data-category') === selectedCategory) {
+                    optionDiv.style.display = '';
                 } else {
-                    opt.style.display = 'none';
+                    optionDiv.style.display = 'none';
+                    // Uncheck hidden services
+                    if (checkbox.checked) {
+                        checkbox.checked = false;
+                        updateSelectedServices();
+                    }
                 }
-            }
-            // Reset service selection if filtered out
-            if (serviceSelect.selectedIndex > 0 && serviceSelect.options[serviceSelect.selectedIndex].style.display === 'none') {
-                serviceSelect.selectedIndex = 0;
-            }
+            });
             // Update price and time slots when category changes
             updatePriceDisplay();
             updateTimeSlots();
         });
     }
-    serviceSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); updatePromoOptions(branchSelect.value, serviceSelect.value); });
-    packageSelect.addEventListener('change', function(){ updatePriceDisplay(); updateTimeSlots(); });
-    serviceSelect.addEventListener('change', updateSelectedCoverage);
-    timeSlotSelect.addEventListener('change', updateSelectedCoverage);
     // When package changes, if a package is selected then service is optional
     packageSelect.addEventListener('change', function(){
         if (packageSelect.value) {
-            serviceSelect.value = '';
-            serviceSelect.disabled = true;
-            serviceSelect.setAttribute('data-required', 'false');
-        } else {
-            serviceSelect.disabled = false;
-            serviceSelect.setAttribute('data-required', 'true');
+            // Clear all service selections when package is selected
+            var checkboxes = document.querySelectorAll('.service-checkbox:checked');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = false;
+            });
+            updateSelectedServices();
+            updatePriceDisplay();
+            updateTimeSlots();
+            updatePromoOptions(branchSelect.value, []);
+            checkBookingConflicts();
         }
     });
+
+    // Custom multiselect dropdown functionality
+    var dropdownHeader = document.getElementById('service_dropdown_header');
+    var dropdownOptions = document.getElementById('service_dropdown_options');
+
+    if (dropdownHeader && dropdownOptions) {
+        dropdownHeader.addEventListener('click', function() {
+            var isVisible = dropdownOptions.style.display !== 'none';
+            dropdownOptions.style.display = isVisible ? 'none' : 'block';
+            dropdownHeader.querySelector('i').className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!dropdownHeader.contains(e.target) && !dropdownOptions.contains(e.target)) {
+                dropdownOptions.style.display = 'none';
+                dropdownHeader.querySelector('i').className = 'fas fa-chevron-down';
+            }
+        });
+    }
 
     // Function to validate if selected date is on an operating day
     function validateOperatingDay() {
@@ -1669,30 +2066,58 @@ document.addEventListener('DOMContentLoaded', function() {
         var promoInput = getPromoInput();
         if (!promoInput) return;
         var code = promoInput.value.trim();
-        if (!code) { showPromoMessage('', true); updatePriceDisplay(); return; }
+        if (!code) { 
+            // Clear promo data when promo is removed
+            window.currentPromo = null;
+            showPromoMessage('', true); 
+            updatePriceDisplay(); 
+            return; 
+        }
         var params = new URLSearchParams();
         params.append('code', code);
         params.append('branch_id', branchSelect.value || '');
-        params.append('service_id', serviceSelect.value || '');
+        params.append('service_id', getSelectedServiceIds().length > 0 ? getSelectedServiceIds()[0] : '');
         params.append('package_id', packageSelect.value || '');
+        // Add service_ids for multiple services
+        var selectedServices = getSelectedServiceIds();
+        if (selectedServices.length > 1) {
+            selectedServices.forEach(function(sid) {
+                params.append('service_ids[]', sid);
+            });
+        }
         fetch('/api/promo/validate?' + params.toString(), {
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin'
         }).then(function(r){ return r.json(); }).then(function(json){
             if (json && json.valid) {
-                // show discounted price
-                var priceEl = document.getElementById('service_price');
-                priceEl.value = '₱' + Number(json.final_price).toFixed(2);
+                // Store promo data for price breakdown calculation
+                window.currentPromo = {
+                    discount_pct: json.discount_pct || 0,
+                    discount_amount: json.discount_amount || 0,
+                    final_price: json.final_price || 0,
+                    base_price: json.base_price || 0
+                };
+
+                // Update price display with promo
+                updatePriceDisplay();
+
                 showPromoMessage('Promo applied: ' + (json.discount_pct || 0) + '% off', true);
             } else {
+                // Clear promo data
+                window.currentPromo = null;
                 showPromoMessage((json && json.message) ? json.message : 'Invalid promo code', false);
                 updatePriceDisplay();
             }
-        }).catch(function(){ showPromoMessage('Promo validation failed (network)', false); updatePriceDisplay(); });
+        }).catch(function(){
+            // Clear promo data on error
+            window.currentPromo = null;
+            showPromoMessage('Promo validation failed (network)', false);
+            updatePriceDisplay();
+        });
     }
     // Initialize promo options if branch is pre-selected
     if (branchSelect && branchSelect.value) {
-        updatePromoOptions(branchSelect.value, serviceSelect.value);
+        updatePromoOptions(branchSelect.value, getSelectedServiceIds());
             // Preload claimed promo for initial branch selection if present
         try {
             if (claimedPromos && Array.isArray(claimedPromos)) {
@@ -1721,6 +2146,125 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (e) { console.error('Error preloading initial claimed promo', e); }
     }
+
+    // Function to check booking conflicts via AJAX
+    function checkBookingConflicts() {
+        var branchId = branchSelect.value;
+        var date = dateInput.value;
+        var timeSlot = timeSlotSelect.value;
+        var packageId = packageSelect.value;
+
+        // Get selected service IDs
+        var selectedServices = getSelectedServiceIds();
+
+    // Only check if all required fields are filled
+    if (!branchId || !date || !timeSlot || (selectedServices.length === 0 && !packageId)) {
+        // If not all fields filled, enable Book Now button
+        var bookNowBtn = document.getElementById('openPaymentModal');
+        if (bookNowBtn) {
+            bookNowBtn.disabled = false;
+            bookNowBtn.innerHTML = 'Book Now';
+            bookNowBtn.style.opacity = '';
+            bookNowBtn.style.cursor = '';
+        }
+        return;
+    }
+
+        // Only check if all required fields are filled
+        if (!branchId || !date || !timeSlot) {
+            // If not all fields filled, enable Book Now button
+            var bookNowBtn = document.getElementById('openPaymentModal');
+            if (bookNowBtn) {
+                bookNowBtn.disabled = false;
+                bookNowBtn.innerHTML = 'Book Now';
+                bookNowBtn.style.opacity = '';
+                bookNowBtn.style.cursor = '';
+            }
+            return;
+        }
+
+        // Prepare data for AJAX request
+        var data = {
+            branch_id: branchId,
+            date: date,
+            time_slot: timeSlot,
+            service_ids: selectedServices.length > 0 ? selectedServices : null,
+            package_id: packageId || null
+        };
+
+        // Make AJAX request
+        fetch('{{ route("client.booking.check-conflicts") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.conflict) {
+                // Show conflict alert directly below time slot dropdown
+                var timeSlotContainer = document.getElementById('time_slot').parentNode;
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger conflict-alert mt-2';
+                alertDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + data.message;
+                timeSlotContainer.appendChild(alertDiv);
+
+                // Disable Book Now button
+                var bookNowBtn = document.getElementById('openPaymentModal');
+                if (bookNowBtn) {
+                    bookNowBtn.disabled = true;
+                    bookNowBtn.innerHTML = '<i class="fas fa-times me-2"></i>Cannot Book - Conflict';
+                    bookNowBtn.style.opacity = '0.6';
+                    bookNowBtn.style.cursor = 'not-allowed';
+                }
+            } else {
+                // No conflict, enable Book Now button and remove any existing alert
+                var existingAlert = document.querySelector('.conflict-alert');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+                var bookNowBtn = document.getElementById('openPaymentModal');
+                if (bookNowBtn) {
+                    bookNowBtn.disabled = false;
+                    bookNowBtn.innerHTML = 'Book Now';
+                    bookNowBtn.style.opacity = '';
+                    bookNowBtn.style.cursor = '';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error checking conflicts:', error);
+            // On error, enable the button (don't disable booking due to API errors)
+            var bookNowBtn = document.getElementById('openPaymentModal');
+            if (bookNowBtn) {
+                bookNowBtn.disabled = false;
+                bookNowBtn.innerHTML = 'Book Now';
+                bookNowBtn.style.opacity = '';
+                bookNowBtn.style.cursor = '';
+            }
+        });
+    }
+
+    // Add event listeners for conflict checking
+    if (branchSelect) {
+        branchSelect.addEventListener('change', checkBookingConflicts);
+    }
+    if (dateInput) {
+        dateInput.addEventListener('change', checkBookingConflicts);
+    }
+    if (timeSlotSelect) {
+        timeSlotSelect.addEventListener('change', checkBookingConflicts);
+    }
+    if (packageSelect) {
+        packageSelect.addEventListener('change', checkBookingConflicts);
+    }
+
+    // Initial check to ensure button state is correct
+    checkBookingConflicts();
+
 });
 </script>
 
@@ -2027,6 +2571,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Saved card data from server (organized by card type)
     const savedCardData = @json($savedCardData ?? null);
 
+    // Function to get selected service IDs from checkboxes
+    function getSelectedServiceIds() {
+        var checkboxes = document.querySelectorAll('.service-checkbox:checked');
+        return Array.from(checkboxes).map(function(checkbox) {
+            return checkbox.value;
+        });
+    }
+
+    // Function to get selected service checkboxes
+    function getSelectedServiceCheckboxes() {
+        return document.querySelectorAll('.service-checkbox:checked');
+    }
+
     // Function to load saved card data based on card type
     function loadSavedCardDataByType(cardType) {
         if (savedCardData && cardType && savedCardData[cardType]) {
@@ -2304,10 +2861,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (openModalBtn) {
         openModalBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            console.log('Book Now button clicked');
+
+            // Check if button is disabled due to conflicts
+            if (this.disabled) {
+                console.log('Button is disabled, not opening modal');
+                return; // Don't open modal if conflicts exist
+            }
+
+            console.log('Button is enabled, proceeding with validation');
 
             // Simple validation - check required fields
             const branchId = document.getElementById('branch_id');
-            const serviceId = document.getElementById('service_id');
             const bookingDate = document.getElementById('date');
             const timeSlot = document.getElementById('time_slot');
 
@@ -2344,23 +2909,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (!branchId?.value) {
+                console.log('Validation failed: No branch selected');
                 showAnimatedAlert('Please select a branch');
                 return;
             }
+            console.log('Branch validation passed');
+
             // Check if either service or package is selected
             const packageId = document.getElementById('package_id');
-            if (!serviceId?.value && !packageId?.value) {
+            const selectedServices = getSelectedServiceIds();
+            console.log('Selected services:', selectedServices, 'Package ID:', packageId?.value);
+            if (selectedServices.length === 0 && !packageId?.value) {
+                console.log('Validation failed: No service or package selected');
                 showAnimatedAlert('Please select a service or package');
                 return;
             }
+            console.log('Service/package validation passed');
+
             if (!bookingDate?.value) {
+                console.log('Validation failed: No booking date selected');
                 showAnimatedAlert('Please select a booking date');
                 return;
             }
+            console.log('Date validation passed');
+
             if (!timeSlot?.value) {
+                console.log('Validation failed: No time slot selected');
                 showAnimatedAlert('Please select a time slot');
                 return;
             }
+            console.log('Time slot validation passed');
 
             // Check if selected time slot is disabled (full)
             const selectedOption = timeSlot.options[timeSlot.selectedIndex];
@@ -2417,6 +2995,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadSavedCardData();
 
             // Show the payment modal
+            console.log('All validation passed, showing payment modal');
             paymentModal.show();
         });
     }
@@ -2784,15 +3363,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Set the service in the booking form
-            const serviceSelect = document.getElementById('service_id');
-            if (serviceSelect) {
-                // Wait for modal to close, then select service
+            const serviceCheckbox = document.getElementById('service_' + serviceId);
+            if (serviceCheckbox) {
+                // Wait for modal to close, then check service
                 setTimeout(() => {
-                    serviceSelect.value = serviceId;
-                    serviceSelect.dispatchEvent(new Event('change'));
+                    serviceCheckbox.checked = true;
+                    updateSelectedServices();
+                    updatePriceDisplay();
+                    updateTimeSlots();
+                    updatePromoOptions(branchSelect.value, getSelectedServiceIds());
+                    checkBookingConflicts();
 
                     // Scroll to service field
-                    serviceSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    serviceCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300);
             }
         }
@@ -2835,6 +3418,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     packageSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300);
             }
+        }
+
+        // Handle service selection from recommended packages using event delegation
+        const packageServiceBtn = e.target.closest('.btn-select-package-service');
+        if (packageServiceBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const serviceItem = packageServiceBtn.closest('[data-type="package-service"]');
+            if (!serviceItem) {
+                return;
+            }
+
+            const serviceId = serviceItem.dataset.serviceId;
+            const serviceName = serviceItem.dataset.serviceName;
+
+            if (!serviceId) {
+                return;
+            }
+
+            // Show custom notification
+            showSelectionNotification(serviceName, 'Service');
+
+            // Set the service in the booking form immediately
+            const serviceCheckbox = document.getElementById('service_' + serviceId);
+            if (serviceCheckbox) {
+                serviceCheckbox.checked = true;
+                updateSelectedServices();
+                updatePriceDisplay();
+                updateTimeSlots();
+                updatePromoOptions(branchSelect.value, getSelectedServiceIds());
+                checkBookingConflicts();
+            }
+
+            // Close modal using jQuery
+            const modalEl = document.getElementById('recommendationsModal');
+            if (modalEl) {
+                $(modalEl).modal('hide');
+            }
+
+            // Scroll to service field after modal closes
+            setTimeout(() => {
+                if (serviceCheckbox) {
+                    serviceCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 300);
         }
     });
 });
@@ -3004,7 +3633,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .btn-select-service,
-.btn-select-package {
+.btn-select-package,
+.btn-select-package-service {
     background: #F56289;
     color: #fff;
     border: none;
@@ -3016,19 +3646,151 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .btn-select-service:hover,
-.btn-select-package:hover {
+.btn-select-package:hover,
+.btn-select-package-service:hover {
     background: #e94583;
     transform: scale(1.05);
     color: #fff;
+}
+
+.package-container {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.services-in-package {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.btn-xs {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    border-radius: 4px;
 }
 
 .bg-pink {
     background: #F56289;
 }
 
-.badge.bg-pink {
-    font-size: 0.75rem;
-    padding: 5px 10px;
+/* Conflict message styling for time slot area */
+.conflict-alert {
+    margin-top: 8px;
+    margin-bottom: 0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+}
+
+.conflict-alert i {
+    font-size: 1rem;
+}
+
+/* Disabled Book Now button styling */
+#openPaymentModal:disabled {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+/* Custom multiselect dropdown styling */
+.custom-multiselect {
+    position: relative;
+}
+
+.multiselect-header {
+    cursor: pointer;
+    background: white;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    min-height: 38px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.multiselect-header:hover {
+    border-color: #F56289;
+}
+
+.multiselect-header:focus {
+    border-color: #F56289;
+    box-shadow: 0 0 0 0.2rem rgba(245, 98, 137, 0.25);
+    outline: none;
+}
+
+.multiselect-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.multiselect-option:hover {
+    background-color: #000000;
+    color: white;
+}
+
+.multiselect-option:hover .form-check-label {
+    color: white;
+}
+
+.multiselect-option {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+}
+
+.multiselect-option .service-checkbox {
+    margin-top: 0;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ced4da;
+    background-color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    appearance: none;
+    position: relative;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.multiselect-option .service-checkbox:checked {
+    background-color: #F56289;
+    border-color: #F56289;
+}
+
+.multiselect-option .service-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.multiselect-option .service-checkbox:hover {
+    border-color: #F56289;
+}
+
+.multiselect-option .form-check-label {
+    margin-bottom: 0;
+    cursor: pointer;
+    flex: 1;
+    color: inherit;
+    margin-left: 10px;
 }
 </style>
 

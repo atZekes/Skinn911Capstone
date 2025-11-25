@@ -59,12 +59,33 @@ class StaffAvailabilityController extends Controller
                 // Get service/package duration
                 $duration = 1;
                 if ($booking->service) {
-                    $duration = $booking->service->duration ?? 1;
-                    $branchSpecific = $booking->service->branches()
-                        ->where('branch_id', $branchId)
-                        ->first();
-                    if ($branchSpecific && $branchSpecific->pivot && $branchSpecific->pivot->duration) {
-                        $duration = $branchSpecific->pivot->duration;
+                    // Check if there are multiple purchased services
+                    $purchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->with('service')->get();
+                    if ($purchasedServices->count() > 1) {
+                        // Multiple services - sum their durations
+                        $duration = 0;
+                        foreach ($purchasedServices as $ps) {
+                            if ($ps->service) {
+                                $serviceDuration = $ps->service->duration ?? 1;
+                                $branchSpecific = $ps->service->branches()
+                                    ->where('branch_id', $branchId)
+                                    ->first();
+                                if ($branchSpecific && $branchSpecific->pivot && $branchSpecific->pivot->duration) {
+                                    $serviceDuration = $branchSpecific->pivot->duration;
+                                }
+                                $duration += $serviceDuration;
+                            }
+                        }
+                        if ($duration <= 0) $duration = 1;
+                    } else {
+                        // Single service
+                        $duration = $booking->service->duration ?? 1;
+                        $branchSpecific = $booking->service->branches()
+                            ->where('branch_id', $branchId)
+                            ->first();
+                        if ($branchSpecific && $branchSpecific->pivot && $branchSpecific->pivot->duration) {
+                            $duration = $branchSpecific->pivot->duration;
+                        }
                     }
                 } elseif ($booking->package) {
                     $duration = 0;
@@ -143,6 +164,7 @@ class StaffAvailabilityController extends Controller
                 // Get service information
                 $serviceName = 'Unknown Service';
                 $packageServices = null;
+                $individualServices = null;
                 $price = null;
 
                 if ($booking->package) {
@@ -150,8 +172,24 @@ class StaffAvailabilityController extends Controller
                     $packageServices = $booking->package->services->pluck('name')->implode(', ');
                     $price = $booking->package->price;
                 } elseif ($booking->service) {
-                    $serviceName = $booking->service->name;
-                    $price = $booking->service->price;
+                    // Check if there are multiple purchased services
+                    $purchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->with('service')->get();
+                    if ($purchasedServices->count() > 1) {
+                        $serviceName = 'Multiple Services';
+                        $individualServices = $purchasedServices->map(function($ps) {
+                            return [
+                                'name' => $ps->service->name ?? 'Unknown',
+                                'duration' => $ps->service->duration ?? 1,
+                                'sessions_remaining' => $ps->sessions_remaining ?? 0
+                            ];
+                        });
+                        $price = $purchasedServices->sum(function($ps) {
+                            return $ps->service->price ?? 0;
+                        });
+                    } else {
+                        $serviceName = $booking->service->name;
+                        $price = $booking->service->price;
+                    }
                 }
 
                 // Get sessions left for this booking
@@ -179,6 +217,7 @@ class StaffAvailabilityController extends Controller
                     'email' => $email,
                     'service_name' => $serviceName,
                     'package_services' => $packageServices,
+                    'individual_services' => $individualServices,
                     'price' => $price,
                     'status' => $booking->status ?? 'pending',
                     'sessions_left' => $sessionsLeft,

@@ -576,39 +576,14 @@ class StaffController extends Controller
         }
         // check per-slot capacity
         $max = $branch->slot_capacity ?? null;
-        // Determine duration for this booking (service or package) and check required slots
-        $totalDuration = 1;
-        if ($booking->service_id) {
-            $svc = \App\Models\Service::find($booking->service_id);
-            if ($svc) {
-                try {
-                    if ($branch) {
-                        $bsvc = $branch->services()->where('services.id', $svc->id)->first();
-                        if ($bsvc && isset($bsvc->pivot) && isset($bsvc->pivot->duration) && $bsvc->pivot->duration) {
-                            $totalDuration = (int)$bsvc->pivot->duration;
-                        } else {
-                            $totalDuration = $svc->duration ?? 1;
-                        }
-                    } else {
-                        $totalDuration = $svc->duration ?? 1;
-                    }
-                } catch (\Exception $e) {
-                    $totalDuration = $svc->duration ?? 1;
-                }
-            }
-        } elseif ($booking->package_id) {
-            $pkg = \App\Models\Package::with('services')->find($booking->package_id);
-            if ($pkg) {
-                // Use the package's duration attribute which considers admin-configured durations
-                $totalDuration = $pkg->duration ?: 1;
-            }
-        }
-        $requiredSlots = [$request->time_slot];
+        // Determine duration for this booking (only active services with remaining sessions)
+        $totalDuration = $booking->getCurrentActiveDuration();
+        $requiredSlots = [];
         if ($totalDuration > 1) {
             try {
                 [$startStr, $endStr] = explode('-', $request->time_slot, 2);
                 $start = \Carbon\Carbon::parse(trim($startStr));
-                for ($i = 1; $i < $totalDuration; $i++) {
+                for ($i = 0; $i < $totalDuration; $i++) {
                     $s = $start->copy()->addHours($i);
                     $e = $s->copy()->addHour();
                     $requiredSlots[] = $s->format('H:i') . '-' . $e->format('H:i');
@@ -617,10 +592,13 @@ class StaffController extends Controller
                         $bs = \Carbon\Carbon::parse($branch->break_start);
                         $be = \Carbon\Carbon::parse($branch->break_end);
                         if ($s->lt($be) && $e->gt($bs)) {
+                            $slotTime = $s->format('g:i A') . ' - ' . $e->format('g:i A');
+                            $breakTime = $bs->format('g:i A') . ' - ' . $be->format('g:i A');
+                            $message = 'The time slot ' . $slotTime . ' overlaps with the branch break time (' . $breakTime . '). Please choose a different time.';
                             if ($request->ajax()) {
-                                return response()->json(['success' => false, 'message' => 'Selected time overlaps branch break. Please choose another slot.'], 422);
+                                return response()->json(['success' => false, 'message' => $message], 422);
                             }
-                            return back()->withErrors(['time_slot' => 'Selected time overlaps branch break.'])->withInput();
+                            return back()->withErrors(['time_slot' => $message])->withInput();
                         }
                     }
                 }
@@ -647,25 +625,51 @@ class StaffController extends Controller
             }
             foreach ($requiredSlots as $rs) {
                 if (! in_array($rs, $branchSlots)) {
-                    if ($request->ajax()) {
-                        return response()->json(['success' => false, 'message' => 'Selected start time cannot fit the full service duration within branch operating hours.'], 422);
+                    try {
+                        [$start, $end] = explode('-', $rs);
+                        $formattedSlot = \Carbon\Carbon::createFromFormat('H:i', trim($start))->format('g:i A') . ' - ' . \Carbon\Carbon::createFromFormat('H:i', trim($end))->format('g:i A');
+                        $message = 'The time slot ' . $formattedSlot . ' is outside the branch operating hours (' . $branch->time_slot . '). Please select a time within operating hours.';
+                    } catch (\Exception $e) {
+                        $message = 'Selected start time cannot fit the full service duration within branch operating hours.';
                     }
-                    return back()->withErrors(['time_slot' => 'Selected start time cannot fit the full service duration within branch operating hours.'])->withInput();
+                    if ($request->ajax()) {
+                        return response()->json(['success' => false, 'message' => $message], 422);
+                    }
+                    return back()->withErrors(['time_slot' => $message])->withInput();
                 }
             }
         }
 
         if ($max) {
+            $conflictingSlots = [];
             foreach ($requiredSlots as $slot) {
                 $count = \App\Models\Booking::where('branch_id', $branchId)
                     ->where('date', $request->date)
                     ->where('time_slot', $slot)
                     ->where('status', 'active')
+                    ->where('id', '!=', $booking->id) // Exclude current booking
                     ->count();
                 if ($count >= $max) {
-                    // Slot is full - skip validation, frontend should handle this
-                    continue;
+                    $conflictingSlots[] = $slot;
                 }
+            }
+
+            if (!empty($conflictingSlots)) {
+                $slotText = count($conflictingSlots) === 1 ? 'slot' : 'slots';
+                $formattedSlots = array_map(function($slot) {
+                    try {
+                        [$start, $end] = explode('-', $slot);
+                        return \Carbon\Carbon::createFromFormat('H:i', trim($start))->format('g:i A') . ' - ' . \Carbon\Carbon::createFromFormat('H:i', trim($end))->format('g:i A');
+                    } catch (\Exception $e) {
+                        return $slot;
+                    }
+                }, $conflictingSlots);
+
+                $message = 'The following time ' . $slotText . ' ' . (count($conflictingSlots) === 1 ? 'is' : 'are') . ' fully booked: ' . implode(', ', $formattedSlots) . '. Please select a different time.';
+                if ($request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $message], 422);
+                }
+                return back()->withErrors(['time_slot' => $message])->withInput();
             }
         }
 
@@ -878,9 +882,15 @@ class StaffController extends Controller
     $sessionCreditsByBooking = [];
     foreach ($bookings as $b) {
         try {
-            // Get sessions only for this specific booking_id
-            $credits = \App\Models\ClientPackageSession::where('booking_id', $b->id)
+            // Get package sessions for this specific booking_id
+            $packageCredits = \App\Models\ClientPackageSession::where('booking_id', $b->id)
                 ->sum('sessions_remaining');
+
+            // Get purchased service sessions for this specific booking_id
+            $serviceCredits = \App\Models\PurchasedService::where('booking_id', $b->id)
+                ->sum('sessions_remaining');
+
+            $credits = $packageCredits + $serviceCredits;
         } catch (\Exception $e) {
             $credits = 0;
         }
@@ -1425,38 +1435,45 @@ class StaffController extends Controller
                     return back()->with('success', 'All sessions completed! Booking marked as complete.');
                 }
 
-                // Deduct one session - only for this specific booking_id
-                try {
+                // Handle package sessions (legacy)
+                $packageSessionDeducted = false;
+                if ($booking->clientPackageSessions()->exists()) {
                     $session = \App\Models\ClientPackageSession::where('booking_id', $booking->id)
                         ->where('sessions_remaining', '>', 0)
                         ->first();
 
                     if ($session) {
                         $session->deductSession();
-                        // Only record a transaction for the package price when all sessions are completed
-                        $remainingSessions = $booking->getRemainingSessionsCount();
-                        if ($remainingSessions === 0 && $booking->package_id) {
-                            $package = \App\Models\Package::find($booking->package_id);
-                            if ($package) {
-                                // Prevent duplicate transaction for this booking/package
-                                $existing = \App\Models\Transaction::where('booking_id', $booking->id)
-                                    ->where('package_id', $package->id)
-                                    ->first();
-                                if (! $existing) {
-                                    $transaction = \App\Models\Transaction::create([
-                                        'booking_id' => $booking->id,
-                                        'package_id' => $package->id,
-                                        'branch_id' => $booking->branch_id,
-                                        'amount' => $package->price ?? 0,
-                                        'payment_method' => $booking->payment_method ?? 'package',
-                                    ]);
-                                    Log::info('Transaction created (package)', ['transaction' => $transaction]);
-                                }
-                            }
+                        $packageSessionDeducted = true;
+                    }
+                }
+
+                // Handle purchased service sessions (new per-service logic)
+                $purchasedServices = $booking->purchasedServices()->where('sessions_remaining', '>', 0)->get();
+                foreach ($purchasedServices as $purchasedService) {
+                    $purchasedService->markSessionComplete();
+                }
+
+                // Only record a transaction for the package price when all sessions are completed
+                $remainingSessions = $booking->getRemainingSessionsCount();
+                if ($remainingSessions === 0 && $booking->package_id) {
+                    $package = \App\Models\Package::find($booking->package_id);
+                    if ($package) {
+                        // Prevent duplicate transaction for this booking/package
+                        $existing = \App\Models\Transaction::where('booking_id', $booking->id)
+                            ->where('package_id', $package->id)
+                            ->first();
+                        if (! $existing) {
+                            $transaction = \App\Models\Transaction::create([
+                                'booking_id' => $booking->id,
+                                'package_id' => $package->id,
+                                'branch_id' => $booking->branch_id,
+                                'amount' => $package->price ?? 0,
+                                'payment_method' => $booking->payment_method ?? 'package',
+                            ]);
+                            Log::info('Transaction created (package)', ['transaction' => $transaction]);
                         }
                     }
-                } catch (\Exception $e) {
-                    Log::error('Error completing session', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
                 }
 
                 $newRemaining = $booking->getRemainingSessionsCount();
@@ -1553,3 +1570,5 @@ class StaffController extends Controller
     }
 
 }
+
+

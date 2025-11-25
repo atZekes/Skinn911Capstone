@@ -207,11 +207,32 @@
                     <span class="info-value">{{ $booking->branch->name ?? 'N/A' }}</span>
                 </div>
 
-                @if($booking->service)
+                @php
+                    $purchasedServices = $booking->purchasedServices()->with('service')->get();
+                @endphp
+
+                @if($purchasedServices->count() > 1)
+                <div class="info-row">
+                    <span class="info-label">Services:</span>
+                    <span class="info-value">
+                        <div style="text-align: right;">
+                            @foreach($purchasedServices as $ps)
+                                <div style="margin-bottom: 4px;">{{ $ps->service->name }}</div>
+                            @endforeach
+                        </div>
+                    </span>
+                </div>
+                @elseif($purchasedServices->count() === 1)
+                <div class="info-row">
+                    <span class="info-label">Service:</span>
+                    <span class="info-value">{{ $purchasedServices->first()->service->name }}</span>
+                </div>
+                @elseif($booking->service)
                 <div class="info-row">
                     <span class="info-label">Service:</span>
                     <span class="info-value">{{ $booking->service->name }}</span>
                 </div>
+                @endif
 
                 {{-- Show sessions if this is a multi-session service --}}
                 @php
@@ -223,7 +244,6 @@
                     <span class="info-label">Sessions Included:</span>
                     <span class="info-value highlight">{{ $totalSessions }} sessions</span>
                 </div>
-                @endif
                 @endif
 
                 @if($booking->package)
@@ -262,6 +282,16 @@
                         <span class="status-badge status-{{ $booking->payment_status }}">{{ ucfirst($booking->payment_status) }}</span>
                     </span>
                 </div>
+
+                @php
+                    $transactionAmount = $booking->transactions->first()->amount ?? 0;
+                @endphp
+                @if($transactionAmount > 0)
+                <div class="info-row">
+                    <span class="info-label">Total Amount:</span>
+                    <span class="info-value highlight">₱{{ number_format($transactionAmount, 2) }}</span>
+                </div>
+                @endif
                 @endif
             </div>
 

@@ -360,9 +360,10 @@
                     <table class="table table-hover" style="border-radius:15px;overflow:hidden;">
                         <thead style="background: linear-gradient(135deg, #e75480 0%, #ff8fab 100%); color:#fff;">
                             <tr>
-                                <th style="border: none; padding: 15px;">Service</th>
-                                <th style="border: none; padding: 15px;">Price</th>
-                                <th style="border: none; padding: 15px;">Date Purchased</th>
+                                <th style="border: none; padding: 15px;">Services</th>
+                                <th style="border: none; padding: 15px;">Total Price</th>
+                                <th style="border: none; padding: 15px;">Date</th>
+                                <th style="border: none; padding: 15px;">Time</th>
                                 <th style="border: none; padding: 15px;">Location</th>
                                 <th style="border: none; padding: 15px;">Status</th>
                             </tr>
@@ -370,42 +371,39 @@
                         <tbody>
                             @php
                                 use Carbon\Carbon;
-                                $purchasedServices = \App\Models\PurchasedService::where('user_id', Auth::id())
+                                // Group purchased services by booking
+                                $bookingsWithServices = \App\Models\PurchasedService::where('user_id', Auth::id())
                                     ->with(['service', 'booking.branch', 'booking.package.services', 'booking.transactions'])
-                                    ->get();
-                                $shownBookings = [];
+                                    ->get()
+                                    ->groupBy('booking_id');
                             @endphp
-                            @forelse($purchasedServices as $service)
+                            @forelse($bookingsWithServices as $bookingId => $services)
                                 @php
-                                    $booking = $service->booking;
+                                    $booking = $services->first()->booking;
+                                    $totalPrice = $services->sum('price');
+
                                     // Determine if this is a package booking
                                     $pkgToShow = $booking->package ?? null;
-                                    if (!$pkgToShow && $booking) {
-                                        $bId = $booking->id;
-                                        $purchasedIds = \App\Models\PurchasedService::where('booking_id', $bId)->pluck('service_id')->toArray();
-                                        if (count($purchasedIds) > 1) {
-                                            $candidates = \App\Models\Package::where(function($q) use ($service) {
-                                                $branchId = $service->booking->branch->id ?? null;
-                                                if ($branchId) {
-                                                    $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
-                                                }
-                                            })->get();
-                                            foreach ($candidates as $c) {
-                                                $pkgServiceIds = $c->services->pluck('id')->toArray();
-                                                if (!array_diff($purchasedIds, $pkgServiceIds)) {
-                                                    $pkgToShow = $c;
-                                                    break;
-                                                }
+                                    if (!$pkgToShow && count($services) > 1) {
+                                        $purchasedIds = $services->pluck('service_id')->toArray();
+                                        $candidates = \App\Models\Package::where(function($q) use ($booking) {
+                                            $branchId = $booking->branch->id ?? null;
+                                            if ($branchId) {
+                                                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                                            }
+                                        })->get();
+                                        foreach ($candidates as $c) {
+                                            $pkgServiceIds = $c->services->pluck('id')->toArray();
+                                            if (!array_diff($purchasedIds, $pkgServiceIds)) {
+                                                $pkgToShow = $c;
+                                                break;
                                             }
                                         }
                                     }
-                                    // Skip if package booking already shown
-                                    if ($pkgToShow && in_array($booking->id, $shownBookings)) {
-                                        continue;
-                                    }
-                                    $shownBookings[] = $booking->id;
+
+                                    // Determine status
                                     $status = 'completed';
-                                    if ($service->status === 'cancelled') {
+                                    if ($services->contains('status', 'cancelled')) {
                                         $status = 'cancelled';
                                     } elseif ($booking) {
                                         if ($booking->status === 'active') {
@@ -419,86 +417,55 @@
                                             $status = 'cancelled';
                                         }
                                     }
+
+                                    // Calculate total duration and time slot using current active duration
+                                    $totalDuration = 0;
+                                    if ($booking) {
+                                        $totalDuration = $booking->getCurrentActiveDuration();
+                                    } else {
+                                        // Fallback for purchased services without booking
+                                        foreach ($services as $service) {
+                                            if ($service->service) {
+                                                $totalDuration += $service->service->duration ?? 1;
+                                            }
+                                        }
+                                    }
+
+                                    $displaySlot = $booking->time_slot ?? '';
+                                    if ($displaySlot && strpos($displaySlot, '-') !== false && $totalDuration > 0) {
+                                        try {
+                                            [$startStr, $endStr] = explode('-', $displaySlot, 2);
+                                            $start = \Carbon\Carbon::createFromFormat('H:i', trim($startStr));
+                                            $end = $start->copy()->addHours($totalDuration);
+                                            $displaySlot = $start->format('g') . ' to ' . $end->format('g A');
+                                        } catch (\Exception $e) {
+                                            // fallback to original
+                                        }
+                                    }
                                 @endphp
                                 <tr>
-                                    <td data-label="Service">
+                                    <td data-label="Services">
                                         @if($pkgToShow)
                                             <div><strong>{{ $pkgToShow->name }}</strong></div>
                                             <div class="text-muted small">{{ $pkgToShow->services->pluck('name')->implode(', ') }}</div>
                                         @else
-                                            @if($service->service)
-                                                {{ $service->service->name }}
+                                            @if(count($services) > 1)
+                                                <div><strong>Multiple Services</strong></div>
+                                                <div class="text-muted small">{{ $services->pluck('service.name')->implode(', ') }}</div>
                                             @else
-                                                <span class="text-danger">Service ID: {{ $service->service_id }}</span>
+                                                {{ $services->first()->service->name ?? 'Service ID: ' . $services->first()->service_id }}
                                             @endif
                                         @endif
                                     </td>
-                                    <td data-label="Price">₱{{ number_format($service->booking->transactions->first()->amount ?? $service->price ?? 0, 2) }}</td>
-                                    <td data-label="Date Purchased">{{ $service->created_at }}</td>
+                                    <td data-label="Total Price">₱{{ number_format($booking->transactions->first()->amount ?? $totalPrice, 2) }}</td>
+                                    <td data-label="Date">{{ $booking->date }}</td>
+                                    <td data-label="Time">{{ $displaySlot }}</td>
                                     <td data-label="Location">
                                         @if($booking && $booking->branch)
                                             {{ $booking->branch->name }}
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
-                                    </td>
-                                    <td>
-                                        @php
-                                            // Determine duration in hours for this purchased service
-                                            $durationHours = 1;
-                                            if ($service->service) {
-                                                // prefer pivot/branch duration if available on the purchased service's booking
-                                                $svc = $service->service;
-                                                $durationHours = $svc->duration ?? 1;
-                                                // if branch-specific pivot stored somewhere, prefer it (best-effort)
-                                                if (isset($service->booking) && $service->booking) {
-                                                    try {
-                                                        $branchIdForThisBooking = $service->booking->branch->id ?? null;
-                                                        if ($branchIdForThisBooking) {
-                                                            $branch = \App\Models\Branch::with('services')->find($branchIdForThisBooking);
-                                                            if ($branch) {
-                                                                foreach ($branch->services as $bsvc) {
-                                                                    if ($bsvc->id == $svc->id && isset($bsvc->pivot->duration) && $bsvc->pivot->duration) {
-                                                                        $durationHours = $bsvc->pivot->duration;
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    } catch (\Exception $e) {
-                                                        // ignore and keep default duration
-                                                    }
-                                                }
-                                            } elseif ($service->booking && $service->booking->package) {
-                                                // if purchased service is part of a package, prefer package->duration when available
-                                                $pkg = $service->booking->package;
-                                                if (isset($pkg->duration) && $pkg->duration && $pkg->duration > 0) {
-                                                    $durationHours = $pkg->duration;
-                                                } else {
-                                                    // otherwise sum durations of services inside the package
-                                                    $sumDur = 0;
-                                                    foreach ($pkg->services as $ps) {
-                                                        $sumDur += $ps->duration ?? 1;
-                                                    }
-                                                    if ($sumDur > 0) $durationHours = $sumDur;
-                                                }
-                                            }
-                                            // compute end time by parsing booking's time_slot end and adding (duration-1) hours if needed
-                                            $displaySlot = $service->booking->time_slot ?? $service->time_slot ?? '';
-                                            if ($displaySlot && strpos($displaySlot, '-') !== false) {
-                                                try {
-                                                    [$startStr, $endStr] = explode('-', $displaySlot, 2);
-                                                    $start = \Carbon\Carbon::createFromFormat('H:i', trim($startStr));
-                                                    // final end = start + durationHours hours
-                                                    $end = $start->copy()->addHours($durationHours);
-                                                    $displaySlot = $start->format('g:ia') . ' - ' . $end->format('g:ia');
-                                                } catch (\Exception $e) {
-                                                    // fallback to original
-                                                }
-                                            }
-                                        @endphp
-                                        {{ $displaySlot }}
-                                    </td>
                                     </td>
                                     <td data-label="Status">
                                         @if($status === 'cancelled')
@@ -512,7 +479,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5">
+                                    <td colspan="6" class="text-center py-5">
                                         <div class="py-4">
                                             <i class="fas fa-shopping-bag" style="font-size: 4rem; color: #ddd;"></i>
                                             <h4 class="mt-3 text-muted">No Purchased Services</h4>
@@ -601,9 +568,10 @@
                                         @php
                                             $pkgToShow = $booking->package ?? null;
                                             if (!$pkgToShow) {
-                                                $purchasedIds = \App\Models\PurchasedService::where('booking_id', $booking->id)->pluck('service_id')->toArray();
+                                                $purchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->with('service')->get();
                                                 // only infer a package when more than one purchased service exists for this booking
-                                                if (count($purchasedIds) > 1) {
+                                                if ($purchasedServices->count() > 1) {
+                                                    $purchasedIds = $purchasedServices->pluck('service_id')->toArray();
                                                     $candidates = \App\Models\Package::where(function($q) use ($booking) {
                                                         $branchId = $booking->branch->id ?? null;
                                                         if ($branchId) {
@@ -624,56 +592,38 @@
                                             <div><strong>{{ $pkgToShow->name }}</strong></div>
                                             <div class="text-muted small">{{ $pkgToShow->services->pluck('name')->implode(', ') }}</div>
                                         @else
-                                            @if($booking->service)
-                                                {{ $booking->service->name }}
+                                            @php
+                                                $purchasedServices = \App\Models\PurchasedService::where('booking_id', $booking->id)->with('service')->get();
+                                            @endphp
+                                            @if($purchasedServices->count() > 1)
+                                                <div><strong>Multiple Services</strong></div>
+                                                <div class="text-muted small">
+                                                    @foreach($purchasedServices as $ps)
+                                                        <div>• {{ $ps->service->name ?? 'Unknown Service' }} ({{ $ps->sessions_remaining ?? 0 }} sessions left)</div>
+                                                    @endforeach
+                                                </div>
                                             @else
-                                                -
+                                                @if($booking->service)
+                                                    {{ $booking->service->name }}
+                                                @else
+                                                    -
+                                                @endif
                                             @endif
                                         @endif
                                     </td>
                                     <td data-label="Date">{{ $booking->date }}</td>
                                     <td data-label="Time Slot">
                                         @php
-                                            // Compute duration for this booking (service or package)
-                                            $bookingDuration = 1;
-                                            if ($booking->service) {
-                                                $bookingDuration = $booking->service->duration ?? 1;
-                                                // try branch-specific pivot duration if present
-                                                try {
-                                                    $bid = $booking->branch->id ?? null;
-                                                    if ($bid) {
-                                                        $branchObj = \App\Models\Branch::with('services')->find($bid);
-                                                        if ($branchObj) {
-                                                            foreach ($branchObj->services as $bsvc) {
-                                                                if ($bsvc->id == $booking->service->id && isset($bsvc->pivot->duration) && $bsvc->pivot->duration) {
-                                                                    $bookingDuration = $bsvc->pivot->duration;
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                } catch (\Exception $e) { /* ignore */ }
-                                            } elseif ($booking->package) {
-                                                // prefer package->duration when present, otherwise sum service durations
-                                                $pkgObj = $booking->package;
-                                                if (isset($pkgObj->duration) && $pkgObj->duration && $pkgObj->duration > 0) {
-                                                    $bookingDuration = $pkgObj->duration;
-                                                } else {
-                                                    $sumD = 0;
-                                                    foreach ($pkgObj->services as $ps) {
-                                                        $sumD += $ps->duration ?? 1;
-                                                    }
-                                                    if ($sumD > 0) $bookingDuration = $sumD;
-                                                }
-                                            }
+                                            // Use current active duration for consistency
+                                            $bookingDuration = $booking->getCurrentActiveDuration();
                                             // format display slot: take booking->time_slot start and add bookingDuration hours
                                             $displaySlot = $booking->time_slot;
-                                            if ($displaySlot && strpos($displaySlot, '-') !== false) {
+                                            if ($displaySlot && strpos($displaySlot, '-') !== false && $bookingDuration > 0) {
                                                 try {
                                                     [$sstr, $estr] = explode('-', $displaySlot, 2);
                                                     $sTime = \Carbon\Carbon::createFromFormat('H:i', trim($sstr));
                                                     $endTime = $sTime->copy()->addHours($bookingDuration);
-                                                    $displaySlot = $sTime->format('g:ia') . ' - ' . $endTime->format('g:ia');
+                                                    $displaySlot = $sTime->format('g') . ' to ' . $endTime->format('g A');
                                                 } catch (\Exception $e) { /* ignore */ }
                                             }
                                         @endphp
@@ -915,9 +865,15 @@
                                     @php
                                         $branch = $booking->branch;
 
-                                        // Calculate service duration
+                                        // Calculate service duration for multiple services
                                         $serviceDuration = 1; // default
-                                        if ($booking->package_id) {
+                                        $purchasedServices = $booking->purchasedServices()->with('service')->get();
+                                        if ($purchasedServices->count() > 0) {
+                                            $serviceDuration = 0;
+                                            foreach ($purchasedServices as $ps) {
+                                                $serviceDuration += $ps->service->duration ?? 1;
+                                            }
+                                        } elseif ($booking->package_id) {
                                             $pkg = \App\Models\Package::find($booking->package_id);
                                             if ($pkg) {
                                                 $serviceDuration = $pkg->duration ?? 1;
@@ -937,7 +893,7 @@
                                             while ($currentTime->copy()->addHours($serviceDuration)->lte($endTime)) {
                                                 $slotStart = $currentTime->format('H:i');
                                                 $slotEnd = $currentTime->copy()->addHours($serviceDuration)->format('H:i');
-                                                $displaySlot = $currentTime->format('g:i A') . ' - ' . $currentTime->copy()->addHours($serviceDuration)->format('g:i A');
+                                                $displaySlot = $currentTime->format('g') . ' to ' . $currentTime->copy()->addHours($serviceDuration)->format('g A');
 
                                                 // Add duration info for multi-hour services
                                                 if ($serviceDuration > 1) {
@@ -1637,6 +1593,81 @@
                     })();
                 @endif
             } catch (e) { /* ignore */ }
+
+            // AJAX validation for reschedule time slots
+            @foreach($activeBookings as $booking)
+                @if(strtolower($booking->status) === 'active')
+                    (function() {
+                        const bookingId = '{{ $booking->id }}';
+                        const branchId = '{{ $booking->branch_id }}';
+                        const timeSelect = document.getElementById('new_time_' + bookingId);
+                        const dateInput = document.getElementById('new_date_' + bookingId);
+                        const submitBtn = document.querySelector('#rescheduleModal' + bookingId + ' button[type="submit"]');
+                        const validationMsg = document.createElement('div');
+                        validationMsg.className = 'text-danger mt-1 small';
+                        validationMsg.style.display = 'none';
+                        timeSelect.parentNode.appendChild(validationMsg);
+
+                        function validateTimeSlot() {
+                            const selectedTime = timeSelect.value;
+                            const selectedDate = dateInput.value;
+
+                            if (!selectedTime || !selectedDate) {
+                                validationMsg.style.display = 'none';
+                                submitBtn.disabled = false;
+                                return;
+                            }
+
+                            // Show loading state
+                            validationMsg.textContent = 'Validating...';
+                            validationMsg.className = 'text-info mt-1 small';
+                            validationMsg.style.display = 'block';
+                            submitBtn.disabled = true;
+
+                            fetch('{{ route('client.booking.validate-time-slot') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({
+                                    date: selectedDate,
+                                    time_slot: selectedTime,
+                                    branch_id: branchId,
+                                    booking_id: bookingId
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.valid) {
+                                    validationMsg.textContent = '✓ Time slot is available';
+                                    validationMsg.className = 'text-success mt-1 small';
+                                    submitBtn.disabled = false;
+                                } else {
+                                    validationMsg.textContent = data.message;
+                                    validationMsg.className = 'text-danger mt-1 small';
+                                    submitBtn.disabled = true;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Validation error:', error);
+                                validationMsg.textContent = 'Validation failed. Please try again.';
+                                validationMsg.className = 'text-warning mt-1 small';
+                                submitBtn.disabled = false;
+                            });
+                        }
+
+                        // Validate on time slot change
+                        timeSelect.addEventListener('change', validateTimeSlot);
+                        // Validate on date change
+                        dateInput.addEventListener('change', function() {
+                            if (timeSelect.value) {
+                                validateTimeSlot();
+                            }
+                        });
+                    })();
+                @endif
+            @endforeach
         });
         </script>
 @endsection
