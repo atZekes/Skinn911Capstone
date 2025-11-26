@@ -201,18 +201,14 @@ class CEOController extends Controller
 
                 // Revenue for this branch this month: sum purchased_services.price for this branch and month
                 $revenue_month = DB::table('purchased_services')
-                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
-                    ->where('bookings.branch_id', $branch->id)
-                    ->where('bookings.status', 'completed')
+                    ->where('purchased_services.branch_id', $branch->id)
                     ->whereMonth('purchased_services.created_at', now()->month)
                     ->whereYear('purchased_services.created_at', now()->year)
                     ->sum('purchased_services.price') ?? 0;
 
                 // Overall revenue (all time) for branch: sum purchased_services.price for this branch
                 $revenue_overall = DB::table('purchased_services')
-                    ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
-                    ->where('bookings.branch_id', $branch->id)
-                    ->where('bookings.status', 'completed')
+                    ->where('purchased_services.branch_id', $branch->id)
                     ->sum('purchased_services.price') ?? 0;
 
                 $performance[] = [
@@ -1445,9 +1441,13 @@ class CEOController extends Controller
         if ($from || $to || $branchId) {
             $psQuery = DB::table('purchased_services')
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
-                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+                ->leftJoin('branches', 'purchased_services.branch_id', '=', 'branches.id')
                 ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
-                ->where('bookings.status', 'completed')
+                ->where(function($q) {
+                    $q->whereNull('purchased_services.booking_id')
+                      ->orWhere('bookings.status', 'completed');
+                })
+                ->where('purchased_services.session_status', 'completed')
                 ->select(
                     'purchased_services.id as ps_id',
                     'bookings.id as booking_id',
@@ -1464,7 +1464,7 @@ class CEOController extends Controller
                 $psQuery->whereDate('purchased_services.created_at', '<=', $to);
             }
             if ($branchId) {
-                $psQuery->where('bookings.branch_id', $branchId);
+                $psQuery->where('purchased_services.branch_id', $branchId);
             }
 
             $rows = $psQuery->orderBy('purchased_services.created_at', 'desc')->get();
@@ -1490,13 +1490,22 @@ class CEOController extends Controller
             // Total revenue per branch: use purchased_services prices (user-requested)
             $psQuery = DB::table('purchased_services')
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
-                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
-                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id');
+                ->leftJoin('branches', 'purchased_services.branch_id', '=', 'branches.id')
+                ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
+                ->where(function($q) {
+                    $q->whereNull('purchased_services.booking_id')
+                      ->orWhere('bookings.status', 'completed');
+                })
+                ->where('purchased_services.session_status', 'completed');
 
             if ($from) $psQuery->whereDate('purchased_services.created_at', '>=', $from);
             if ($to) $psQuery->whereDate('purchased_services.created_at', '<=', $to);
 
-            $branchRevenues = (clone $psQuery)->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
+            $branchRevenues = (clone $psQuery);
+            if ($branchId) {
+                $branchRevenues->where('purchased_services.branch_id', $branchId);
+            }
+            $branchRevenues = $branchRevenues->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
                 ->groupBy('branches.id', 'branches.name')
                 ->orderByDesc('total')
                 ->get();
@@ -1505,12 +1514,15 @@ class CEOController extends Controller
             $bookingQuery = Booking::query();
             if ($from) $bookingQuery->whereDate('created_at', '>=', $from);
             if ($to) $bookingQuery->whereDate('created_at', '<=', $to);
+            if ($branchId) $bookingQuery->where('branch_id', $branchId);
             $totalBookings = (clone $bookingQuery)->count();
             $cancelled = (clone $bookingQuery)->where('status', 'cancelled')->count();
             $cancellationRate = $totalBookings > 0 ? round(($cancelled / $totalBookings) * 100, 2) : 0;
 
             // Top services by transactions (count + revenue)
-            $topServices = (clone $txQuery)->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(transactions.amount) as revenue')
+            $topServices = (clone $txQuery);
+            if ($branchId) $topServices->where('bookings.branch_id', $branchId);
+            $topServices = $topServices->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(transactions.amount) as revenue')
                 ->groupBy('services.id', 'services.name')
                 ->orderByDesc('tx_count')
                 ->limit(10)
@@ -1520,20 +1532,29 @@ class CEOController extends Controller
             $profitPerService = DB::table('purchased_services')
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
                 ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
-                ->when($from, fn($q) => $q->whereDate('bookings.created_at', '>=', $from))
-                ->when($to, fn($q) => $q->whereDate('bookings.created_at', '<=', $to))
+                ->where(function($q) {
+                    $q->whereNull('purchased_services.booking_id')
+                      ->orWhere('bookings.status', 'completed');
+                })
+                ->where('purchased_services.session_status', 'completed')
+                ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
+                ->when($branchId, fn($q) => $q->where('purchased_services.branch_id', $branchId))
                 ->selectRaw('services.id as service_id, services.name as service_name, SUM(purchased_services.price) as profit')
                 ->groupBy('services.id', 'services.name')
                 ->orderByDesc('profit')
                 ->get();
 
             // Promo impact
-            $promoTx = (clone $txQuery)->whereNotNull('transactions.promo_code');
-            $promoCount = $promoTx->count();
-            $promoRevenue = $promoTx->sum('transactions.amount');
+            $promoTx = (clone $txQuery);
+            if ($branchId) $promoTx->where('bookings.branch_id', $branchId);
+            $promoCount = $promoTx->whereNotNull('transactions.promo_code')->count();
+            $promoRevenue = $promoTx->whereNotNull('transactions.promo_code')->sum('transactions.amount');
 
             // Overall revenue should be derived from purchased_services to match branch totals
-            $totalRevenue = (clone $psQuery)->sum('purchased_services.price') ?? 0;
+            $totalRevenueQuery = DB::table('purchased_services');
+            if ($branchId) $totalRevenueQuery->where('branch_id', $branchId);
+            $totalRevenue = $totalRevenueQuery->sum('price') ?? 0;
             $promoRevenuePct = $totalRevenue > 0 ? round(($promoRevenue / $totalRevenue) * 100, 2) : 0;
 
             // Peak hours/days (simple aggregates)
@@ -1581,12 +1602,20 @@ class CEOController extends Controller
         $from = $request->get('from');
         $to = $request->get('to');
         $branchId = $request->get('branch_id');
+        $branch = null;
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId)->name ?? null;
+        }
 
         $psQuery = DB::table('purchased_services')
             ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
-            ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
+            ->leftJoin('branches', 'purchased_services.branch_id', '=', 'branches.id')
             ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
-            ->where('bookings.status', 'completed')
+            ->where(function($q) {
+                $q->whereNull('purchased_services.booking_id')
+                  ->orWhere('bookings.status', 'completed');
+            })
+            ->where('purchased_services.session_status', 'completed')
             ->select(
                 'purchased_services.id as ps_id',
                 'bookings.id as booking_id',
@@ -1603,7 +1632,7 @@ class CEOController extends Controller
             $psQuery->whereDate('purchased_services.created_at', '<=', $to);
         }
         if ($branchId) {
-            $psQuery->where('bookings.branch_id', $branchId);
+            $psQuery->where('purchased_services.branch_id', $branchId);
         }
 
         $rows = $psQuery->orderBy('purchased_services.created_at', 'desc')->get();
@@ -1636,8 +1665,12 @@ class CEOController extends Controller
 
             $branchRevenues = DB::table('purchased_services')
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
-                ->leftJoin('branches', 'bookings.branch_id', '=', 'branches.id')
-                ->where('bookings.status', 'completed')
+                ->leftJoin('branches', 'purchased_services.branch_id', '=', 'branches.id')
+                ->where(function($q) {
+                    $q->whereNull('purchased_services.booking_id')
+                      ->orWhere('bookings.status', 'completed');
+                })
+                ->where('purchased_services.session_status', 'completed')
                 ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
                 ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
                 ->selectRaw('branches.id as branch_id, branches.name as branch_name, SUM(purchased_services.price) as total')
@@ -1656,6 +1689,7 @@ class CEOController extends Controller
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
                 ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
                 ->where('bookings.status', 'completed')
+                ->where('purchased_services.session_status', 'completed')
                 ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
                 ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
                 ->selectRaw('services.id as service_id, services.name as service_name, COUNT(*) as tx_count, SUM(purchased_services.price) as revenue')
@@ -1668,6 +1702,7 @@ class CEOController extends Controller
                 ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
                 ->leftJoin('services', 'purchased_services.service_id', '=', 'services.id')
                 ->where('bookings.status', 'completed')
+                ->where('purchased_services.session_status', 'completed')
                 ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
                 ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
                 ->selectRaw('services.id as service_id, services.name as service_name, SUM(purchased_services.price) as profit')
@@ -1680,7 +1715,13 @@ class CEOController extends Controller
             $promoRevenue = $promoTx->sum('transactions.amount');
 
             // Overall revenue derived from purchased_services to match branch totals
-            $totalRevenueAll = (clone $psQuery)->sum('purchased_services.price') ?? 0;
+            $totalRevenueAll = DB::table('purchased_services')
+                ->leftJoin('bookings', 'purchased_services.booking_id', '=', 'bookings.id')
+                ->where('bookings.status', 'completed')
+                ->where('purchased_services.session_status', 'completed')
+                ->when($from, fn($q) => $q->whereDate('purchased_services.created_at', '>=', $from))
+                ->when($to, fn($q) => $q->whereDate('purchased_services.created_at', '<=', $to))
+                ->sum('purchased_services.price') ?? 0;
 
             $peakHours = (clone $bookingQuery)->selectRaw("HOUR(created_at) as hour, COUNT(*) as cnt")
                 ->groupByRaw('HOUR(created_at)')
@@ -1724,6 +1765,7 @@ class CEOController extends Controller
                 'report' => $report,
                 'from' => $fromLabel,
                 'to' => $toLabel,
+                'branch' => $branch,
                 'metrics' => $metrics
             ]);
 

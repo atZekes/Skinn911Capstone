@@ -34,8 +34,8 @@
 
                 <!-- Email Input with Icon -->
                 <div class="input-icon-group" style="position:relative;width:100%;margin-bottom:25px;">
-                    <div style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg, #e75480 0%, #ff8fab 100%);display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-envelope" style="font-size: 12px; color: white;"></i>
+                    <div style="position:absolute;left:14px;top:46%;transform:translateY(-85%);width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg, #e75480 0%, #ff8fab 100%);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-envelope" style="font-size: 12px; color: white; display:block; line-height:1;"></i>
                     </div>
                     <input
                         name="email"
@@ -43,7 +43,7 @@
                         placeholder="Enter your email address"
                         class="input reset-email-input"
                         required
-                        style="width:100%;padding:14px 14px 14px 50px;border:2px solid #e75480;border-radius:12px;font-size:1rem;transition:all 0.3s;">
+                        style="width:100%;padding:14px 14px 14px 50px;border:2px solid #e75480;border-radius:12px;font-size:1rem;transition:all 0.3s;height:48px;">
                     <small class="text-muted" style="display: block; margin-top: 8px; font-size: 0.85rem;">
                         <i class="fas fa-info-circle"></i> We'll send a secure reset link to this email
                     </small>

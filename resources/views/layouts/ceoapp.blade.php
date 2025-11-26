@@ -52,6 +52,9 @@
                 <a class="ceo-tab @if(request()->routeIs('ceo.dashboard')) active @endif" href="{{ route('ceo.dashboard') }}">
                     <i class="fas fa-chart-line"></i> Dashboard
                 </a>
+                <a class="ceo-tab @if(request()->routeIs('ceo.sales.report')) active @endif" href="{{ route('ceo.sales.report') }}">
+                    <i class="fas fa-file-alt"></i> Sales Report
+                </a>
                 <a class="ceo-tab @if(request()->routeIs('ceo.branchmanagement')) active @endif" href="{{ route('ceo.branchmanagement') }}">
                     <i class="fas fa-building"></i> Branch Management
                 </a>
@@ -74,6 +77,8 @@
                 <h1>
                     @if(request()->routeIs('ceo.dashboard'))
                         <i class="fas fa-chart-line me-2"></i>Executive Dashboard
+                    @elseif(request()->routeIs('ceo.sales.report'))
+                        <i class="fas fa-file-alt me-2"></i>Sales Report
                     @elseif(request()->routeIs('ceo.branchmanagement'))
                         <i class="fas fa-building me-2"></i>Branch Management
                     @elseif(request()->routeIs('ceo.adduseradmin'))

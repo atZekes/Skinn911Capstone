@@ -507,7 +507,7 @@ class StaffController extends Controller
                     'status' => ucfirst($booking->status),
                     'is_walkin' => $booking->is_walkin,
                     'walkin_name' => $booking->walkin_name ?? $request->walkin_name ?? null,
-                    'cancel_url' => route('staff.cancelAppointment', $booking->id),
+                    'cancel_url' => $booking->status !== 'completed' ? route('staff.cancelAppointment', $booking->id) : null,
                     'csrf_token' => csrf_token(),
                     'duration' => $totalDuration,
                 ],
@@ -527,7 +527,14 @@ class StaffController extends Controller
             'time_slot' => 'required|string',
         ]);
         $booking = \App\Models\Booking::findOrFail($id);
-        // Prevent rescheduling to a past date
+
+        // Check if booking is already completed
+        if ($booking->status === 'completed') {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Cannot reschedule a completed booking.'], 422);
+            }
+            return back()->with('error', 'Cannot reschedule a completed booking.');
+        }
         try {
             $newDate = \Carbon\Carbon::parse($request->date);
             $today = \Carbon\Carbon::today();
@@ -905,6 +912,12 @@ class StaffController extends Controller
     public function cancelAppointment($id)
     {
         $appointment = \App\Models\Booking::findOrFail($id);
+
+        // Check if booking is already completed
+        if ($appointment->status === 'completed') {
+            return redirect()->route('staff.appointments')->with('error', 'Cannot cancel a completed booking.');
+        }
+
         $appointment->status = 'cancelled';
         $appointment->save();
 
@@ -1234,6 +1247,26 @@ class StaffController extends Controller
             'branch_id' => auth('staff')->user()->branch_id ?? null,
             'booking_id' => $request->booking_id,
         ]);
+
+        // Also record in purchased_services for consistency
+        $service = \App\Models\Service::find($request->service_id);
+        if ($service) {
+            \App\Models\PurchasedService::create([
+                'user_id' => $request->booking_id ? \App\Models\Booking::find($request->booking_id)->user_id : null, // For walk-ins, null
+                'service_id' => $request->service_id,
+                'booking_id' => $request->booking_id,
+                'price' => $request->amount, // Use the transaction amount
+                'promo_code' => null, // No promo for POS
+                'description' => $service->name,
+                'status' => 'active',
+                'total_sessions' => 1, // Assuming single session for POS
+                'sessions_used' => 1,
+                'sessions_remaining' => 0,
+                'session_status' => 'completed', // Since transaction is recorded, consider completed
+                'branch_id' => auth('staff')->user()->branch_id ?? null,
+            ]);
+        }
+
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Transaction recorded successfully.']);
         }
@@ -1307,6 +1340,11 @@ class StaffController extends Controller
     {
         try {
             $booking = \App\Models\Booking::findOrFail($bookingId);
+
+            // Check if booking is already completed
+            if ($booking->status === 'completed') {
+                return back()->with('error', 'Cannot cancel a completed booking.');
+            }
 
             // Find the package by checking notes or user/service match
             $package = \App\Models\ClientPackageSession::where('user_id', $booking->user_id)

@@ -8,8 +8,8 @@ class PurchasedService extends Model
 {
     protected $table = 'purchased_services';
     protected $fillable = [
-        'user_id', 'service_id', 'booking_id', 'price', 'description', 'status',
-        'total_sessions', 'sessions_used', 'sessions_remaining', 'session_status', 'session_expiry_date'
+        'user_id', 'service_id', 'booking_id', 'price', 'promo_code', 'description', 'status',
+        'total_sessions', 'sessions_used', 'sessions_remaining', 'session_status', 'session_expiry_date', 'branch_id'
     ];
 
     protected $casts = [

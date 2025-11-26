@@ -326,11 +326,13 @@
             <i class="fas fa-plus"></i> Add Service
           </button>
           @endif
+          @if($appointment->status !== 'completed')
           <form action="{{ route('staff.cancelAppointment', $appointment->id) }}" method="POST" style="display:inline-block;">
             @csrf
             <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
           </form>
           <button type="button" class="btn btn-pink btn-sm" style="background:#e75480;color:#fff;" data-toggle="modal" data-target="#rescheduleModal{{ $appointment->id }}">Reschedule</button>
+          @endif
           @if($appointment->status === 'cancelled')
             <span class="text-muted">Cancelled</span>
           @endif

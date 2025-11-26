@@ -93,12 +93,21 @@
         </div>
         <div class="company-info">
             <h1>Skin911</h1>
-            <div class="tagline">Facial & Slimming Centre</div>
+            <div class="tagline">Facial & Slimming clientServices</div>
         </div>
     </div>
     <div class="header-right">
         <div class="report-title">Executive Sales Report</div>
-
+        @if($from || $to)
+            <div class="report-period">
+                Period: {{ $from ? \Carbon\Carbon::parse($from)->format('M d, Y') : 'Start' }} - {{ $to ? \Carbon\Carbon::parse($to)->format('M d, Y') : 'Present' }}
+            </div>
+        @endif
+        @if(isset($branch) && $branch)
+            <div class="report-period">
+                Branch: {{ $branch }}
+            </div>
+        @endif
     </div>
 </div>
 

@@ -108,11 +108,13 @@ document.addEventListener('DOMContentLoaded', function() {
             loginErrorDiv.style.display = "none";
             loginErrorDiv.textContent = "";
             const formData = new FormData(loginForm);
+            // Show spinner
+            const spinner = document.getElementById('login-loading-spinner');
+            if (spinner) spinner.style.display = "block";
+
             fetch(loginForm.action, {
-                            // Show spinner
-                            const spinner = document.getElementById('login-loading-spinner');
-                            if (spinner) spinner.style.display = "block";
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json',
@@ -120,8 +122,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                // If server redirected (non-JSON) assume login succeeded and reload to get session cookie
+                if (response.redirected || (response.status >= 300 && response.status < 400)) {
+                    if (spinner) spinner.style.display = "none";
+                    window.location.reload();
+                    return null;
+                }
+                const ct = response.headers.get('content-type') || '';
+                if (ct.indexOf('application/json') !== -1) {
+                    return response.json();
+                }
+                // fallback: try to parse text as JSON, otherwise reload
+                return response.text().then(text => {
+                    try { return JSON.parse(text); }
+                    catch (e) { if (spinner) spinner.style.display = "none"; window.location.reload(); return null; }
+                });
+            })
             .then(data => {
+                if (!data) return;
                 if (spinner) spinner.style.display = "none";
                 if (data.errors && data.errors.password) {
                     loginErrorDiv.textContent = data.errors.password[0];
@@ -142,8 +161,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.reload();
                 }
             })
-            .catch(() => {
-                                if (spinner) spinner.style.display = "none";
+            .catch((err) => {
+                if (spinner) spinner.style.display = "none";
+                console.error('Login AJAX error:', err);
                 loginErrorDiv.textContent = "Login failed. Please try again.";
                 loginErrorDiv.style.display = "block";
             });

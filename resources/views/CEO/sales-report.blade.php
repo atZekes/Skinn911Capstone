@@ -1,8 +1,8 @@
-@extends('layouts.app')
+@extends('layouts.ceoapp')
 
-@section('content')
-<div class="container">
-    <h1>Sales Report</h1>
+@section('dashboard')
+<div class="container-fluid px-3 px-md-4">
+
 
     <form method="GET" action="{{ route('ceo.sales.report') }}" class="row g-3 mb-4">
         <div class="col-md-3">
@@ -32,6 +32,19 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Report Summary</h5>
+                @if(request('branch_id'))
+                    @php $selectedBranch = \App\Models\Branch::find(request('branch_id')); @endphp
+                    <p class="text-info mb-2">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        Branch: <strong>{{ $selectedBranch ? $selectedBranch->name : 'Unknown' }}</strong>
+                    </p>
+                @endif
+                @if(request('from') || request('to'))
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        Period: {{ request('from') ? \Carbon\Carbon::parse(request('from'))->format('M d, Y') : 'Start' }} - {{ request('to') ? \Carbon\Carbon::parse(request('to'))->format('M d, Y') : 'Present' }}
+                    </p>
+                @endif
                 <p>Total Transactions: <strong>{{ $report['count'] }}</strong></p>
                 <p>Total Revenue: <strong>{{ number_format($report['total'],2) }}</strong></p>
 
@@ -65,7 +78,7 @@
                                 <h6>Top Services</h6>
                                 <ol>
                                     @foreach($metrics['top_services'] as $ts)
-                                        <li>{{ $ts->service_name }} — {{ $ts->tx_count }} tx — {{ number_format($ts->revenue,2) }}</li>
+                                        <li>{{ $ts->service_name }} — {{ $ts->tx_count }} transactions — {{ number_format($ts->revenue,2) }}</li>
                                     @endforeach
                                 </ol>
                             </div>
@@ -80,11 +93,7 @@
                                     @endforeach
                                 </ol>
                             </div>
-                            <div class="col-md-6">
-                                <h6>Peak Hours / Days</h6>
-                                <p>Hours: @foreach($metrics['peak_hours'] as $h) {{ $h->hour }}:00 ({{ $h->cnt }}), @endforeach</p>
-                                <p>Days: @foreach($metrics['peak_days'] as $d) {{ $d->day }} ({{ $d->cnt }}), @endforeach</p>
-                            </div>
+
                         </div>
                     </div>
                 @endif

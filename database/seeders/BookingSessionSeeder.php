@@ -14,14 +14,14 @@ class BookingSessionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Configuration: Total 1000 bookings
-        $totalBookings = 500;
+        // Configuration: Total 100 completed bookings
+        $totalBookings = 100;
         $packageBookingRatio = 0.4; // 40% packages, 60% services
-        $walkinCount = 0; // remove walk-ins - 0 walk-ins will be seeded
-        $clientBookingCount = $totalBookings - $walkinCount; // 900 client bookings
+        $walkinCount = 0; // 0 walk-ins
+        $clientBookingCount = $totalBookings - $walkinCount; // 100 client bookings
 
-        $packageBookingsCount = (int)($clientBookingCount * $packageBookingRatio); // ~360 package bookings
-        $serviceBookingsCount = $clientBookingCount - $packageBookingsCount; // ~540 service bookings
+        $packageBookingsCount = (int)($clientBookingCount * $packageBookingRatio); // ~40 package bookings
+        $serviceBookingsCount = $clientBookingCount - $packageBookingsCount; // ~60 service bookings
 
         // Get data - ONLY email verified clients for bookings
         $userIds = DB::table('users')
@@ -65,18 +65,10 @@ class BookingSessionSeeder extends Seeder
             $branchId = $branchIds[array_rand($branchIds)];
             $package = $packageData[$packageId];
 
-            // Randomly create bookings in past (365 days) OR future (30 days)
-            if (rand(0, 1)) {
-                // Future booking (next 30 days)
-                $daysAhead = rand(0, 30);
-                $bookingDate = Carbon::now()->addDays($daysAhead);
-                $status = 'active';
-            } else {
-                // Past booking (last 365 days)
-                $daysAgo = rand(1, 365);
-                $bookingDate = Carbon::now()->subDays($daysAgo);
-                $status = $this->weightedRandom($statuses, $statusWeights);
-            }
+            // All bookings are past completed bookings
+            $daysAgo = rand(1, 365);
+            $bookingDate = Carbon::now()->subDays($daysAgo);
+            $status = 'completed';
 
             [$paymentStatus, $sessionStatus] = $this->getPaymentAndSessionStatus($status);
 
@@ -105,8 +97,8 @@ class BookingSessionSeeder extends Seeder
 
             // Create package session
             $totalSessions = max(1, $package->total_sessions ?? 5);
-            $sessionsUsed = $status === 'active' ? rand(0, max(0, $totalSessions - 1)) : ($status === 'completed' ? $totalSessions : 0);
-            $sessionsRemaining = max(0, $totalSessions - $sessionsUsed);
+            $sessionsUsed = $totalSessions; // All completed
+            $sessionsRemaining = 0;
 
             // Get first service from package for service_id
             $packageServices = DB::table('package_service')->where('package_id', $packageId)->first();
@@ -120,13 +112,13 @@ class BookingSessionSeeder extends Seeder
                 'total_sessions' => $totalSessions,
                 'sessions_used' => $sessionsUsed,
                 'sessions_remaining' => $sessionsRemaining,
-                'status' => $sessionsRemaining > 0 ? 'active' : ($status === 'refunded' ? 'refunded' : 'completed'),
+                'status' => 'completed',
                 'total_price' => $totalPackagePrice,
                 'payment_status' => $paymentStatus,
                 'payment_method' => 'cash',
                 'purchase_date' => $bookingDate->copy()->subDays(rand(0, 30)),
                 'expiry_date' => $bookingDate->copy()->addDays(rand(30, 180)),
-                'last_completed_session_date' => $sessionsUsed > 0 ? $bookingDate->copy()->subDays(rand(0, 10)) : null,
+                'last_completed_session_date' => $bookingDate->copy()->subDays(rand(0, 10)),
                 'created_at' => $bookingDate,
                 'updated_at' => $bookingDate,
             ]);
@@ -154,18 +146,10 @@ class BookingSessionSeeder extends Seeder
             $branchId = $branchIds[array_rand($branchIds)];
 
             $servicePrice = $this->getServicePrice($serviceId, $defaultServicePrices);
-            // Randomly create bookings in past (365 days) OR future (30 days)
-            if (rand(0, 1)) {
-                // Future booking (next 30 days)
-                $daysAhead = rand(0, 30);
-                $bookingDate = Carbon::now()->addDays($daysAhead);
-                $status = 'active';
-            } else {
-                // Past booking (last 365 days)
-                $daysAgo = rand(1, 365);
-                $bookingDate = Carbon::now()->subDays($daysAgo);
-                $status = $this->weightedRandom($statuses, $statusWeights);
-            }
+            // All bookings are past completed bookings
+            $daysAgo = rand(1, 365);
+            $bookingDate = Carbon::now()->subDays($daysAgo);
+            $status = 'completed';
 
             [$paymentStatus, $sessionStatus] = $this->getPaymentAndSessionStatus($status);
 
@@ -183,10 +167,10 @@ class BookingSessionSeeder extends Seeder
 
             // Create session tracking for multi-session services
             $defaultSessions = $serviceDefaultSessions[$serviceId] ?? 1;
-            if ($status === 'active' && $defaultSessions > 1) {
+            if ($defaultSessions > 1) {
                 $totalSess = rand(max(2, $defaultSessions), max(2, $defaultSessions) + 5);
-                $used = rand(0, max(0, $totalSess - 1));
-                $remaining = max(0, $totalSess - $used);
+                $used = $totalSess; // All completed
+                $remaining = 0;
 
                 DB::table('client_package_sessions')->insert([
                     'booking_id' => $bookingId,
@@ -196,13 +180,13 @@ class BookingSessionSeeder extends Seeder
                     'total_sessions' => $totalSess,
                     'sessions_used' => $used,
                     'sessions_remaining' => $remaining,
-                    'status' => $remaining > 0 ? 'active' : 'completed',
+                    'status' => 'completed',
                     'total_price' => $servicePrice * $totalSess,
                     'payment_status' => $paymentStatus,
                     'payment_method' => 'cash',
                     'purchase_date' => $bookingDate->copy()->subDays(rand(0, 30)),
                     'expiry_date' => $bookingDate->copy()->addDays(rand(30, 180)),
-                    'last_completed_session_date' => $used > 0 ? $bookingDate->copy()->subDays(rand(0, 10)) : null,
+                    'last_completed_session_date' => $bookingDate->copy()->subDays(rand(0, 10)),
                     'created_at' => $bookingDate,
                     'updated_at' => $bookingDate,
                 ]);
@@ -219,11 +203,19 @@ class BookingSessionSeeder extends Seeder
             ]);
 
             if (Schema::hasTable('purchased_services')) {
+                $serviceName = DB::table('services')->where('id', $serviceId)->value('name');
                 $psData = [
                     'booking_id' => $bookingId,
                     'user_id' => $userId,
                     'service_id' => $serviceId,
                     'price' => $servicePrice,
+                    'promo_code' => null,
+                    'description' => $serviceName,
+                    'status' => 'active',
+                    'total_sessions' => 1,
+                    'sessions_used' => 1, // Completed
+                    'sessions_remaining' => 0,
+                    'session_status' => 'completed',
                     'created_at' => $bookingDate,
                     'updated_at' => $bookingDate,
                 ];
@@ -236,7 +228,7 @@ class BookingSessionSeeder extends Seeder
 
         // Walk-ins are removed from seeding by setting $walkinCount = 0.
 
-        $this->command->info("Successfully created {$totalBookings} bookings ({$packageBookingsCount} packages, {$serviceBookingsCount} services, {$walkinCount} walk-ins)");
+        $this->command->info("Successfully created {$totalBookings} completed bookings ({$packageBookingsCount} packages, {$serviceBookingsCount} services, {$walkinCount} walk-ins)");
     }
 
     private function weightedRandom(array $values, array $weights): string

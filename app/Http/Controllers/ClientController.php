@@ -471,23 +471,6 @@ public function submitBooking(Request $request)
 
         $booking->save();
 
-        // Create PurchasedService records for multiple services
-        if (is_array($serviceIds) && count($serviceIds) > 0) {
-            foreach ($serviceIds as $serviceId) {
-                $service = \App\Models\Service::find($serviceId);
-                if ($service) {
-                    \App\Models\PurchasedService::create([
-                        'user_id' => Auth::id(),
-                        'service_id' => $serviceId,
-                        'booking_id' => $booking->id,
-                        'price' => $service->price,
-                        'description' => $service->name,
-                        'status' => 'active'
-                    ]);
-                }
-            }
-        }
-
         $user = Auth::user();
 
         // --- Record transaction with promo discount if applicable ---
@@ -571,6 +554,69 @@ public function submitBooking(Request $request)
             'promo_code' => $promoCode,
         ]);
 
+        // Create PurchasedService records with discounted prices
+        if (is_array($serviceIds) && count($serviceIds) > 0) {
+            foreach ($serviceIds as $serviceId) {
+                $service = \App\Models\Service::find($serviceId);
+                if ($service) {
+                    $discountedPrice = $basePrice > 0 ? round(($service->price / $basePrice) * $finalAmount, 2) : $service->price;
+                    \App\Models\PurchasedService::create([
+                        'user_id' => Auth::id(),
+                        'service_id' => $serviceId,
+                        'booking_id' => $booking->id,
+                        'price' => $discountedPrice,
+                        'promo_code' => $promoCode,
+                        'description' => $service->name,
+                        'status' => 'active',
+                        'branch_id' => $booking->branch_id
+                    ]);
+                }
+            }
+        } elseif ($request->service_id) {
+            // Single service
+            $service = \App\Models\Service::find($request->service_id);
+            if ($service) {
+                $discountedPrice = $finalAmount; // Since single, full amount
+                \App\Models\PurchasedService::create([
+                    'user_id' => Auth::id(),
+                    'service_id' => $request->service_id,
+                    'booking_id' => $booking->id,
+                    'price' => $discountedPrice,
+                    'promo_code' => $promoCode,
+                    'description' => $service->name,
+                    'status' => 'active',
+                    'branch_id' => $booking->branch_id
+                ]);
+            }
+        } elseif ($request->filled('package_id')) {
+            // Package
+            $package = \App\Models\Package::with('services')->find($request->package_id);
+            if ($package) {
+                $numServices = $package->services->count();
+                if ($numServices > 0) {
+                    $proratedPrice = round($finalAmount / $numServices, 2);
+                    foreach ($package->services as $service) {
+                        $pivot = $service->pivot;
+                        $sessions = $pivot ? ($pivot->sessions ?? 1) : 1;
+                        \App\Models\PurchasedService::create([
+                            'user_id' => Auth::id(),
+                            'service_id' => $service->id,
+                            'booking_id' => $booking->id,
+                            'price' => $proratedPrice,
+                            'promo_code' => $promoCode,
+                            'description' => $service->name,
+                            'status' => 'active',
+                            'total_sessions' => $sessions,
+                            'sessions_used' => 0,
+                            'sessions_remaining' => $sessions,
+                            'session_status' => 'active',
+                            'branch_id' => $booking->branch_id
+                        ]);
+                    }
+                }
+            }
+        }
+
         // Record promo usage(s) for this booking if a promo code was applied
         if (!empty($promoCode)) {
             try {
@@ -649,7 +695,8 @@ public function submitBooking(Request $request)
                         'booking_id' => $booking->id,
                         'price' => $svc->price ?? 0,
                         'description' => $svc->name ?? '',
-                        'status' => 'active'
+                        'status' => 'active',
+                        'branch_id' => $booking->branch_id
                     ]);
                 }
             }
